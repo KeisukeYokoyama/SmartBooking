@@ -159,6 +159,10 @@ class Smart_Booking_Admin {
 			return;
 		}
 
+		// 店舗/担当者の画像アップロードで WordPress メディアライブラリを使うため読み込む。
+		// Smart Booking ページのみで読み込み、他画面には影響させない。
+		wp_enqueue_media();
+
 		$asset = include $asset_file;
 		$deps  = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] ) ? $asset['dependencies'] : array();
 		$ver   = isset( $asset['version'] ) ? $asset['version'] : SMART_BOOKING_VERSION;

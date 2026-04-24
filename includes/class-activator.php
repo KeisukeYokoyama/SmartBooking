@@ -28,7 +28,53 @@ class Smart_Booking_Activator {
 	public static function activate() {
 		self::create_tables();
 		self::seed_default_data();
+		self::seed_default_options();
 		update_option( 'smb_db_version', SMART_BOOKING_VERSION );
+	}
+
+	/**
+	 * 初期設定値を投入する。add_option は既存キーがあれば no-op のため、再有効化でも上書きしない。
+	 *
+	 * @return void
+	 */
+	private static function seed_default_options() {
+		$defaults = array(
+			// 基本設定.
+			'smb_booking_flow_order'     => 'date-first',
+			'smb_calendar_view_mode'     => 'day-and-month',
+			'smb_display_days'           => 14,
+			'smb_booking_deadline_days'  => 0,
+			'smb_booking_deadline_hours' => 2,
+			'smb_completion_message'     => 'ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。',
+
+			// メール（デフォルト文面）.
+			'smb_mail_from_name'             => get_option( 'blogname', 'Smart Booking' ),
+			'smb_mail_from_email'            => get_option( 'admin_email', '' ),
+			'smb_mail_receipt_user_subject'  => '【{store_name}】ご予約を受け付けました',
+			'smb_mail_receipt_user_body'     => "{customer_name} 様\n\nご予約を受け付けました。\n下記内容にて承りました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n内容に変更がある場合はご連絡ください。",
+			'smb_mail_receipt_admin_subject' => '【新規予約】{customer_name} 様 ({schedule_date} {schedule_time})',
+			'smb_mail_receipt_admin_body'    => "新しい予約が入りました。\n\n予約番号: {reservation_id}\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約者: {customer_name}\nメール: {customer_email}\n電話: {customer_phone}",
+			'smb_mail_approval_user_subject' => '【{store_name}】ご予約が確定しました',
+			'smb_mail_approval_user_body'    => "{customer_name} 様\n\nご予約が確定しました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n当日お待ちしております。",
+
+			// 外部連携はデフォルト OFF（WordPress.org 審査ルール）.
+			'smb_google_calendar_enabled' => 0,
+			'smb_google_calendar_id'      => '',
+			'smb_chatwork_enabled'        => 0,
+			'smb_chatwork_api_token'      => '',
+			'smb_chatwork_room_id'        => '',
+
+			// デザイン（WordPress admin のブランド色ベース）.
+			'smb_color_button'        => '#2271b1',
+			'smb_color_date_selected' => '#2271b1',
+			'smb_color_time_selected' => '#2271b1',
+			'smb_color_required_mark' => '#d63638',
+			'smb_color_focus'         => '#2271b1',
+		);
+
+		foreach ( $defaults as $key => $value ) {
+			add_option( $key, $value );
+		}
 	}
 
 	/**

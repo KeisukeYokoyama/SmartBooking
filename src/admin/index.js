@@ -1,8 +1,23 @@
 /**
  * Smart Booking 管理画面 React エントリーポイント。
  *
- * フェーズ1 では空のマウントのみ。フェーズ2 で各画面コンポーネントを追加する。
+ * `<div id="smart-booking-admin-app" data-page="...">` をマウント先とし、
+ * data-page 属性から描画するページを決定する。
  */
-// eslint-disable-next-line no-unused-vars
-const container = document.getElementById( 'smart-booking-admin-app' );
-// マウント処理はフェーズ2で追加する。
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import './admin.scss';
+
+function bootstrap() {
+	const container = document.getElementById('smart-booking-admin-app');
+	if (!container) return;
+	const page = container.getAttribute('data-page') || 'schedule';
+	const root = createRoot(container);
+	root.render(<App page={page} />);
+}
+
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+	bootstrap();
+}

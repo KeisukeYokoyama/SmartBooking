@@ -1,0 +1,158 @@
+/**
+ * REST API クライアント。
+ *
+ * wp_localize_script で `smartBookingAdmin` にセットされた restUrl / nonce を使い
+ * WordPress REST API (/smart-booking/v1/) を呼び出すための薄いラッパ。
+ *
+ * - 常に Cookie 認証 (credentials: 'same-origin') を使う
+ * - 書き込み系リクエストには X-WP-Nonce を付与する
+ * - 4xx/5xx はエラーを throw し、サーバの message を Error に含める
+ */
+
+const globalCtx = typeof window !== 'undefined' ? window.smartBookingAdmin || {} : {};
+const REST_URL = globalCtx.restUrl || '/wp-json/smart-booking/v1/';
+const NONCE = globalCtx.nonce || '';
+
+/**
+ * URL にクエリ文字列を付与する。null/undefined/空文字はスキップ。
+ *
+ * @param {string} path  REST URL からのサブパス ('stores', 'schedules/copy', 'stores/5' など)
+ * @param {object} [params] クエリパラメタ
+ * @returns {string}
+ */
+function buildUrl(path, params) {
+	const base = REST_URL.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+	if (!params || Object.keys(params).length === 0) return base;
+	const qs = Object.entries(params)
+		.filter(([, v]) => v !== undefined && v !== null && v !== '')
+		.map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v))
+		.join('&');
+	return qs ? base + '?' + qs : base;
+}
+
+/**
+ * fetch のラッパ。HTTP エラー時は Error を throw。
+ *
+ * @param {string} url
+ * @param {RequestInit} init
+ * @returns {Promise<any>}
+ */
+async function request(url, init = {}) {
+	const headers = {
+		Accept: 'application/json',
+		...(init.headers || {}),
+	};
+	if (init.method && init.method !== 'GET' && init.method !== 'HEAD') {
+		headers['X-WP-Nonce'] = NONCE;
+		if (init.body && typeof init.body === 'string' && !headers['Content-Type']) {
+			headers['Content-Type'] = 'application/json';
+		}
+	} else {
+		// GET にも nonce を付与しておくと wp のキャッシュ/認可判定で安全側.
+		headers['X-WP-Nonce'] = NONCE;
+	}
+
+	const res = await fetch(url, {
+		credentials: 'same-origin',
+		...init,
+		headers,
+	});
+
+	// CSV など JSON 以外のレスポンスも考慮.
+	const contentType = res.headers.get('content-type') || '';
+
+	if (!res.ok) {
+		let message = '通信に失敗しました (HTTP ' + res.status + ')';
+		if (contentType.includes('application/json')) {
+			try {
+				const body = await res.json();
+				if (body && body.message) message = body.message;
+				const err = new Error(message);
+				err.status = res.status;
+				err.code = body && body.code ? body.code : null;
+				err.data = body && body.data ? body.data : null;
+				throw err;
+			} catch (parseErr) {
+				if (parseErr instanceof Error && parseErr.message !== message) {
+					// JSON 解析失敗。デフォルトメッセージで throw.
+				}
+			}
+		}
+		const err = new Error(message);
+		err.status = res.status;
+		throw err;
+	}
+
+	if (contentType.includes('application/json')) {
+		return res.json();
+	}
+	if (contentType.includes('text/csv')) {
+		return res.blob();
+	}
+	return res.text();
+}
+
+export function apiGet(path, params) {
+	return request(buildUrl(path, params), { method: 'GET' });
+}
+
+export function apiPost(path, data) {
+	return request(buildUrl(path), {
+		method: 'POST',
+		body: JSON.stringify(data || {}),
+	});
+}
+
+export function apiPut(path, data) {
+	return request(buildUrl(path), {
+		method: 'PUT',
+		body: JSON.stringify(data || {}),
+	});
+}
+
+export function apiDelete(path) {
+	return request(buildUrl(path), { method: 'DELETE' });
+}
+
+export const API = {
+	stores: {
+		list: (params) => apiGet('stores', params),
+		get: (id) => apiGet('stores/' + id),
+		create: (data) => apiPost('stores', data),
+		update: (id, data) => apiPut('stores/' + id, data),
+		remove: (id) => apiDelete('stores/' + id),
+	},
+	staff: {
+		list: (params) => apiGet('staff', params),
+		get: (id) => apiGet('staff/' + id),
+		create: (data) => apiPost('staff', data),
+		update: (id, data) => apiPut('staff/' + id, data),
+		remove: (id) => apiDelete('staff/' + id),
+	},
+	schedules: {
+		list: (params) => apiGet('schedules', params),
+		get: (id) => apiGet('schedules/' + id),
+		create: (data) => apiPost('schedules', data),
+		update: (id, data) => apiPut('schedules/' + id, data),
+		remove: (id) => apiDelete('schedules/' + id),
+		copy: (data) => apiPost('schedules/copy', data),
+	},
+	reservations: {
+		list: (params) => apiGet('reservations', params),
+		get: (id) => apiGet('reservations/' + id),
+		create: (data) => apiPost('reservations', data),
+		update: (id, data) => apiPut('reservations/' + id, data),
+		remove: (id) => apiDelete('reservations/' + id),
+	},
+	customFields: {
+		list: () => apiGet('custom-fields'),
+		create: (data) => apiPost('custom-fields', data),
+		update: (id, data) => apiPut('custom-fields/' + id, data),
+		remove: (id) => apiDelete('custom-fields/' + id),
+		reorder: (items) => apiPut('custom-fields/reorder', { items }),
+	},
+	settings: {
+		get: () => apiGet('settings'),
+		update: (settings) => apiPost('settings', { settings }),
+	},
+};
