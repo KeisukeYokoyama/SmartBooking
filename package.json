@@ -15,6 +15,7 @@
     "env:destroy": "wp-env destroy"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@wordpress/env": "^11.4.0",
     "@wordpress/scripts": "^32.0.0"
   }

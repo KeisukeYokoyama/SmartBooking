@@ -175,6 +175,7 @@ npm -v
 - レスポンシブテスト: スマホ幅（375px）での操作確認を全画面で行う
 - アクセシビリティ: キーボード操作、フォーカス順序、ラベルの適切さを確認する
 - **UI/UX レビュー観点**（下記チェックリスト参照）を全画面・全フローで実施する
+- **⚠️ 絶対禁止コマンド**: `npx wp-env run cli wp plugin delete smart-booking` は wp-env の bind mount 構造上、ホストのプロジェクトファイルを再帰削除する。代わりに `wp eval-file uninstall.php` で uninstall.php を直接実行して検証すること。同様に `rm -rf` をプロジェクトパスに対して実行しない
 - テスト結果は以下の形式で報告する:
   - ✅ パスしたテスト一覧
   - ❌ 失敗したテスト一覧（エラーメッセージ、スクリーンショットパス付き）
@@ -499,8 +500,10 @@ npx wp-env run cli wp plugin activate smart-booking
 # プラグイン無効化
 npx wp-env run cli wp plugin deactivate smart-booking
 
-# プラグイン削除（uninstall.php が実行される）
-npx wp-env run cli wp plugin delete smart-booking
+# ⚠️ 絶対禁止: wp-env 内で wp plugin delete を実行しない
+# wp-env はホストの /Users/keisukeyokoyama/dev/smart-booking/ を bind mount しているため、
+# WP_Filesystem::delete() がホスト側のプロジェクトファイルを再帰削除する事故が発生する。
+# uninstall.php の検証は「wp eval-file で uninstall.php を直接読み込む」方式で行うこと。
 
 # DB直接クエリ
 npx wp-env run cli wp db query "SQL文;"
@@ -524,3 +527,17 @@ npx wp-env logs
 - error_log() を本番コードに残さない
 - init フックでテーブル作成しない
 - Orchestrator がフェーズ4〜5を人間の確認なしに開始しない
+- **wp-env 内で `wp plugin delete smart-booking` を実行しない（ホスト側のプロジェクトファイルが消失する。過去に実インシデント発生済み）**
+- **`rm -rf` をプロジェクトルートに対して実行しない**
+
+## 過去インシデント記録
+
+### 2026-04-24: wp-env bind mount によるプロジェクトファイル消失事故
+
+**事象**: Phase 1 の Evaluator が `phase1-uninstall.spec.js` 内で `npx wp-env run cli wp plugin delete smart-booking` を実行した結果、wp-env がホストディレクトリを bind mount している構造のため、`WP_Filesystem::delete()` がホスト側の `/Users/keisukeyokoyama/dev/smart-booking/` を再帰削除した。`.git/`, `docs/`, `includes/`, `src/`, 主要 PHP/JS ファイルを失った。GitHub への push 済みコミットから復旧したが、フェーズ1作業の一部は会話コンテキストから手動再構築となった。
+
+**恒久対策**:
+1. `.claude/settings.local.json` の `permissions.deny` に `Bash(npx wp-env run cli wp plugin delete*)` を追加（登録済み）
+2. 本ガイドの「wp-env 操作リファレンス」から `wp plugin delete` コマンドを削除
+3. uninstall 検証は `wp eval-file uninstall.php` または PHP直接実行で行う（wp-envのプラグイン削除機能を使わない）
+4. 各フェーズ完了時だけでなく、**破壊的操作の前には必ず git push** する運用とする

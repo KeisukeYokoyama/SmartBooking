@@ -12,6 +12,8 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       smart-booking
  * Domain Path:       /languages
+ *
+ * @package Smart_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,3 +24,34 @@ define( 'SMART_BOOKING_VERSION', '0.1.0' );
 define( 'SMART_BOOKING_PLUGIN_FILE', __FILE__ );
 define( 'SMART_BOOKING_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SMART_BOOKING_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+// クラスファイルの読み込み.
+require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-activator.php';
+require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-admin.php';
+require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-rest-api.php';
+require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-shortcode.php';
+
+// 有効化フック: テーブル作成 + 初期データ投入（init ではなくここでのみ実行）.
+register_activation_hook( __FILE__, array( 'Smart_Booking_Activator', 'activate' ) );
+
+/**
+ * プラグインの各コンポーネントを初期化する。
+ *
+ * @return void
+ */
+function smart_booking_bootstrap() {
+	// 管理画面（メニュー + React マウント + enqueue）.
+	if ( is_admin() ) {
+		$admin = new Smart_Booking_Admin();
+		$admin->init();
+	}
+
+	// REST API（管理画面・フロント両方で必要）.
+	$rest_api = new Smart_Booking_REST_API();
+	$rest_api->init();
+
+	// フロントショートコード.
+	$shortcode = new Smart_Booking_Shortcode();
+	$shortcode->init();
+}
+add_action( 'plugins_loaded', 'smart_booking_bootstrap' );

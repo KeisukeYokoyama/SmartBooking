@@ -8,3 +8,9 @@ vendor/
 *.log
 
 .wp-env.override.json
+
+# Playwright
+test-results/
+playwright-report/
+.playwright/
+tests/e2e/.db-snapshot.json

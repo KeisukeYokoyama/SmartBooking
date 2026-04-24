@@ -5,6 +5,13 @@
       "Bash(git add *)",
       "Bash(ssh -T git@github.com)",
       "Bash(ssh -T -o StrictHostKeyChecking=accept-new git@github.com)"
+    ],
+    "deny": [
+      "Bash(npx wp-env run cli wp plugin delete*)",
+      "Bash(npx wp-env run tests-cli wp plugin delete*)",
+      "Bash(wp plugin delete*)",
+      "Bash(rm -rf /Users/keisukeyokoyama/dev/smart-booking*)",
+      "Bash(rm -rf smart-booking*)"
     ]
   }
 }
