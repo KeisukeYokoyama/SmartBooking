@@ -1,0 +1,21 @@
+{
+  "name": "smart-booking",
+  "version": "0.1.0",
+  "description": "WordPress予約プラグイン「Smart Booking」",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "author": "株式会社リベルダージ (Liberdade Inc.)",
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "format": "wp-scripts format",
+    "lint:js": "wp-scripts lint-js",
+    "env:start": "wp-env start",
+    "env:stop": "wp-env stop",
+    "env:destroy": "wp-env destroy"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^11.4.0",
+    "@wordpress/scripts": "^32.0.0"
+  }
+}
