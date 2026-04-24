@@ -114,6 +114,61 @@ export function apiDelete(path) {
 	return request(buildUrl(path), { method: 'DELETE' });
 }
 
+/**
+ * CSV などのファイルダウンロード用。
+ *
+ * サーバから Blob を受け取り、非表示の <a download> でブラウザの保存ダイアログを起動する。
+ * 成功時は filename を返す。失敗時は Error を throw。
+ *
+ * @param {string} path
+ * @param {object} [params]
+ * @param {string} [filename] ダウンロード時のファイル名（省略時はサーバ側 Content-Disposition か自動生成）
+ * @returns {Promise<string>}
+ */
+export async function apiDownload(path, params, filename) {
+	const url = buildUrl(path, params);
+	const res = await fetch(url, {
+		method: 'GET',
+		credentials: 'same-origin',
+		headers: {
+			Accept: 'text/csv, application/octet-stream, */*',
+			'X-WP-Nonce': NONCE,
+		},
+	});
+	if (!res.ok) {
+		let message = '通信に失敗しました (HTTP ' + res.status + ')';
+		try {
+			const body = await res.json();
+			if (body && body.message) message = body.message;
+		} catch {
+			// noop.
+		}
+		const err = new Error(message);
+		err.status = res.status;
+		throw err;
+	}
+
+	const blob = await res.blob();
+	let saveName = filename;
+	if (!saveName) {
+		// Content-Disposition から推測.
+		const cd = res.headers.get('content-disposition') || '';
+		const m = /filename="?([^";]+)"?/i.exec(cd);
+		saveName = m ? m[1] : 'download.csv';
+	}
+
+	const objectUrl = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = objectUrl;
+	a.download = saveName;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	// Safari の遅延対応で少し待ってから revoke。
+	setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+	return saveName;
+}
+
 export const API = {
 	stores: {
 		list: (params) => apiGet('stores', params),

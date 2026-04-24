@@ -2205,3 +2205,977 @@
 	font-size: 13px;
 	color: var(--smb-color-text-muted);
 }
+
+/* ==========================================================================
+   予約一覧ページ
+   ========================================================================== */
+
+.smb-page--reservations .smb-page__content--reservations {
+	padding: 0;
+	overflow: hidden;
+}
+
+/* ---------- ステータスバッジ ---------- */
+
+.smb-status-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.4;
+	white-space: nowrap;
+	border: 1px solid transparent;
+
+	&__icon {
+		font-size: 10px;
+		line-height: 1;
+	}
+
+	&--pending {
+		background: rgba(219, 166, 23, 0.12);
+		color: #a36f00;
+		border-color: rgba(219, 166, 23, 0.35);
+	}
+
+	&--approved {
+		background: rgba(0, 163, 42, 0.12);
+		color: #007a1e;
+		border-color: rgba(0, 163, 42, 0.3);
+	}
+
+	&--cancelled {
+		background: rgba(120, 124, 130, 0.14);
+		color: #50575e;
+		border-color: rgba(120, 124, 130, 0.3);
+	}
+
+	&--unknown {
+		background: var(--smb-color-bg);
+		color: var(--smb-color-text-muted);
+		border-color: var(--smb-color-border);
+	}
+}
+
+/* ---------- フィルター ---------- */
+
+.smb-reservation-filters {
+	background: var(--smb-color-bg-elev);
+	border: 1px solid var(--smb-color-divider);
+	border-radius: var(--smb-radius-lg);
+	box-shadow: var(--smb-shadow-sm);
+	margin-bottom: 16px;
+	overflow: hidden;
+
+	&__header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 16px;
+		border-bottom: 1px solid var(--smb-color-divider);
+		background: var(--smb-color-bg);
+	}
+
+	&__toggle {
+		appearance: none;
+		background: transparent;
+		border: 0;
+		padding: 4px 6px;
+		margin: -4px -6px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--smb-color-text);
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+		border-radius: var(--smb-radius-sm);
+
+		&:hover {
+			color: var(--smb-color-primary);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--smb-color-primary);
+			outline-offset: 2px;
+		}
+	}
+
+	&__toggle-icon {
+		display: inline-block;
+		width: 14px;
+		color: var(--smb-color-text-muted);
+		transition: transform var(--smb-transition);
+	}
+
+	&__count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 20px;
+		height: 20px;
+		padding: 0 6px;
+		font-size: 11px;
+		font-weight: 700;
+		background: var(--smb-color-primary);
+		color: #fff;
+		border-radius: 999px;
+	}
+
+	&__clear {
+		appearance: none;
+		background: transparent;
+		border: 0;
+		padding: 4px 8px;
+		font-size: 13px;
+		color: var(--smb-color-primary);
+		cursor: pointer;
+		border-radius: var(--smb-radius-sm);
+
+		&:hover {
+			background: var(--smb-color-primary-bg);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--smb-color-primary);
+			outline-offset: 2px;
+		}
+	}
+
+	&__body {
+		padding: 16px;
+	}
+
+	&__grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 12px 16px;
+	}
+
+	&__date-range {
+		display: flex;
+		align-items: flex-end;
+		gap: 8px;
+		min-width: 260px;
+
+		.smb-field {
+			flex: 1;
+		}
+	}
+
+	&__date-sep {
+		padding-bottom: 10px;
+		color: var(--smb-color-text-muted);
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 8px;
+	}
+}
+
+/* ---------- テーブル ---------- */
+
+.smb-table-wrapper {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.smb-table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-size: 13px;
+}
+
+.smb-table__th {
+	text-align: left;
+	font-weight: 600;
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
+	background: var(--smb-color-bg);
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--smb-color-divider);
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+
+	&:first-child {
+		padding-left: 20px;
+	}
+	&:last-child {
+		padding-right: 20px;
+	}
+}
+
+.smb-table__th--sortable {
+	padding: 0;
+}
+
+.smb-table__sort-btn {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	width: 100%;
+	text-align: left;
+	padding: 10px 12px;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+
+	.smb-table__th:first-child & {
+		padding-left: 20px;
+	}
+
+	&:hover {
+		color: var(--smb-color-text);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--smb-color-primary);
+		outline-offset: -2px;
+	}
+}
+
+.smb-table__sort-icon {
+	font-size: 10px;
+	color: var(--smb-color-text-subtle);
+
+	&.is-active {
+		color: var(--smb-color-primary);
+	}
+}
+
+.smb-table__th--actions {
+	text-align: right;
+}
+
+.smb-table__td {
+	padding: 12px;
+	border-bottom: 1px solid var(--smb-color-divider);
+	color: var(--smb-color-text);
+	vertical-align: middle;
+
+	&:first-child {
+		padding-left: 20px;
+	}
+	&:last-child {
+		padding-right: 20px;
+	}
+}
+
+.smb-table__row {
+	transition: background-color var(--smb-transition);
+
+	&:hover {
+		background: var(--smb-color-primary-bg);
+	}
+
+	&.is-pending {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+}
+
+.smb-table__td--id {
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.smb-table__link {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	font: inherit;
+	color: var(--smb-color-primary);
+	cursor: pointer;
+	text-decoration: none;
+
+	&:hover {
+		text-decoration: underline;
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--smb-color-primary);
+		outline-offset: 2px;
+		border-radius: var(--smb-radius-sm);
+	}
+}
+
+.smb-table__link--name {
+	color: var(--smb-color-text);
+	font-weight: 500;
+}
+
+.smb-table__datetime {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.3;
+}
+
+.smb-table__date {
+	font-weight: 500;
+}
+
+.smb-table__time {
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.smb-table__contact {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.3;
+	word-break: break-all;
+}
+
+.smb-table__contact-sub {
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
+}
+
+.smb-table__store {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.3;
+}
+
+.smb-table__store-sub {
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
+}
+
+.smb-table__created {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.3;
+	font-variant-numeric: tabular-nums;
+	color: var(--smb-color-text-muted);
+	font-size: 12px;
+}
+
+.smb-table__created-time {
+	font-size: 11px;
+	color: var(--smb-color-text-subtle);
+}
+
+.smb-table__td--actions {
+	text-align: right;
+}
+
+.smb-table__actions {
+	display: inline-flex;
+	gap: 6px;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+}
+
+/* ---------- 行ボタン ---------- */
+
+.smb-row-btn {
+	appearance: none;
+	padding: 5px 10px;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.2;
+	background: var(--smb-color-bg-elev);
+	border: 1px solid var(--smb-color-border);
+	color: var(--smb-color-text);
+	border-radius: var(--smb-radius);
+	cursor: pointer;
+	transition: background-color var(--smb-transition), color var(--smb-transition),
+		border-color var(--smb-transition);
+
+	&:hover:not(:disabled) {
+		background: var(--smb-color-bg);
+		border-color: var(--smb-color-border-strong);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--smb-color-primary);
+		outline-offset: 2px;
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	&--primary {
+		background: var(--smb-color-primary-bg);
+		border-color: rgba(34, 113, 177, 0.3);
+		color: var(--smb-color-primary);
+
+		&:hover:not(:disabled) {
+			background: var(--smb-color-primary);
+			color: #fff;
+			border-color: var(--smb-color-primary);
+		}
+	}
+
+	&--success {
+		background: rgba(0, 163, 42, 0.1);
+		border-color: rgba(0, 163, 42, 0.35);
+		color: #007a1e;
+
+		&:hover:not(:disabled) {
+			background: var(--smb-color-success);
+			color: #fff;
+			border-color: var(--smb-color-success);
+		}
+	}
+
+	&--danger {
+		color: var(--smb-color-danger);
+		border-color: rgba(214, 54, 56, 0.35);
+
+		&:hover:not(:disabled) {
+			background: var(--smb-color-danger);
+			color: #fff;
+			border-color: var(--smb-color-danger);
+		}
+	}
+}
+
+/* ---------- モバイル用カード ---------- */
+
+.smb-reservation-cards {
+	list-style: none;
+	margin: 0;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.smb-reservation-card {
+	background: var(--smb-color-bg-elev);
+	border: 1px solid var(--smb-color-divider);
+	border-radius: var(--smb-radius-lg);
+	overflow: hidden;
+	transition: box-shadow var(--smb-transition), border-color var(--smb-transition);
+
+	&:hover {
+		border-color: var(--smb-color-border-strong);
+		box-shadow: var(--smb-shadow-sm);
+	}
+
+	&.is-pending {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+
+	&__body {
+		appearance: none;
+		width: 100%;
+		background: transparent;
+		border: 0;
+		text-align: left;
+		padding: 14px 16px;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+
+		&:focus-visible {
+			outline: 2px solid var(--smb-color-primary);
+			outline-offset: -2px;
+		}
+	}
+
+	&__top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+	}
+
+	&__id {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--smb-color-text-subtle);
+		font-variant-numeric: tabular-nums;
+	}
+
+	&__name {
+		font-size: 15px;
+		font-weight: 600;
+		color: var(--smb-color-text);
+	}
+
+	&__meta {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		font-size: 12px;
+		color: var(--smb-color-text-muted);
+	}
+
+	&__date {
+		font-variant-numeric: tabular-nums;
+	}
+
+	&__actions {
+		display: flex;
+		gap: 6px;
+		padding: 10px 16px;
+		background: var(--smb-color-bg);
+		border-top: 1px solid var(--smb-color-divider);
+		flex-wrap: wrap;
+	}
+}
+
+/* ---------- ページネーション ---------- */
+
+.smb-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 20px;
+	border-top: 1px solid var(--smb-color-divider);
+	background: var(--smb-color-bg);
+	flex-wrap: wrap;
+
+	&__summary {
+		font-size: 12px;
+		color: var(--smb-color-text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	&__nav {
+		display: inline-flex;
+		gap: 4px;
+	}
+
+	&__btn {
+		appearance: none;
+		min-width: 30px;
+		height: 30px;
+		padding: 0 8px;
+		font-size: 13px;
+		font-weight: 500;
+		background: var(--smb-color-bg-elev);
+		border: 1px solid var(--smb-color-border);
+		color: var(--smb-color-text);
+		border-radius: var(--smb-radius);
+		cursor: pointer;
+		font-variant-numeric: tabular-nums;
+
+		&:hover:not(:disabled):not(.is-current) {
+			background: var(--smb-color-primary-bg);
+			border-color: var(--smb-color-primary);
+			color: var(--smb-color-primary);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--smb-color-primary);
+			outline-offset: 2px;
+		}
+
+		&:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+
+		&.is-current {
+			background: var(--smb-color-primary);
+			border-color: var(--smb-color-primary);
+			color: #fff;
+			cursor: default;
+		}
+	}
+
+	&__ellipsis {
+		padding: 0 4px;
+		color: var(--smb-color-text-subtle);
+		align-self: center;
+	}
+}
+
+/* ---------- 予約詳細モーダル ---------- */
+
+.smb-reservation-detail {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+
+	&__summary {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 10px 14px;
+		background: var(--smb-color-bg);
+		border-radius: var(--smb-radius);
+		border: 1px solid var(--smb-color-divider);
+	}
+
+	&__summary-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		font-size: 13px;
+	}
+
+	&__label {
+		color: var(--smb-color-text-muted);
+		font-weight: 500;
+	}
+
+	&__value {
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+
+	&__section {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	&__section-title {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--smb-color-text);
+		margin: 0;
+		padding-bottom: 6px;
+		border-bottom: 1px solid var(--smb-color-divider);
+	}
+
+	&__defs {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 10px 16px;
+		margin: 0;
+
+		div {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			min-width: 0;
+		}
+
+		dt {
+			font-size: 11px;
+			font-weight: 600;
+			color: var(--smb-color-text-muted);
+			letter-spacing: 0.03em;
+			text-transform: uppercase;
+		}
+
+		dd {
+			margin: 0;
+			font-size: 14px;
+			color: var(--smb-color-text);
+			word-break: break-word;
+		}
+
+		&--inline {
+			grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+			gap: 6px 16px;
+
+			dt {
+				font-size: 11px;
+			}
+			dd {
+				font-size: 12px;
+				color: var(--smb-color-text-muted);
+				font-variant-numeric: tabular-nums;
+			}
+		}
+	}
+
+	&__hint {
+		font-size: 12px;
+		color: var(--smb-color-text-muted);
+		margin: 0;
+	}
+
+	&__section--meta {
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px dashed var(--smb-color-divider);
+	}
+}
+
+.smb-modal__spacer {
+	flex: 1;
+}
+
+/* ---------- 手動予約作成モーダル ---------- */
+
+.smb-step-indicator {
+	list-style: none;
+	margin: 0 0 16px;
+	padding: 0;
+	display: flex;
+	gap: 0;
+	counter-reset: step;
+
+	&__item {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 10px 12px;
+		background: var(--smb-color-bg);
+		border: 1px solid var(--smb-color-divider);
+		font-size: 13px;
+		color: var(--smb-color-text-muted);
+
+		&:first-child {
+			border-top-left-radius: var(--smb-radius);
+			border-bottom-left-radius: var(--smb-radius);
+		}
+
+		&:last-child {
+			border-top-right-radius: var(--smb-radius);
+			border-bottom-right-radius: var(--smb-radius);
+			border-left: 0;
+		}
+
+		&.is-current {
+			background: var(--smb-color-primary-bg);
+			border-color: var(--smb-color-primary);
+			color: var(--smb-color-primary);
+			font-weight: 600;
+		}
+
+		&.is-done {
+			color: var(--smb-color-success);
+		}
+	}
+
+	&__num {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: 999px;
+		background: var(--smb-color-bg-elev);
+		border: 1px solid var(--smb-color-border);
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--smb-color-text-muted);
+
+		.is-current & {
+			background: var(--smb-color-primary);
+			border-color: var(--smb-color-primary);
+			color: #fff;
+		}
+
+		.is-done & {
+			background: var(--smb-color-success);
+			border-color: var(--smb-color-success);
+			color: #fff;
+		}
+	}
+
+	&__label {
+		font-size: 13px;
+	}
+}
+
+.smb-manual-step {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+
+	&__filters {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		gap: 12px;
+	}
+
+	&__slots {
+		border-top: 1px solid var(--smb-color-divider);
+		padding-top: 14px;
+	}
+
+	&__title {
+		font-size: 14px;
+		font-weight: 600;
+		margin-bottom: 10px;
+	}
+
+	&__empty {
+		padding: 20px;
+		text-align: center;
+		color: var(--smb-color-text-muted);
+		font-size: 13px;
+		background: var(--smb-color-bg);
+		border-radius: var(--smb-radius);
+		border: 1px dashed var(--smb-color-border);
+	}
+
+	&__slot-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		gap: 8px;
+	}
+}
+
+.smb-slot-btn {
+	appearance: none;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	padding: 10px 12px;
+	background: var(--smb-color-bg-elev);
+	border: 1px solid var(--smb-color-border);
+	border-radius: var(--smb-radius);
+	cursor: pointer;
+	text-align: left;
+	transition: border-color var(--smb-transition), background-color var(--smb-transition),
+		box-shadow var(--smb-transition);
+
+	&:hover:not(:disabled) {
+		border-color: var(--smb-color-primary);
+		background: var(--smb-color-primary-bg);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--smb-color-primary);
+		outline-offset: 2px;
+	}
+
+	&.is-selected {
+		border-color: var(--smb-color-primary);
+		background: var(--smb-color-primary-bg);
+		box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.2);
+	}
+
+	&.is-disabled,
+	&:disabled {
+		background: var(--smb-color-bg);
+		color: var(--smb-color-text-subtle);
+		cursor: not-allowed;
+		opacity: 0.7;
+	}
+
+	&__time {
+		font-size: 14px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		color: var(--smb-color-text);
+
+		.is-disabled &,
+		:disabled & {
+			color: var(--smb-color-text-muted);
+		}
+	}
+
+	&__staff {
+		font-size: 12px;
+		color: var(--smb-color-text-muted);
+	}
+
+	&__capacity {
+		font-size: 11px;
+		color: var(--smb-color-text-subtle);
+		margin-top: 4px;
+
+		.is-disabled &,
+		:disabled & {
+			color: var(--smb-color-danger);
+			font-weight: 600;
+		}
+	}
+}
+
+.smb-manual-form {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+
+	&__summary {
+		padding: 10px 14px;
+		background: var(--smb-color-primary-bg);
+		border: 1px solid rgba(34, 113, 177, 0.3);
+		border-radius: var(--smb-radius);
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	&__summary-label {
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--smb-color-primary);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	&__summary-value {
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--smb-color-text);
+	}
+}
+
+/* ---------- 汎用: radio/checkbox グループ ---------- */
+
+.smb-radio-group,
+.smb-checkbox-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	padding: 4px 0;
+}
+
+.smb-radio-option,
+.smb-checkbox-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 14px;
+	color: var(--smb-color-text);
+	cursor: pointer;
+	user-select: none;
+
+	input {
+		width: 16px;
+		height: 16px;
+	}
+}
+
+/* ---------- レスポンシブ ---------- */
+
+@media (max-width: 780px) {
+	.smb-reservation-filters__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.smb-reservation-filters__date-range {
+		min-width: 0;
+	}
+
+	.smb-page--reservations .smb-page__actions {
+		width: 100%;
+
+		.smb-btn {
+			flex: 1;
+		}
+	}
+}
+
+@media (max-width: 600px) {
+	.smb-pagination {
+		justify-content: center;
+	}
+}
+
