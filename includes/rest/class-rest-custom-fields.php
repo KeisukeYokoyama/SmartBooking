@@ -245,8 +245,10 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			$data,
 			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
 		);
-		$id = (int) $wpdb->insert_id;
-		return $this->get_item( new WP_REST_Request( 'GET', '', array( 'id' => $id ) ) );
+		$id      = (int) $wpdb->insert_id;
+		$get_req = new WP_REST_Request( 'GET' );
+		$get_req->set_param( 'id', $id );
+		return $this->get_item( $get_req );
 	}
 
 	/**
