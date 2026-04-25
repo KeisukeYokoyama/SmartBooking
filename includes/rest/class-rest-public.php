@@ -405,7 +405,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 * - 空き状況の判定:
 	 *     closed    : 締切超過
 	 *     full      : booked_count >= capacity
-	 *     few_left  : booked_count >= capacity * 0.7（残り3割未満）
+	 *     few_left  : 残席 <= 2 もしくは 残席 <= ceil(capacity * 0.3)
+	 *                 （capacity が小さい枠でも最後の数席で「残りわずか」を出すため、
+	 *                  絶対数（2 席）と残席率（30%）のいずれかが満たされれば few_left）
 	 *     available : 上記いずれでもない
 	 *
 	 * @param WP_REST_Request $request リクエスト.
@@ -504,8 +506,12 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				$availability = 'closed';
 			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
 				$availability = 'full';
-			} elseif ( $capacity > 0 && $booked_count >= (int) ceil( $capacity * 0.7 ) ) {
-				$availability = 'few_left';
+			} elseif ( $capacity > 0 ) {
+				$available     = $capacity - $booked_count;
+				$ratio_thresh  = (int) ceil( $capacity * 0.3 );
+				if ( $available <= 2 || $available <= $ratio_thresh ) {
+					$availability = 'few_left';
+				}
 			}
 
 			// start_time / end_time は HH:MM に整形してフロントへ返す（表示用）。
@@ -766,12 +772,13 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		return rest_ensure_response(
 			array(
-				'id'            => $reservation_id,
-				'schedule_date' => (string) $schedule['schedule_date'],
-				'schedule_time' => substr( (string) $schedule['start_time'], 0, 5 ),
-				'store_name'    => $store_name,
-				'staff_name'    => $staff_name,
-				'status'        => 'pending',
+				'id'                => $reservation_id,
+				'schedule_date'     => (string) $schedule['schedule_date'],
+				'schedule_time'     => substr( (string) $schedule['start_time'], 0, 5 ),
+				'schedule_end_time' => substr( (string) $schedule['end_time'], 0, 5 ),
+				'store_name'        => $store_name,
+				'staff_name'        => $staff_name,
+				'status'            => 'pending',
 			)
 		);
 	}

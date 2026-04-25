@@ -383,7 +383,7 @@ export default function FormInput({ state, dispatch, onBack }) {
 				*/}
 				<div className="smb-front-honeypot" aria-hidden="true">
 					<label>
-						Leave this field empty
+						この欄は入力しないでください
 						<input
 							type="text"
 							name="email_confirm"

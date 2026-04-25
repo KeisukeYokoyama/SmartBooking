@@ -162,6 +162,7 @@ export default function DateSelect({
 						type="button"
 						role="tab"
 						aria-selected={viewMode === 'day'}
+						aria-label="日表示に切り替え"
 						className={`smb-front-calendar-toggle__btn ${viewMode === 'day' ? 'is-active' : ''}`}
 						onClick={() => setViewMode('day')}
 					>
@@ -171,6 +172,7 @@ export default function DateSelect({
 						type="button"
 						role="tab"
 						aria-selected={viewMode === 'month'}
+						aria-label="月表示に切り替え"
 						className={`smb-front-calendar-toggle__btn ${viewMode === 'month' ? 'is-active' : ''}`}
 						onClick={() => setViewMode('month')}
 					>

@@ -2,9 +2,10 @@
  * 予約完了画面 (Gen-C).
  *
  * 仕様 3.7:
- *   - 表示内容: 完了メッセージ、予約番号、予約日時
+ *   - 表示内容: 完了メッセージ、予約番号、予約日時（日付 + 時間 [start 〜 end]）
  *   - 完了メッセージは `settings.completion_message` に格納されている（HTML 許可。サーバ側で wp_kses_post 済み）。
  *   - 予約番号は state.completedReservation.id。
+ *   - 日時表示は ConfirmPage と揃え、「日付」と「時間（start 〜 end）」を別 dt/dd で表示。
  */
 import { useEffect, useRef } from 'react';
 import { formatMonthDay, fromYmd } from '../dateUtils';
@@ -81,12 +82,18 @@ export default function DonePage({ state }) {
 					)}
 					{completedReservation.schedule_date && (
 						<>
-							<dt>日時</dt>
+							<dt>日付</dt>
+							<dd>{formatDateLabel(completedReservation.schedule_date)}</dd>
+						</>
+					)}
+					{completedReservation.schedule_time && (
+						<>
+							<dt>時間</dt>
 							<dd>
-								{formatDateLabel(completedReservation.schedule_date)}
-								{completedReservation.schedule_time && (
-									<> {completedReservation.schedule_time}</>
-								)}
+								{completedReservation.schedule_time}
+								{completedReservation.schedule_end_time
+									? <> 〜 {completedReservation.schedule_end_time}</>
+									: null}
 							</dd>
 						</>
 					)}

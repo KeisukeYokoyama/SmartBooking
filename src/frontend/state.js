@@ -405,8 +405,24 @@ export function reducer(state, action) {
 			};
 		}
 
-		case 'GO_TO_STEP':
-			return { ...state, step: action.payload };
+		case 'GO_TO_STEP': {
+			const next = action.payload;
+			// date ステップへ戻る場合は、選択中の time / scheduleId を破棄する。
+			// 例: ConfirmPage で 409 (満席) 後に「日付を選び直す」を押した時、
+			// 古い満席の枠を握ったままにせず、ユーザーに新しい時間枠を選び直させる。
+			// submitError もクリーンに消しておく。
+			if (next === 'date') {
+				return {
+					...state,
+					step: 'date',
+					time: null,
+					scheduleId: null,
+					submitError: null,
+					submitErrorStatus: null,
+				};
+			}
+			return { ...state, step: next };
+		}
 
 		case 'GO_BACK': {
 			const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
