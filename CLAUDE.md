@@ -139,6 +139,7 @@ npm -v
 **役割**: プロジェクト全体の進行管理と品質ゲート。
 
 - 各フェーズの開始前に `smart-booking-spec.md` の該当セクションを再読する
+- **各フェーズの完了時、および破壊的操作の前に必ず `git add -A && git commit && git push` を実行する**
 - Generator に作業を委譲し、成果物を受け取る
 - Evaluator にテスト作成・実行を委譲し、結果を受け取る
 - Evaluator のフィードバックを Generator に伝えて修正を指示する
@@ -174,24 +175,11 @@ npm -v
   - 存在しない店舗ID、無効な日付、過去日付の選択
 - レスポンシブテスト: スマホ幅（375px）での操作確認を全画面で行う
 - アクセシビリティ: キーボード操作、フォーカス順序、ラベルの適切さを確認する
-- **UI/UX レビュー観点**（下記チェックリスト参照）を全画面・全フローで実施する
-- **⚠️ 絶対禁止コマンド**: `npx wp-env run cli wp plugin delete smart-booking` は wp-env の bind mount 構造上、ホストのプロジェクトファイルを再帰削除する。代わりに `wp eval-file uninstall.php` で uninstall.php を直接実行して検証すること。同様に `rm -rf` をプロジェクトパスに対して実行しない
+- **⛔ 破壊的操作の禁止**: `wp plugin delete`、`rm -rf`、`wp-env destroy` は絶対に実行しない。アンインストール検証は `wp eval-file uninstall.php` で行う。テスト後は環境を元の状態に戻すこと（テストデータの削除、プラグインの再有効化など）
 - テスト結果は以下の形式で報告する:
   - ✅ パスしたテスト一覧
   - ❌ 失敗したテスト一覧（エラーメッセージ、スクリーンショットパス付き）
   - 💡 UI/UX改善提案（テスト合否に関わらず気づいた点）
-
-**UI/UX レビュー観点（必ずチェックする）**:
-
-1. **参考スクリーンショットを超える品質** — `docs/reference-ui/` は**あくまで参考**。旧UIの情報構造や機能配置は踏襲しつつ、**より良いもの**を目指す。以下を意識して改善提案を出す:
-   - 情報過多になっていないか（削れる要素はないか）
-   - 現代的なデザイントレンドに沿っているか（余白の取り方、角丸、影の使い方）
-   - 旧UIの分かりづらい箇所・冗長な操作を発見したら改善案を提示
-2. **ビジュアル品質** — 余白・整列・タイポグラフィ階層・コントラスト比（WCAG AA: 本文 4.5:1、大きい文字 3:1）
-3. **状態網羅** — ローディング / 空状態（データなし） / エラー / 成功フィードバック が全て適切に表示されるか
-4. **マイクロコピー** — ボタン文言・エラーメッセージ・ヘルプテキスト・プレースホルダーが分かりやすく具体的か（「エラーが発生しました」のような曖昧な文言はNG）
-5. **操作のレスポンシブ性** — クリック/タップ後の即時反応、モーダル開閉のアニメーション、フォーカスリングの視認性、ホバー状態の明示
-6. **フロー観察** — 予約完了までに迷う箇所はないか、不要なクリック・スクロールが発生していないか、戻る/やり直しの導線は自然か
 
 **Task 呼び出し時のプロンプトに必ず含めるもの**:
 1. 対象フェーズの完了条件（CLAUDE.mdからコピー）
@@ -268,10 +256,14 @@ npx wp-env run cli wp db query "SHOW TABLES LIKE '%smb_%';"
 npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smb_stores;"
 npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smb_staff;"
 
-# プラグイン無効化→削除→テーブル削除確認
-npx wp-env run cli wp plugin deactivate smart-booking
-npx wp-env run cli wp plugin delete smart-booking
+# ⚠️ アンインストール検証（uninstall.php の動作確認）
+# wp plugin delete は絶対に使わないこと（bind mount経由でホスト側ファイルが全削除される）
+# 代わりに uninstall.php を直接実行して、テーブル削除のみを検証する:
+npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/uninstall.php
 npx wp-env run cli wp db query "SHOW TABLES LIKE '%smb_%';"
+# 検証後、テーブルを再作成するためにプラグインを再有効化:
+npx wp-env run cli wp plugin deactivate smart-booking
+npx wp-env run cli wp plugin activate smart-booking
 ```
 
 ### フェーズ 2: 管理画面（React）
@@ -424,7 +416,9 @@ Playwright テストファイル: `tests/e2e/phase3-*.spec.js`（機能ごとに
      ↓ ※最大3回まで修正サイクルを繰り返す
      ↓ ※3回修正しても通らない場合は停止してレポート出力
      ↓
-[Orchestrator] 全パス確認後、次のフェーズへ（フェーズ0〜3のみ自動進行）
+[Orchestrator] 全パス確認後、成果物を git commit & push
+     ↓
+[Orchestrator] 次のフェーズへ（フェーズ0〜3のみ自動進行）
 [Orchestrator] フェーズ4〜5は停止して人間の確認を待つ
 ```
 
@@ -500,10 +494,9 @@ npx wp-env run cli wp plugin activate smart-booking
 # プラグイン無効化
 npx wp-env run cli wp plugin deactivate smart-booking
 
-# ⚠️ 絶対禁止: wp-env 内で wp plugin delete を実行しない
-# wp-env はホストの /Users/keisukeyokoyama/dev/smart-booking/ を bind mount しているため、
-# WP_Filesystem::delete() がホスト側のプロジェクトファイルを再帰削除する事故が発生する。
-# uninstall.php の検証は「wp eval-file で uninstall.php を直接読み込む」方式で行うこと。
+# ⛔ wp plugin delete は絶対に使用禁止（下記「やってはいけないこと」参照）
+# アンインストール検証は wp eval-file で行う:
+# npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/uninstall.php
 
 # DB直接クエリ
 npx wp-env run cli wp db query "SQL文;"
@@ -527,17 +520,18 @@ npx wp-env logs
 - error_log() を本番コードに残さない
 - init フックでテーブル作成しない
 - Orchestrator がフェーズ4〜5を人間の確認なしに開始しない
-- **wp-env 内で `wp plugin delete smart-booking` を実行しない（ホスト側のプロジェクトファイルが消失する。過去に実インシデント発生済み）**
-- **`rm -rf` をプロジェクトルートに対して実行しない**
+- **⛔ `wp plugin delete` を wp-env 内で絶対に実行しない**（wp-env はホストディレクトリを bind mount しているため、コンテナ内で delete するとホスト側のソースコード・.git・docsが全削除される。アンインストール検証は `wp eval-file uninstall.php` で行う）
+- **⛔ `wp-env destroy` を git commit/push 前に実行しない**（環境リセット前に必ず成果物をコミットすること）
 
-## 過去インシデント記録
+### .claude/settings.local.json の deny ルール
 
-### 2026-04-24: wp-env bind mount によるプロジェクトファイル消失事故
+以下のコマンドは `.claude/settings.local.json` で deny 登録されている。Claude Code は実行できない:
 
-**事象**: Phase 1 の Evaluator が `phase1-uninstall.spec.js` 内で `npx wp-env run cli wp plugin delete smart-booking` を実行した結果、wp-env がホストディレクトリを bind mount している構造のため、`WP_Filesystem::delete()` がホスト側の `/Users/keisukeyokoyama/dev/smart-booking/` を再帰削除した。`.git/`, `docs/`, `includes/`, `src/`, 主要 PHP/JS ファイルを失った。GitHub への push 済みコミットから復旧したが、フェーズ1作業の一部は会話コンテキストから手動再構築となった。
-
-**恒久対策**:
-1. `.claude/settings.local.json` の `permissions.deny` に `Bash(npx wp-env run cli wp plugin delete*)` を追加（登録済み）
-2. 本ガイドの「wp-env 操作リファレンス」から `wp plugin delete` コマンドを削除
-3. uninstall 検証は `wp eval-file uninstall.php` または PHP直接実行で行う（wp-envのプラグイン削除機能を使わない）
-4. 各フェーズ完了時だけでなく、**破壊的操作の前には必ず git push** する運用とする
+```json
+{
+  "deny": [
+    "wp plugin delete",
+    "rm -rf"
+  ]
+}
+```

@@ -107,10 +107,22 @@ async function loginAsAdmin(page) {
     return;
   }
   await page.waitForSelector('input[name="log"]', { timeout: 10_000 });
-  await page.fill('input[name="log"]', WP_ADMIN_USER);
-  await page.fill('input[name="pwd"]', WP_ADMIN_PASS);
+  // ブラウザの autofill が username 欄にパスワードを入れるケースを防ぐため、
+  // fill の前後で値を明示的に検証する.
+  const loginField = page.locator('input[name="log"]');
+  await loginField.fill('');
+  await loginField.fill(WP_ADMIN_USER);
+  // 値が正しく入ったか確認 (autofill race 対策)
+  const actual = await loginField.inputValue();
+  if (actual !== WP_ADMIN_USER) {
+    await loginField.fill('');
+    await loginField.pressSequentially(WP_ADMIN_USER, { delay: 20 });
+  }
+  const pwdField = page.locator('input[name="pwd"]');
+  await pwdField.fill('');
+  await pwdField.fill(WP_ADMIN_PASS);
   await Promise.all([
-    page.waitForURL(/wp-admin/i, { timeout: 20_000 }),
+    page.waitForURL(/\/wp-admin\//i, { timeout: 20_000 }),
     page.click('#wp-submit'),
   ]);
   // wp-admin ページのロード完了を待つ.

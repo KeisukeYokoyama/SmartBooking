@@ -1,17 +1,36 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init *)",
-      "Bash(git add *)",
-      "Bash(ssh -T git@github.com)",
-      "Bash(ssh -T -o StrictHostKeyChecking=accept-new git@github.com)"
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(npx wp-env *)",
+      "Bash(npx playwright *)",
+      "Bash(npx eslint *)",
+      "Bash(npx phpcs *)",
+      "Bash(node *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(wc *)",
+      "Bash(docker *)",
+      "Bash(chmod *)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",
       "Bash(npx wp-env run tests-cli wp plugin delete*)",
       "Bash(wp plugin delete*)",
       "Bash(rm -rf /Users/keisukeyokoyama/dev/smart-booking*)",
-      "Bash(rm -rf smart-booking*)"
+      "Bash(rm -rf smart-booking*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf .git*)",
+      "Bash(rm -rf docs*)"
     ]
   }
 }
