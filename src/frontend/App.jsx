@@ -5,10 +5,14 @@
  *   マウント時に `/public/stores`, `/public/staff`, `/public/settings`, `/public/custom-fields` を
  *   並列取得し、スキップルールを適用して初期ステップを決定する。
  *
- * 本フェーズ (Gen-A) で実装するステップ:
- *   - store: StoreSelect
- *   - staff: StaffSelect
- *   - date/time/form/confirm/done はプレースホルダーのみ（Gen-B/C で実装）
+ * ステップ (Gen-C 完了時点):
+ *   - store:   StoreSelect
+ *   - staff:   StaffSelect
+ *   - date:    DateSelect + TimeSelect（一体表示）
+ *   - time:    DateSelect + TimeSelect へフォールバック
+ *   - form:    FormInput
+ *   - confirm: ConfirmPage
+ *   - done:    DonePage
  *
  * 表示順序（flow_order）は `state.js` の getStepOrder() に集約。
  */
@@ -16,9 +20,11 @@ import { useEffect, useReducer } from 'react';
 import { publicAPI } from './api';
 import ErrorMessage from './components/ErrorMessage';
 import Spinner from './components/Spinner';
-import StepHeader from './components/StepHeader';
 import { INITIAL_STATE, reducer } from './state';
+import ConfirmPage from './steps/ConfirmPage';
 import DateSelect from './steps/DateSelect';
+import DonePage from './steps/DonePage';
+import FormInput from './steps/FormInput';
 import StaffSelect from './steps/StaffSelect';
 import StoreSelect from './steps/StoreSelect';
 import TimeSelect from './steps/TimeSelect';
@@ -152,50 +158,17 @@ export default function App({ fixedStoreId = 0 }) {
 				</DateSelect>
 			)}
 
-			{/* Gen-C で実装予定のプレースホルダー。 */}
-			{['form', 'confirm', 'done'].includes(state.step) && (
-				<div className="smb-front-step">
-					<StepHeader
-						title={placeholderTitle(state.step)}
-						subtitle="この画面は次のフェーズで実装されます。"
-						onBack={() => dispatch({ type: 'GO_BACK' })}
-					/>
-					<div className="smb-front-placeholder">
-						<p>現在のステップ: <code>{state.step}</code></p>
-						<dl className="smb-front-placeholder__dl">
-							<dt>店舗 ID</dt>
-							<dd>{state.storeId ?? '-'}</dd>
-							<dt>担当者 ID</dt>
-							<dd>{state.staffId ?? '-'}</dd>
-							<dt>選択日</dt>
-							<dd>{state.date ?? '-'}</dd>
-							<dt>選択時間</dt>
-							<dd>{state.time ?? '-'}</dd>
-							<dt>schedule ID</dt>
-							<dd>{state.scheduleId ?? '-'}</dd>
-							<dt>flow_order</dt>
-							<dd>{state.settings?.flow_order ?? '-'}</dd>
-						</dl>
-					</div>
-				</div>
+			{state.step === 'form' && (
+				<FormInput
+					state={state}
+					dispatch={dispatch}
+					onBack={() => dispatch({ type: 'GO_BACK' })}
+				/>
 			)}
+
+			{state.step === 'confirm' && <ConfirmPage state={state} dispatch={dispatch} />}
+
+			{state.step === 'done' && <DonePage state={state} />}
 		</div>
 	);
-}
-
-function placeholderTitle(step) {
-	switch (step) {
-		case 'date':
-			return '日付を選択';
-		case 'time':
-			return '時間を選択';
-		case 'form':
-			return 'お客様情報の入力';
-		case 'confirm':
-			return '予約内容の確認';
-		case 'done':
-			return '予約完了';
-		default:
-			return '';
-	}
 }

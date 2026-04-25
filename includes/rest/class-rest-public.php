@@ -194,6 +194,16 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/public/reservations',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'create_reservation' ),
+				'permission_callback' => array( $this, 'permission_check' ),
+			)
+		);
 	}
 
 	/**
@@ -520,6 +530,248 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'date_from' => $date_from,
 				'date_to'   => $date_to,
 				'schedules' => $out,
+			)
+		);
+	}
+
+	/**
+	 * 予約作成 (フロント予約フォームから).
+	 *
+	 * spec 3.5 (初期フィールド: 氏名/メール/電話), 3.6 (確認画面からのPOST), 5.8 (アトミック競合防止), 5.10 (ハニーポット).
+	 *
+	 * 実装ポリシー:
+	 *   - ハニーポットに値があれば 400 を返して保存しない（テスト容易性優先。
+	 *     ボット側に検知方法を明かしたくない場合は 200 の静黙も選択肢だが、
+	 *     E2E テスト・管理者への可視性の観点から 400 を採用）。
+	 *   - customer_name / customer_email / customer_phone は必須。email は is_email() で検証。
+	 *   - smb_custom_fields の is_required=1 のフィールドが空なら 400。
+	 *   - smb_schedules に対しアトミック UPDATE (+1) を投げ、0 行影響なら 409 (満席).
+	 *   - INSERT 失敗時は booked_count を -1 でロールバック.
+	 *   - status は 'pending'（管理者承認運用）。
+	 *   - schedule_date / schedule_time は schedules から取得して非正規化保存.
+	 *
+	 * @param WP_REST_Request $request リクエスト.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_reservation( $request ) {
+		global $wpdb;
+		$schedules_table = $wpdb->prefix . 'smb_schedules';
+		$res_table       = $wpdb->prefix . 'smb_reservations';
+		$meta_table      = $wpdb->prefix . 'smb_reservation_meta';
+		$fields_table    = $wpdb->prefix . 'smb_custom_fields';
+
+		// ハニーポット: 空でなければボット判定してブロック。
+		$honeypot = $request->get_param( 'honeypot' );
+		if ( is_string( $honeypot ) && '' !== trim( $honeypot ) ) {
+			return $this->error(
+				'smb_reservation_spam_rejected',
+				'送信エラーが発生しました。お手数ですが時間をおいて再度お試しください。',
+				400
+			);
+		}
+
+		// schedule_id 存在確認.
+		$schedule_id = absint( $request->get_param( 'schedule_id' ) );
+		if ( $schedule_id <= 0 ) {
+			return $this->error( 'smb_reservation_schedule_required', 'ご希望の時間枠を選択してください。', 400 );
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$schedule = $wpdb->get_row(
+			$wpdb->prepare( "SELECT * FROM {$schedules_table} WHERE id = %d", $schedule_id ),
+			ARRAY_A
+		);
+		if ( ! $schedule || empty( $schedule['is_active'] ) ) {
+			return $this->error( 'smb_reservation_schedule_not_found', '指定された時間枠は予約を受け付けていません。', 400 );
+		}
+
+		// 過去日 / 締切超過チェック (get_availability と同等のロジック).
+		$slot_ts = strtotime( $schedule['schedule_date'] . ' ' . $schedule['start_time'] );
+		$now_ts  = (int) current_time( 'timestamp' );
+		if ( false === $slot_ts || $slot_ts <= $now_ts ) {
+			return $this->error( 'smb_reservation_closed', 'この時間枠は予約受付を終了しました。', 400 );
+		}
+		$deadline_days  = max( 0, (int) get_option( 'smb_booking_deadline_days', 0 ) );
+		$deadline_hours = max( 0, (int) get_option( 'smb_booking_deadline_hours', 0 ) );
+		if ( $deadline_days > 0 || $deadline_hours > 0 ) {
+			$deadlines = array();
+			if ( $deadline_days > 0 ) {
+				$deadlines[] = $slot_ts - ( $deadline_days * DAY_IN_SECONDS );
+			}
+			if ( $deadline_hours > 0 ) {
+				$deadlines[] = $slot_ts - ( $deadline_hours * HOUR_IN_SECONDS );
+			}
+			$deadline_ts = min( $deadlines );
+			if ( $now_ts >= $deadline_ts ) {
+				return $this->error( 'smb_reservation_deadline_passed', 'この時間枠は予約締切を過ぎました。', 400 );
+			}
+		}
+
+		// 必須3フィールド.
+		$name = sanitize_text_field( (string) $request->get_param( 'customer_name' ) );
+		if ( '' === $name ) {
+			return $this->error( 'smb_reservation_name_required', 'お名前を入力してください。', 400 );
+		}
+		$email_raw = (string) $request->get_param( 'customer_email' );
+		$email     = sanitize_email( $email_raw );
+		if ( '' === trim( $email_raw ) ) {
+			return $this->error( 'smb_reservation_email_required', 'メールアドレスを入力してください。', 400 );
+		}
+		if ( '' === $email || ! is_email( $email ) ) {
+			return $this->error( 'smb_reservation_email_invalid', '有効なメールアドレスを入力してください。', 400 );
+		}
+		$phone = sanitize_text_field( (string) $request->get_param( 'customer_phone' ) );
+		if ( '' === $phone ) {
+			return $this->error( 'smb_reservation_phone_required', '電話番号を入力してください。', 400 );
+		}
+
+		// カスタムフィールド必須チェック.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$field_defs = $wpdb->get_results(
+			"SELECT field_key, field_label, field_type, is_required FROM {$fields_table} ORDER BY sort_order ASC, id ASC",
+			ARRAY_A
+		);
+		if ( ! is_array( $field_defs ) ) {
+			$field_defs = array();
+		}
+
+		$custom_fields_input = $request->get_param( 'custom_fields' );
+		if ( ! is_array( $custom_fields_input ) ) {
+			$custom_fields_input = array();
+		}
+
+		$core_keys = array( 'customer_name', 'customer_email', 'customer_phone' );
+		foreach ( $field_defs as $def ) {
+			$key = (string) $def['field_key'];
+			if ( in_array( $key, $core_keys, true ) ) {
+				continue;
+			}
+			if ( empty( $def['is_required'] ) ) {
+				continue;
+			}
+			$val = isset( $custom_fields_input[ $key ] ) ? $custom_fields_input[ $key ] : '';
+			if ( is_array( $val ) ) {
+				$empty = ( 0 === count( array_filter( $val, static function ( $v ) {
+					return '' !== trim( (string) $v );
+				} ) ) );
+			} else {
+				$empty = ( '' === trim( (string) $val ) );
+			}
+			if ( $empty ) {
+				return $this->error(
+					'smb_reservation_custom_field_required',
+					sprintf( '「%s」は必須項目です。', (string) $def['field_label'] ),
+					400
+				);
+			}
+		}
+
+		// アトミック UPDATE: booked_count < capacity のときだけ +1.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$affected = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+				$this->now_mysql(),
+				$schedule_id
+			)
+		);
+		if ( 0 === (int) $affected ) {
+			return $this->error(
+				'smb_reservation_full',
+				'申し訳ございません。この時間枠は満席になりました。別の時間枠をお選びください。',
+				409
+			);
+		}
+
+		// 予約 INSERT.
+		$now = $this->now_mysql();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ok = $wpdb->insert(
+			$res_table,
+			array(
+				'store_id'       => (int) $schedule['store_id'],
+				'staff_id'       => (int) $schedule['staff_id'],
+				'schedule_id'    => (int) $schedule['id'],
+				'schedule_date'  => $schedule['schedule_date'],
+				'schedule_time'  => $schedule['start_time'],
+				'customer_name'  => $name,
+				'customer_email' => $email,
+				'customer_phone' => $phone,
+				'status'         => 'pending',
+				'admin_memo'     => '',
+				'created_at'     => $now,
+				'updated_at'     => $now,
+			),
+			array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+
+		if ( false === $ok ) {
+			// ロールバック: 空き数を戻す.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$schedules_table} SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
+					$schedule_id
+				)
+			);
+			return $this->error( 'smb_reservation_create_failed', '予約の保存に失敗しました。時間をおいて再度お試しください。', 500 );
+		}
+
+		$reservation_id = (int) $wpdb->insert_id;
+
+		// カスタムフィールドの入力値を meta に保存.
+		foreach ( $field_defs as $def ) {
+			$key = (string) $def['field_key'];
+			if ( in_array( $key, $core_keys, true ) ) {
+				continue;
+			}
+			$key_clean = sanitize_key( $key );
+			if ( '' === $key_clean ) {
+				continue;
+			}
+			if ( ! array_key_exists( $key, $custom_fields_input ) ) {
+				continue;
+			}
+			$raw = $custom_fields_input[ $key ];
+			if ( is_array( $raw ) ) {
+				$clean_arr = array_values(
+					array_map( 'sanitize_text_field', array_map( 'strval', $raw ) )
+				);
+				$value = wp_json_encode( $clean_arr );
+			} else {
+				$value = sanitize_textarea_field( (string) $raw );
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->insert(
+				$meta_table,
+				array(
+					'reservation_id' => $reservation_id,
+					'meta_key'       => $key_clean,
+					'meta_value'     => $value,
+				),
+				array( '%d', '%s', '%s' )
+			);
+		}
+
+		// 店舗名・担当者名を引いて返す（完了画面で利用）.
+		$stores_table = $wpdb->prefix . 'smb_stores';
+		$staff_table  = $wpdb->prefix . 'smb_staff';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$store_name = (string) $wpdb->get_var(
+			$wpdb->prepare( "SELECT name FROM {$stores_table} WHERE id = %d", (int) $schedule['store_id'] )
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$staff_name = (string) $wpdb->get_var(
+			$wpdb->prepare( "SELECT name FROM {$staff_table} WHERE id = %d", (int) $schedule['staff_id'] )
+		);
+
+		return rest_ensure_response(
+			array(
+				'id'            => $reservation_id,
+				'schedule_date' => (string) $schedule['schedule_date'],
+				'schedule_time' => substr( (string) $schedule['start_time'], 0, 5 ),
+				'store_name'    => $store_name,
+				'staff_name'    => $staff_name,
+				'status'        => 'pending',
 			)
 		);
 	}

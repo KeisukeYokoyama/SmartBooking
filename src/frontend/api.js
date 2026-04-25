@@ -103,4 +103,17 @@ export const publicAPI = {
 			date_from: dateFrom || undefined,
 			date_to: dateTo || undefined,
 		}),
+	/**
+	 * 予約作成 POST。
+	 *
+	 * @param {object} payload
+	 * @param {number} payload.schedule_id
+	 * @param {string} payload.customer_name
+	 * @param {string} payload.customer_email
+	 * @param {string} payload.customer_phone
+	 * @param {string} [payload.honeypot]
+	 * @param {object} [payload.custom_fields] カスタムフィールド入力値 (field_key → value)
+	 * @returns {Promise<{id:number,schedule_date:string,schedule_time:string,store_name:string,staff_name:string,status:string}>}
+	 */
+	createReservation: (payload) => apiPost('public/reservations', payload),
 };

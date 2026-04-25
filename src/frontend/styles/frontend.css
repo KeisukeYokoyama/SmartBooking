@@ -787,43 +787,383 @@
 	border: 1px solid var(--smb-front-border);
 }
 
-/* ---------- プレースホルダー（Gen-B 以降で置換される） ---------- */
+/* ---------- フォーム (Gen-C) ---------- */
 
-.smb-front-placeholder {
-	padding: 24px;
+.smb-front-form {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	max-width: 560px;
+	margin: 0 auto;
+}
+
+.smb-front-form__row {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.smb-front-form__label {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--smb-front-text);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.smb-front-form__required {
+	color: var(--smb-front-color-required);
+	font-weight: 700;
+	margin-left: 2px;
+}
+
+.smb-front-form__input,
+.smb-front-form__textarea,
+.smb-front-form__select {
+	width: 100%;
+	padding: 10px 12px;
+	font-size: 16px;
+	font-family: inherit;
+	color: var(--smb-front-text);
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border-strong);
+	border-radius: var(--smb-front-radius-sm);
+	transition: border-color 120ms ease, box-shadow 120ms ease;
+	min-height: 44px;
+}
+
+.smb-front-form__textarea {
+	resize: vertical;
+	min-height: 96px;
+	line-height: 1.6;
+}
+
+.smb-front-form__select {
+	background-image: linear-gradient(45deg, transparent 50%, var(--smb-front-text-muted) 50%),
+		linear-gradient(135deg, var(--smb-front-text-muted) 50%, transparent 50%);
+	background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+	background-size: 6px 6px;
+	background-repeat: no-repeat;
+	appearance: none;
+	-webkit-appearance: none;
+	padding-right: 32px;
+}
+
+.smb-front-form__input:focus,
+.smb-front-form__textarea:focus,
+.smb-front-form__select:focus {
+	outline: none;
+	border-color: var(--smb-front-color-focus);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.smb-front-form__input.has-error,
+.smb-front-form__textarea.has-error,
+.smb-front-form__select.has-error {
+	border-color: var(--smb-front-color-required);
+	background-color: #fffbfb;
+}
+
+.smb-front-form__options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	padding: 6px 2px;
+}
+
+.smb-front-form__options.has-error {
+	border: 1px solid var(--smb-front-color-required);
+	border-radius: var(--smb-front-radius-sm);
+	padding: 8px 12px;
+	background-color: #fffbfb;
+}
+
+.smb-front-form__option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 15px;
+	cursor: pointer;
+	padding: 4px 0;
+	min-height: 32px;
+}
+
+.smb-front-form__option input[type='radio'],
+.smb-front-form__option input[type='checkbox'] {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--smb-front-color-button);
+	cursor: pointer;
+}
+
+.smb-front-form__error {
+	margin: 2px 0 0;
+	font-size: 13px;
+	color: var(--smb-front-color-required);
+	line-height: 1.5;
+}
+
+.smb-front-form__actions {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.smb-front-form__actions--confirm {
+	flex-direction: column-reverse;
+	margin-top: 16px;
+}
+
+@media (min-width: 560px) {
+	.smb-front-form__actions {
+		flex-direction: row;
+		justify-content: center;
+	}
+	.smb-front-form__actions--confirm {
+		flex-direction: row;
+		justify-content: space-between;
+	}
+}
+
+/* ---------- 共通ボタン (Gen-C) ---------- */
+
+.smb-front-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 48px;
+	padding: 10px 24px;
+	font-family: inherit;
+	font-size: 16px;
+	font-weight: 600;
+	border-radius: var(--smb-front-radius-sm);
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.smb-front-btn:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.smb-front-btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-btn--primary {
+	background: var(--smb-front-color-button);
+	color: var(--smb-front-color-button-text);
+	border-color: var(--smb-front-color-button);
+	box-shadow: var(--smb-front-shadow-sm);
+	min-width: 200px;
+}
+
+.smb-front-btn--primary:hover:not(:disabled) {
+	box-shadow: var(--smb-front-shadow);
+	transform: translateY(-1px);
+}
+
+.smb-front-btn--secondary {
+	background: var(--smb-front-surface);
+	color: var(--smb-front-text);
+	border-color: var(--smb-front-border-strong);
+}
+
+.smb-front-btn--secondary:hover:not(:disabled) {
+	background: var(--smb-front-muted-bg);
+}
+
+.smb-front-btn__label {
+	display: inline-block;
+}
+
+/* ---------- ハニーポット（視覚非表示） ---------- */
+
+.smb-front-honeypot {
+	position: absolute !important;
+	left: -9999px !important;
+	top: auto !important;
+	width: 1px !important;
+	height: 1px !important;
+	overflow: hidden !important;
+}
+
+/* ---------- 確認画面 (Gen-C) ---------- */
+
+.smb-front-confirm {
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border);
+	border-radius: var(--smb-front-radius);
+	padding: 20px 24px;
+	box-shadow: var(--smb-front-shadow-sm);
+}
+
+.smb-front-confirm__group-title {
+	font-size: 15px;
+	font-weight: 700;
+	margin: 0 0 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--smb-front-border);
+	color: var(--smb-front-text);
+}
+
+.smb-front-confirm__group-title + .smb-front-confirm__list {
+	margin-bottom: 20px;
+}
+
+.smb-front-confirm__list {
+	margin: 0 0 4px;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 12px 16px;
+}
+
+@media (min-width: 480px) {
+	.smb-front-confirm__list {
+		grid-template-columns: minmax(90px, auto) 1fr;
+		row-gap: 10px;
+	}
+}
+
+.smb-front-confirm__list dt,
+.smb-front-confirm__pair dt {
+	font-weight: 600;
+	color: var(--smb-front-text-muted);
+	font-size: 13px;
+	margin: 0;
+}
+
+.smb-front-confirm__list dd,
+.smb-front-confirm__pair dd {
+	margin: 0;
+	color: var(--smb-front-text);
+	font-size: 15px;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+
+.smb-front-confirm__pair {
+	display: contents;
+}
+
+@media (max-width: 479px) {
+	.smb-front-confirm__pair {
+		display: block;
+		margin-bottom: 10px;
+	}
+	.smb-front-confirm__pair dt {
+		margin-bottom: 2px;
+	}
+}
+
+.smb-front-confirm__alert {
+	margin-top: 16px;
+}
+
+/* ---------- 完了画面 (Gen-C) ---------- */
+
+.smb-front-done {
+	text-align: center;
+	padding: 32px 16px;
+	max-width: 520px;
+	margin: 0 auto;
+}
+
+.smb-front-done__check {
+	width: 64px;
+	height: 64px;
+	margin: 0 auto 16px;
+	border-radius: 50%;
+	background: #10b981;
+	color: #fff;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 32px;
+	font-weight: 700;
+	box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+}
+
+.smb-front-done__title {
+	font-size: 22px;
+	font-weight: 700;
+	margin: 0 0 8px;
+	color: var(--smb-front-text);
+}
+
+.smb-front-done__lead {
+	margin: 0 0 24px;
+	color: var(--smb-front-text-muted);
+	font-size: 14px;
+	line-height: 1.7;
+}
+
+.smb-front-done__number {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 16px 32px;
+	margin: 0 auto 24px;
 	background: var(--smb-front-muted-bg);
 	border-radius: var(--smb-front-radius);
+}
+
+.smb-front-done__number-label {
+	font-size: 12px;
 	color: var(--smb-front-text-muted);
+	font-weight: 600;
+}
+
+.smb-front-done__number-value {
+	font-size: 28px;
+	font-weight: 800;
+	color: var(--smb-front-text);
+	font-family: ui-monospace, SFMono-Regular, monospace;
+	letter-spacing: 0.5px;
+}
+
+.smb-front-done__summary {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 8px 16px;
+	text-align: left;
+	max-width: 360px;
+	margin: 0 auto 24px;
 	font-size: 14px;
 }
 
-.smb-front-placeholder p {
-	margin: 0 0 12px;
-}
-
-.smb-front-placeholder__dl {
-	margin: 0;
-	display: grid;
-	grid-template-columns: auto 1fr;
-	gap: 4px 16px;
-	font-size: 13px;
-}
-
-.smb-front-placeholder__dl dt {
+.smb-front-done__summary dt {
+	color: var(--smb-front-text-muted);
 	font-weight: 600;
-	color: var(--smb-front-text);
 }
 
-.smb-front-placeholder__dl dd {
+.smb-front-done__summary dd {
 	margin: 0;
+	color: var(--smb-front-text);
 }
 
-.smb-front-placeholder code {
-	background: var(--smb-front-surface);
-	border: 1px solid var(--smb-front-border);
-	padding: 2px 6px;
-	border-radius: 4px;
-	font-family: ui-monospace, SFMono-Regular, monospace;
-	font-size: 12px;
+.smb-front-done__message {
+	text-align: left;
+	font-size: 14px;
+	line-height: 1.7;
 	color: var(--smb-front-text);
+	background: #f9fafb;
+	border-left: 3px solid var(--smb-front-color-button);
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-top: 16px;
+}
+
+.smb-front-done__message p:first-child {
+	margin-top: 0;
+}
+
+.smb-front-done__message p:last-child {
+	margin-bottom: 0;
 }

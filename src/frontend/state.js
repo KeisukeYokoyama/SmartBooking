@@ -47,6 +47,11 @@ export const INITIAL_STATE = {
 	availabilityLoading: false,
 	availabilityError: null,
 	availabilityRange: null, // { dateFrom, dateTo, storeId, staffId }
+
+	// 予約送信の UI ステート (Gen-C)。
+	submitting: false,
+	submitError: null,
+	completedReservation: null, // { id, schedule_date, schedule_time, store_name, staff_name } | null
 };
 
 /**
@@ -289,6 +294,40 @@ export function reducer(state, action) {
 		case 'SET_FORM_VALUES':
 			return { ...state, formValues: { ...state.formValues, ...action.payload } };
 
+		case 'UPDATE_FORM_FIELD': {
+			const { key, value } = action.payload || {};
+			if (!key) return state;
+			return {
+				...state,
+				formValues: { ...state.formValues, [key]: value },
+			};
+		}
+
+		case 'GO_TO_CONFIRM':
+			return { ...state, step: 'confirm', submitError: null };
+
+		case 'GO_BACK_FROM_CONFIRM':
+			return { ...state, step: 'form', submitError: null };
+
+		case 'SUBMIT_START':
+			return { ...state, submitting: true, submitError: null };
+
+		case 'SUBMIT_SUCCESS':
+			return {
+				...state,
+				submitting: false,
+				submitError: null,
+				completedReservation: action.payload || null,
+				step: 'done',
+			};
+
+		case 'SUBMIT_FAIL':
+			return {
+				...state,
+				submitting: false,
+				submitError: action.payload || '予約の送信に失敗しました。',
+			};
+
 		case 'GO_TO_STEP':
 			return { ...state, step: action.payload };
 
@@ -297,6 +336,10 @@ export function reducer(state, action) {
 			const idx = order.indexOf(state.step);
 			if (idx <= 0) return state;
 			let prev = order[idx - 1];
+			// time ステップは DateSelect と一体化しているため date に集約する。
+			if (prev === 'time') {
+				prev = 'date';
+			}
 			// スキップされる step を飛ばす。
 			if (prev === 'store' && (state.fixedStoreId > 0 || state.stores.length <= 1)) {
 				prev = order[idx - 2] || state.step;
