@@ -457,11 +457,11 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 			$new = (string) $update['status'];
 			if ( 'approved' === $new && 'approved' !== $old ) {
 				/** @param int $id */
-				do_action( 'smb_reservation_approved', $id );
+				do_action( 'smart_booking_reservation_approved', $id );
 			}
 			if ( 'cancelled' === $new && 'cancelled' !== $old ) {
 				/** @param int $id */
-				do_action( 'smb_reservation_cancelled', $id );
+				do_action( 'smart_booking_reservation_cancelled', $id );
 			}
 		}
 
@@ -502,7 +502,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		// ステータスが既に cancelled なら重複発火しない。
 		if ( 'cancelled' !== (string) $row['status'] ) {
 			/** @param int $id */
-			do_action( 'smb_reservation_cancelled', $id );
+			do_action( 'smart_booking_reservation_cancelled', $id );
 		}
 
 		// メタも削除.

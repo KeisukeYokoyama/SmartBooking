@@ -31,38 +31,38 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 	private function schema() {
 		return array(
 			// 基本設定.
-			'smb_booking_flow_order'             => 'text',
-			'smb_calendar_view_mode'             => 'text',
-			'smb_display_days'                   => 'int',
-			'smb_booking_deadline_days'          => 'int',
-			'smb_booking_deadline_hours'         => 'int',
-			'smb_completion_message'             => 'html',
+			'smb_booking_flow_order'               => 'text',
+			'smb_calendar_view_mode'               => 'text',
+			'smb_display_days'                     => 'int',
+			'smb_booking_deadline_days'            => 'int',
+			'smb_booking_deadline_hours'           => 'int',
+			'smb_completion_message'               => 'html',
 
 			// メール通知.
-			'smb_mail_from_name'                 => 'text',
-			'smb_mail_from_email'                => 'email',
-			'smb_mail_receipt_user_subject'      => 'text',
-			'smb_mail_receipt_user_body'         => 'html',
-			'smb_mail_receipt_admin_subject'     => 'text',
-			'smb_mail_receipt_admin_body'        => 'html',
-			'smb_mail_approval_user_subject'     => 'text',
-			'smb_mail_approval_user_body'        => 'html',
+			'smb_mail_from_name'                   => 'text',
+			'smb_mail_from_email'                  => 'email',
+			'smb_mail_receipt_user_subject'        => 'text',
+			'smb_mail_receipt_user_body'           => 'html',
+			'smb_mail_receipt_admin_subject'       => 'text',
+			'smb_mail_receipt_admin_body'          => 'html',
+			'smb_mail_approval_user_subject'       => 'text',
+			'smb_mail_approval_user_body'          => 'html',
 
 			// 外部連携.
-			'smb_google_calendar_enabled'        => 'bool',
-			'smb_google_calendar_id'             => 'text',
+			'smb_google_calendar_enabled'          => 'bool',
+			'smb_google_calendar_id'               => 'text',
 			'smb_google_calendar_credentials_json' => 'json_credentials',
-			'smb_google_calendar_client_email'   => 'readonly_text',
-			'smb_chatwork_enabled'               => 'bool',
-			'smb_chatwork_api_token'             => 'text',
-			'smb_chatwork_room_id'               => 'text',
+			'smb_google_calendar_client_email'     => 'readonly_text',
+			'smb_chatwork_enabled'                 => 'bool',
+			'smb_chatwork_api_token'               => 'text',
+			'smb_chatwork_room_id'                 => 'text',
 
 			// デザイン.
-			'smb_color_button'                   => 'color',
-			'smb_color_date_selected'            => 'color',
-			'smb_color_time_selected'            => 'color',
-			'smb_color_required_mark'            => 'color',
-			'smb_color_focus'                    => 'color',
+			'smb_color_button'                     => 'color',
+			'smb_color_date_selected'              => 'color',
+			'smb_color_time_selected'              => 'color',
+			'smb_color_required_mark'              => 'color',
+			'smb_color_focus'                      => 'color',
 		);
 	}
 

@@ -47,15 +47,15 @@ class Smart_Booking_Reservation_Context {
 		}
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$store = $wpdb->get_row(
+		$store      = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$stores_table} WHERE id = %d", (int) $reservation['store_id'] ),
 			ARRAY_A
 		);
-		$staff = $wpdb->get_row(
+		$staff      = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$staff_table} WHERE id = %d", (int) $reservation['staff_id'] ),
 			ARRAY_A
 		);
-		$meta_rows = $wpdb->get_results(
+		$meta_rows  = $wpdb->get_results(
 			$wpdb->prepare( "SELECT meta_key, meta_value FROM {$meta_table} WHERE reservation_id = %d", $reservation_id ),
 			ARRAY_A
 		);
@@ -77,12 +77,12 @@ class Smart_Booking_Reservation_Context {
 		$schedule_time = (string) $reservation['schedule_time'];
 
 		return array(
-			'reservation'        => $reservation,
-			'store'              => is_array( $store ) ? $store : array(),
-			'staff'              => is_array( $staff ) ? $staff : array(),
-			'meta'               => $meta,
-			'custom_field_defs'  => is_array( $field_defs ) ? $field_defs : array(),
-			'formatted'          => array(
+			'reservation'       => $reservation,
+			'store'             => is_array( $store ) ? $store : array(),
+			'staff'             => is_array( $staff ) ? $staff : array(),
+			'meta'              => $meta,
+			'custom_field_defs' => is_array( $field_defs ) ? $field_defs : array(),
+			'formatted'         => array(
 				'reservation_id' => (int) $reservation['id'],
 				'customer_name'  => (string) $reservation['customer_name'],
 				'customer_email' => (string) $reservation['customer_email'],
@@ -128,13 +128,14 @@ class Smart_Booking_Reservation_Context {
 		$schedules_table = $wpdb->prefix . 'smb_schedules';
 		$res_table       = $wpdb->prefix . 'smb_reservations';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$end_time = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT s.end_time FROM {$schedules_table} s INNER JOIN {$res_table} r ON r.schedule_id = s.id WHERE r.id = %d",
 				(int) $reservation_id
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! $end_time ) {
 			return $start_short . '〜';
 		}

@@ -8,6 +8,7 @@
   <exclude-pattern>*/vendor/*</exclude-pattern>
   <exclude-pattern>*/build/*</exclude-pattern>
   <exclude-pattern>*/tests/e2e/*</exclude-pattern>
+  <exclude-pattern>*/tests/mu-plugins/*</exclude-pattern>
 
   <arg name="basepath" value="."/>
   <arg name="colors"/>

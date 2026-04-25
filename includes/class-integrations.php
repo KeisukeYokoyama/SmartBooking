@@ -31,13 +31,13 @@ class Smart_Booking_Integrations {
 	 */
 	public function init() {
 		// 受付時: ユーザー宛 + 管理者宛メール / ChatWork 通知.
-		add_action( 'smb_reservation_received', array( $this, 'on_received' ), 10, 1 );
+		add_action( 'smart_booking_reservation_received', array( $this, 'on_received' ), 10, 1 );
 
 		// 承認時: ユーザー宛確定メール / Google カレンダーへイベント作成.
-		add_action( 'smb_reservation_approved', array( $this, 'on_approved' ), 10, 1 );
+		add_action( 'smart_booking_reservation_approved', array( $this, 'on_approved' ), 10, 1 );
 
 		// キャンセル時: Google カレンダーのイベント削除.
-		add_action( 'smb_reservation_cancelled', array( $this, 'on_cancelled' ), 10, 1 );
+		add_action( 'smart_booking_reservation_cancelled', array( $this, 'on_cancelled' ), 10, 1 );
 	}
 
 	/**

@@ -795,7 +795,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		 *
 		 * @param int $reservation_id 受け付けた予約 ID。
 		 */
-		do_action( 'smb_reservation_received', $reservation_id );
+		do_action( 'smart_booking_reservation_received', $reservation_id );
 
 		return rest_ensure_response(
 			array(

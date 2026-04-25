@@ -1,8 +1,15 @@
 <?php
 /**
- * Smart Booking - Email Stub
+ * Smart Booking - Email
  *
- * Phase 4 Gen-A で本実装に置換される一時的な空クラス。
+ * 予約受付・予約承認時のメール送信処理。
+ * 件名・本文は wp_options に保存されたテンプレート（{customer_name} 等）を
+ * Smart_Booking_Reservation_Context::render() で展開して送信する。
+ *
+ * - 受付メール: ユーザー宛 + 管理者宛（店舗メール / 担当者メールを CC）
+ * - 承認メール: ユーザー宛のみ
+ *
+ * 送信失敗（wp_mail の戻り値 false）はサイレントに無視する。error_log は使わない。
  *
  * @package Smart_Booking
  */
@@ -16,27 +23,165 @@ if ( class_exists( 'Smart_Booking_Email' ) ) {
 }
 
 /**
- * メール送信クラスのスタブ。
+ * メール送信クラス。
  */
 class Smart_Booking_Email {
 
 	/**
-	 * 受付メール送信スタブ。
+	 * wp_mail に渡す Content-Type。
 	 *
-	 * @param array $context Reservation context.
+	 * @var string
+	 */
+	const CONTENT_TYPE = 'text/plain; charset=UTF-8';
+
+	/**
+	 * 予約受付メール送信。ユーザー宛 + 管理者宛を送る。
+	 *
+	 * @param array $context Smart_Booking_Reservation_Context::build() 戻り値。
 	 * @return void
 	 */
 	public function send_receipt( $context ) {
-		unset( $context );
+		if ( ! $this->is_valid_context( $context ) ) {
+			return;
+		}
+
+		$formatted = $context['formatted'];
+
+		// ユーザー宛.
+		$this->send(
+			(string) $formatted['customer_email'],
+			(string) get_option( 'smb_mail_receipt_user_subject', '' ),
+			(string) get_option( 'smb_mail_receipt_user_body', '' ),
+			$context,
+			array()
+		);
+
+		// 管理者宛（店舗メール）。担当者メールがあれば CC。.
+		$cc          = array();
+		$staff_email = (string) $formatted['staff_email'];
+		if ( '' !== $staff_email && is_email( $staff_email ) ) {
+			$cc[] = $staff_email;
+		}
+		$this->send(
+			(string) $formatted['store_email'],
+			(string) get_option( 'smb_mail_receipt_admin_subject', '' ),
+			(string) get_option( 'smb_mail_receipt_admin_body', '' ),
+			$context,
+			$cc
+		);
 	}
 
 	/**
-	 * 承認メール送信スタブ。
+	 * 予約承認メール送信。ユーザー宛のみ。
 	 *
-	 * @param array $context Reservation context.
+	 * @param array $context Smart_Booking_Reservation_Context::build() 戻り値。
 	 * @return void
 	 */
 	public function send_approval( $context ) {
-		unset( $context );
+		if ( ! $this->is_valid_context( $context ) ) {
+			return;
+		}
+
+		$formatted = $context['formatted'];
+
+		$this->send(
+			(string) $formatted['customer_email'],
+			(string) get_option( 'smb_mail_approval_user_subject', '' ),
+			(string) get_option( 'smb_mail_approval_user_body', '' ),
+			$context,
+			array()
+		);
+	}
+
+	/**
+	 * $context が処理可能な形か検証する。
+	 *
+	 * @param mixed $context Reservation context.
+	 * @return bool
+	 */
+	private function is_valid_context( $context ) {
+		return is_array( $context ) && isset( $context['formatted'] ) && is_array( $context['formatted'] );
+	}
+
+	/**
+	 * 1 通分の送信処理。宛先が空 / 不正な場合は何もしない。
+	 *
+	 * wp_mail_content_type フィルタは送信中だけ追加し、終了時に必ず除去する
+	 * （他プラグインの mail に影響を残さないため）。
+	 *
+	 * @param string   $to      送信先メールアドレス。
+	 * @param string   $subject 件名テンプレート。
+	 * @param string   $body    本文テンプレート。
+	 * @param array    $context Reservation context（テンプレート展開用）。
+	 * @param string[] $cc      CC 用メールアドレス配列。
+	 * @return void
+	 */
+	private function send( $to, $subject, $body, $context, $cc ) {
+		if ( '' === $to || ! is_email( $to ) ) {
+			return;
+		}
+
+		$rendered_subject = Smart_Booking_Reservation_Context::render( $subject, $context );
+		$rendered_body    = Smart_Booking_Reservation_Context::render( $body, $context );
+
+		// 件名 / 本文どちらかが空なら送信しない（テンプレート未設定とみなす）.
+		if ( '' === trim( $rendered_subject ) || '' === trim( $rendered_body ) ) {
+			return;
+		}
+
+		$headers = $this->build_headers( $cc );
+
+		add_filter( 'wp_mail_content_type', array( $this, 'filter_content_type' ) );
+		wp_mail( $to, $rendered_subject, $rendered_body, $headers );
+		remove_filter( 'wp_mail_content_type', array( $this, 'filter_content_type' ) );
+	}
+
+	/**
+	 * From ヘッダおよび CC ヘッダを構築する。
+	 *
+	 * @param string[] $cc CC メールアドレス配列。
+	 * @return string[]
+	 */
+	private function build_headers( $cc ) {
+		$headers = array();
+
+		$from_email = (string) get_option( 'smb_mail_from_email', '' );
+		if ( '' === $from_email || ! is_email( $from_email ) ) {
+			$from_email = (string) get_option( 'admin_email', '' );
+		}
+		$from_name = (string) get_option( 'smb_mail_from_name', '' );
+		if ( '' === $from_name ) {
+			$from_name = (string) get_option( 'blogname', '' );
+		}
+
+		if ( '' !== $from_email && is_email( $from_email ) ) {
+			if ( '' !== $from_name ) {
+				$headers[] = sprintf( 'From: %s <%s>', $from_name, $from_email );
+			} else {
+				$headers[] = sprintf( 'From: %s', $from_email );
+			}
+		}
+
+		if ( is_array( $cc ) ) {
+			foreach ( $cc as $cc_addr ) {
+				$cc_addr = (string) $cc_addr;
+				if ( '' !== $cc_addr && is_email( $cc_addr ) ) {
+					$headers[] = 'Cc: ' . $cc_addr;
+				}
+			}
+		}
+
+		return $headers;
+	}
+
+	/**
+	 * wp_mail_content_type フィルタコールバック。
+	 *
+	 * 本クラスの送信中のみ add_filter され、送信完了で remove_filter される。
+	 *
+	 * @return string
+	 */
+	public function filter_content_type() {
+		return self::CONTENT_TYPE;
 	}
 }
