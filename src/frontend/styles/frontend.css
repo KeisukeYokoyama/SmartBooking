@@ -340,6 +340,453 @@
 	}
 }
 
+/* ---------- カレンダー表示切替トグル ---------- */
+
+.smb-front-calendar-toggle {
+	display: inline-flex;
+	gap: 0;
+	padding: 4px;
+	background: var(--smb-front-muted-bg);
+	border-radius: var(--smb-front-radius-sm);
+	margin-bottom: 16px;
+}
+
+.smb-front-calendar-toggle__btn {
+	border: none;
+	background: transparent;
+	padding: 6px 16px;
+	font-size: 14px;
+	font-family: inherit;
+	color: var(--smb-front-text-muted);
+	border-radius: 6px;
+	cursor: pointer;
+	min-width: 48px;
+	min-height: 32px;
+}
+
+.smb-front-calendar-toggle__btn.is-active {
+	background: var(--smb-front-surface);
+	color: var(--smb-front-text);
+	box-shadow: var(--smb-front-shadow-sm);
+	font-weight: 600;
+}
+
+.smb-front-calendar-toggle__btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+/* ---------- 日付選択: 日ストリップ ---------- */
+
+.smb-front-day-strip {
+	display: flex;
+	gap: 8px;
+	overflow-x: auto;
+	padding: 4px 4px 12px;
+	-webkit-overflow-scrolling: touch;
+	scroll-snap-type: x proximity;
+}
+
+.smb-front-day-strip::-webkit-scrollbar {
+	height: 6px;
+}
+
+.smb-front-day-strip::-webkit-scrollbar-thumb {
+	background: var(--smb-front-border-strong);
+	border-radius: 3px;
+}
+
+.smb-front-day-tile {
+	flex: 0 0 auto;
+	width: 72px;
+	min-height: 96px;
+	padding: 10px 6px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 2px;
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border);
+	border-radius: var(--smb-front-radius-sm);
+	font-family: inherit;
+	color: inherit;
+	cursor: pointer;
+	transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+	scroll-snap-align: start;
+}
+
+.smb-front-day-tile:hover:not(:disabled) {
+	border-color: var(--smb-front-border-strong);
+	box-shadow: var(--smb-front-shadow-sm);
+}
+
+.smb-front-day-tile:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-day-tile.is-selected {
+	background: var(--smb-front-color-date-selected);
+	border-color: var(--smb-front-color-date-selected);
+	color: var(--smb-front-color-button-text);
+}
+
+.smb-front-day-tile.is-today {
+	border-color: var(--smb-front-color-focus);
+}
+
+.smb-front-day-tile.is-disabled,
+.smb-front-day-tile:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+	background: var(--smb-front-muted-bg);
+}
+
+.smb-front-day-tile__weekday {
+	font-size: 12px;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-day-tile.is-selected .smb-front-day-tile__weekday,
+.smb-front-day-tile.is-selected .smb-front-day-tile__month {
+	color: var(--smb-front-color-button-text);
+	opacity: 0.9;
+}
+
+.smb-front-day-tile.is-sun:not(.is-selected) .smb-front-day-tile__weekday {
+	color: #dc2626;
+}
+
+.smb-front-day-tile.is-sat:not(.is-selected) .smb-front-day-tile__weekday {
+	color: #2563eb;
+}
+
+.smb-front-day-tile__day {
+	font-size: 22px;
+	font-weight: 700;
+}
+
+.smb-front-day-tile__month {
+	font-size: 11px;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-day-tile__badge {
+	margin-top: 4px;
+	padding: 2px 6px;
+	font-size: 11px;
+	border-radius: 10px;
+	line-height: 1.4;
+	font-weight: 600;
+}
+
+.smb-front-day-tile__badge.is-few {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.smb-front-day-tile__badge.is-full {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.smb-front-day-tile__badge.is-closed {
+	background: var(--smb-front-muted-bg);
+	color: var(--smb-front-text-muted);
+}
+
+/* ---------- 日付選択: 月カレンダー ---------- */
+
+.smb-front-month {
+	margin-bottom: 16px;
+}
+
+.smb-front-month__nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+
+.smb-front-month__label {
+	font-weight: 700;
+	font-size: 16px;
+}
+
+.smb-front-month__nav-btn {
+	background: transparent;
+	border: 1px solid var(--smb-front-border);
+	padding: 6px 12px;
+	border-radius: var(--smb-front-radius-sm);
+	cursor: pointer;
+	font-family: inherit;
+	color: inherit;
+	min-height: 36px;
+	min-width: 40px;
+}
+
+.smb-front-month__nav-btn:hover:not(:disabled) {
+	background: var(--smb-front-muted-bg);
+}
+
+.smb-front-month__nav-btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-month__nav-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.smb-front-month__weekdays {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 2px;
+	margin-bottom: 4px;
+}
+
+.smb-front-month__weekday {
+	text-align: center;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--smb-front-text-muted);
+	padding: 6px 0;
+}
+
+.smb-front-month__weekday.is-sun {
+	color: #dc2626;
+}
+
+.smb-front-month__weekday.is-sat {
+	color: #2563eb;
+}
+
+.smb-front-month__grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 2px;
+}
+
+.smb-front-month__cell {
+	aspect-ratio: 1 / 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border);
+	border-radius: var(--smb-front-radius-sm);
+	cursor: pointer;
+	font-family: inherit;
+	color: inherit;
+	padding: 4px 2px;
+	min-height: 44px;
+	position: relative;
+}
+
+.smb-front-month__cell:hover:not(:disabled) {
+	border-color: var(--smb-front-border-strong);
+}
+
+.smb-front-month__cell:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: -1px;
+}
+
+.smb-front-month__cell.is-selected {
+	background: var(--smb-front-color-date-selected);
+	border-color: var(--smb-front-color-date-selected);
+	color: var(--smb-front-color-button-text);
+}
+
+.smb-front-month__cell.is-today:not(.is-selected) {
+	border-color: var(--smb-front-color-focus);
+}
+
+.smb-front-month__cell.is-other-month,
+.smb-front-month__cell.is-out-of-range {
+	background: var(--smb-front-muted-bg);
+	color: var(--smb-front-border-strong);
+	cursor: not-allowed;
+}
+
+.smb-front-month__cell.is-disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+	background: var(--smb-front-muted-bg);
+}
+
+.smb-front-month__cell:disabled {
+	cursor: not-allowed;
+}
+
+.smb-front-month__cell.is-sun:not(.is-other-month):not(.is-selected) .smb-front-month__cell-day {
+	color: #dc2626;
+}
+
+.smb-front-month__cell.is-sat:not(.is-other-month):not(.is-selected) .smb-front-month__cell-day {
+	color: #2563eb;
+}
+
+.smb-front-month__cell-day {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.smb-front-month__cell-badge {
+	font-size: 10px;
+	padding: 1px 4px;
+	border-radius: 8px;
+	font-weight: 600;
+}
+
+.smb-front-month__cell-badge.is-few {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.smb-front-month__cell-badge.is-full {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.smb-front-month__cell-badge.is-closed {
+	background: transparent;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-calendar-loading {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 32px;
+}
+
+/* ---------- 時間枠ボタン ---------- */
+
+.smb-front-time-slots {
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid var(--smb-front-border);
+}
+
+.smb-front-time-slots__header {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: 12px;
+}
+
+.smb-front-time-slots__date {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--smb-front-text);
+}
+
+.smb-front-time-slots__subtitle {
+	font-size: 13px;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-time-slots__empty {
+	margin: 0;
+}
+
+.smb-front-time-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: 8px;
+}
+
+.smb-front-time-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	padding: 10px 12px;
+	min-height: 56px;
+	width: 100%;
+	font-family: inherit;
+	font-size: 14px;
+	color: inherit;
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border);
+	border-radius: var(--smb-front-radius-sm);
+	cursor: pointer;
+	transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.smb-front-time-btn:hover:not(:disabled) {
+	border-color: var(--smb-front-border-strong);
+	box-shadow: var(--smb-front-shadow-sm);
+}
+
+.smb-front-time-btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-time-btn.is-selected {
+	background: var(--smb-front-color-time-selected);
+	border-color: var(--smb-front-color-time-selected);
+	color: var(--smb-front-color-button-text);
+}
+
+.smb-front-time-btn.is-few_left {
+	border-color: #fbbf24;
+	background: #fffbeb;
+}
+
+.smb-front-time-btn.is-few_left.is-selected {
+	background: var(--smb-front-color-time-selected);
+	border-color: var(--smb-front-color-time-selected);
+	color: var(--smb-front-color-button-text);
+}
+
+.smb-front-time-btn.is-full,
+.smb-front-time-btn.is-closed,
+.smb-front-time-btn:disabled {
+	opacity: 0.5;
+	background: var(--smb-front-muted-bg);
+	cursor: not-allowed;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-time-btn__time {
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.smb-front-time-btn__badge {
+	font-size: 11px;
+	padding: 1px 6px;
+	border-radius: 10px;
+	font-weight: 600;
+}
+
+.smb-front-time-btn__badge.is-few_left {
+	background: #fef3c7;
+	color: #92400e;
+}
+
+.smb-front-time-btn__badge.is-full {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+.smb-front-time-btn__badge.is-closed {
+	background: transparent;
+	color: var(--smb-front-text-muted);
+	border: 1px solid var(--smb-front-border);
+}
+
 /* ---------- プレースホルダー（Gen-B 以降で置換される） ---------- */
 
 .smb-front-placeholder {

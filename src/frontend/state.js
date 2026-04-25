@@ -41,6 +41,12 @@ export const INITIAL_STATE = {
 	time: null,
 	scheduleId: null,
 	formValues: {},
+
+	// 取得済みスケジュール + 空き状況。
+	schedules: [],
+	availabilityLoading: false,
+	availabilityError: null,
+	availabilityRange: null, // { dateFrom, dateTo, storeId, staffId }
 };
 
 /**
@@ -221,16 +227,64 @@ export function reducer(state, action) {
 			};
 		}
 
-		case 'SET_DATE':
+		case 'SET_DATE': {
+			// 日付が変わった場合は、選択済みの時間枠をリセットする。
+			const newDate = action.payload && action.payload.date ? action.payload.date : null;
+			if (newDate === state.date) {
+				return state;
+			}
 			return {
 				...state,
-				date: action.payload.date,
-				scheduleId: action.payload.scheduleId || null,
+				date: newDate,
 				time: null,
+				scheduleId: null,
+			};
+		}
+
+		case 'SET_TIME': {
+			// 時間枠クリックで time + scheduleId を同時に確定し、次ステップへ進める。
+			const payload = action.payload || {};
+			const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
+			// flow が time → form なら form へ、そうでなければ次ステップへ。
+			const timeIdx = order.indexOf('time');
+			const nextStep = order[timeIdx + 1] || 'form';
+			return {
+				...state,
+				time: payload.time || null,
+				scheduleId: payload.scheduleId || null,
+				step: nextStep,
+			};
+		}
+
+		case 'AVAILABILITY_START':
+			return {
+				...state,
+				availabilityLoading: true,
+				availabilityError: null,
 			};
 
-		case 'SET_TIME':
-			return { ...state, time: action.payload };
+		case 'AVAILABILITY_SUCCESS': {
+			const { schedules, dateFrom, dateTo, storeId, staffId } = action.payload || {};
+			return {
+				...state,
+				schedules: Array.isArray(schedules) ? schedules : [],
+				availabilityLoading: false,
+				availabilityError: null,
+				availabilityRange: {
+					dateFrom: dateFrom || null,
+					dateTo: dateTo || null,
+					storeId: storeId || null,
+					staffId: staffId || null,
+				},
+			};
+		}
+
+		case 'AVAILABILITY_FAIL':
+			return {
+				...state,
+				availabilityLoading: false,
+				availabilityError: action.payload || 'スケジュールの取得に失敗しました。',
+			};
 
 		case 'SET_FORM_VALUES':
 			return { ...state, formValues: { ...state.formValues, ...action.payload } };

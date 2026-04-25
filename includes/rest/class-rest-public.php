@@ -166,6 +166,34 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'permission_callback' => array( $this, 'permission_check' ),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/public/availability',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_availability' ),
+				'permission_callback' => array( $this, 'permission_check' ),
+				'args'                => array(
+					'store_id'  => array(
+						'required' => false,
+						'type'     => 'integer',
+					),
+					'staff_id'  => array(
+						'required' => false,
+						'type'     => 'integer',
+					),
+					'date_from' => array(
+						'required' => false,
+						'type'     => 'string',
+					),
+					'date_to'   => array(
+						'required' => false,
+						'type'     => 'string',
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -356,5 +384,143 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			);
 		}
 		return rest_ensure_response( $out );
+	}
+
+	/**
+	 * スケジュール一覧 + 空き状況（availability）を返す。
+	 *
+	 * - `is_active = 1` のスケジュールのみ。
+	 * - `date_from` / `date_to` 未指定時は today 〜 today + `display_period_days` 日後まで。
+	 * - 締切（`smb_booking_deadline_days` / `smb_booking_deadline_hours`）を超過した枠は `closed`。
+	 * - 空き状況の判定:
+	 *     closed    : 締切超過
+	 *     full      : booked_count >= capacity
+	 *     few_left  : booked_count >= capacity * 0.7（残り3割未満）
+	 *     available : 上記いずれでもない
+	 *
+	 * @param WP_REST_Request $request リクエスト.
+	 * @return WP_REST_Response
+	 */
+	public function get_availability( $request ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'smb_schedules';
+
+		$store_id = absint( $request->get_param( 'store_id' ) );
+		$staff_id = absint( $request->get_param( 'staff_id' ) );
+
+		$display_days = (int) get_option( 'smb_display_days', 7 );
+		if ( $display_days <= 0 ) {
+			$display_days = 7;
+		}
+
+		// 今日・表示期間終端はサイトタイムゾーン基準で算出する。
+		$today_str = current_time( 'Y-m-d' );
+
+		$date_from = $this->sanitize_date_string( (string) $request->get_param( 'date_from' ) );
+		$date_to   = $this->sanitize_date_string( (string) $request->get_param( 'date_to' ) );
+		if ( null === $date_from ) {
+			$date_from = $today_str;
+		}
+		if ( null === $date_to ) {
+			// 今日 + (display_days - 1) 日後までを含める。
+			$end_ts    = strtotime( $today_str . ' +' . ( $display_days - 1 ) . ' days' );
+			$date_to   = false !== $end_ts ? gmdate( 'Y-m-d', $end_ts ) : $today_str;
+		}
+		if ( strcmp( $date_from, $date_to ) > 0 ) {
+			// 範囲が逆転している場合は空配列を返す。
+			return rest_ensure_response( array( 'schedules' => array() ) );
+		}
+
+		$where  = array( 'is_active = 1', 'schedule_date >= %s', 'schedule_date <= %s' );
+		$params = array( $date_from, $date_to );
+		if ( $store_id > 0 ) {
+			$where[]  = 'store_id = %d';
+			$params[] = $store_id;
+		}
+		if ( $staff_id > 0 ) {
+			$where[]  = 'staff_id = %d';
+			$params[] = $staff_id;
+		}
+
+		$sql = "SELECT id, store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count
+			FROM {$table}
+			WHERE " . implode( ' AND ', $where ) . '
+			ORDER BY schedule_date ASC, start_time ASC';
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+		if ( ! is_array( $rows ) ) {
+			$rows = array();
+		}
+
+		$deadline_days  = max( 0, (int) get_option( 'smb_booking_deadline_days', 0 ) );
+		$deadline_hours = max( 0, (int) get_option( 'smb_booking_deadline_hours', 0 ) );
+
+		// 締切判定用にサイトタイムゾーンの「現在時刻」を取得する。
+		$now_ts = (int) current_time( 'timestamp' );
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$capacity     = (int) $row['capacity'];
+			$booked_count = (int) $row['booked_count'];
+
+			// 予約枠の開始日時（サイトタイムゾーン）を算出。start_time は HH:MM:SS。
+			$slot_ts = strtotime( $row['schedule_date'] . ' ' . $row['start_time'] );
+			$availability = 'available';
+
+			$is_closed = false;
+
+			// 過去の枠は常に closed。
+			if ( false === $slot_ts || $slot_ts <= $now_ts ) {
+				$is_closed = true;
+			}
+
+			// deadline_days / deadline_hours のうち、より早い（厳しい）締切を採用。
+			if ( ! $is_closed && ( $deadline_days > 0 || $deadline_hours > 0 ) ) {
+				$deadlines = array();
+				if ( $deadline_days > 0 ) {
+					$deadlines[] = $slot_ts - ( $deadline_days * DAY_IN_SECONDS );
+				}
+				if ( $deadline_hours > 0 ) {
+					$deadlines[] = $slot_ts - ( $deadline_hours * HOUR_IN_SECONDS );
+				}
+				$deadline_ts = min( $deadlines );
+				if ( $now_ts >= $deadline_ts ) {
+					$is_closed = true;
+				}
+			}
+
+			if ( $is_closed ) {
+				$availability = 'closed';
+			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
+				$availability = 'full';
+			} elseif ( $capacity > 0 && $booked_count >= (int) ceil( $capacity * 0.7 ) ) {
+				$availability = 'few_left';
+			}
+
+			// start_time / end_time は HH:MM に整形してフロントへ返す（表示用）。
+			$start_hm = substr( (string) $row['start_time'], 0, 5 );
+			$end_hm   = substr( (string) $row['end_time'], 0, 5 );
+
+			$out[] = array(
+				'id'            => (int) $row['id'],
+				'store_id'      => (int) $row['store_id'],
+				'staff_id'      => (int) $row['staff_id'],
+				'schedule_date' => (string) $row['schedule_date'],
+				'start_time'    => $start_hm,
+				'end_time'      => $end_hm,
+				'capacity'      => $capacity,
+				'booked_count'  => $booked_count,
+				'availability'  => $availability,
+			);
+		}
+
+		return rest_ensure_response(
+			array(
+				'date_from' => $date_from,
+				'date_to'   => $date_to,
+				'schedules' => $out,
+			)
+		);
 	}
 }

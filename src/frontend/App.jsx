@@ -18,8 +18,10 @@ import ErrorMessage from './components/ErrorMessage';
 import Spinner from './components/Spinner';
 import StepHeader from './components/StepHeader';
 import { INITIAL_STATE, reducer } from './state';
+import DateSelect from './steps/DateSelect';
 import StaffSelect from './steps/StaffSelect';
 import StoreSelect from './steps/StoreSelect';
+import TimeSelect from './steps/TimeSelect';
 
 export default function App({ fixedStoreId = 0 }) {
 	const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
@@ -121,8 +123,37 @@ export default function App({ fixedStoreId = 0 }) {
 				/>
 			)}
 
-			{/* Gen-B/C で実装予定のプレースホルダー。 */}
-			{['date', 'time', 'form', 'confirm', 'done'].includes(state.step) && (
+			{/*
+			  日付選択ステップ:
+			    DateSelect の内側に TimeSelect をネストする。
+			    日付が未選択なら時間枠は非表示、選択されたらカレンダー下部に並ぶ。
+			  仕様 3.4「日付を選択すると、カレンダーの下に空き時間枠がボタン形式で表示される」。
+			*/}
+			{state.step === 'date' && (
+				<DateSelect
+					state={state}
+					dispatch={dispatch}
+					onBack={() => dispatch({ type: 'GO_BACK' })}
+				>
+					<TimeSelect state={state} dispatch={dispatch} />
+				</DateSelect>
+			)}
+
+			{/* time ステップは現状使わない（SET_TIME で直接 form へ遷移）。
+			    ただし flow_order 切替等のために状態としては存在するので、
+			    明示的に DateSelect+TimeSelect を表示して安全側にフォールバック。 */}
+			{state.step === 'time' && (
+				<DateSelect
+					state={state}
+					dispatch={dispatch}
+					onBack={() => dispatch({ type: 'GO_BACK' })}
+				>
+					<TimeSelect state={state} dispatch={dispatch} />
+				</DateSelect>
+			)}
+
+			{/* Gen-C で実装予定のプレースホルダー。 */}
+			{['form', 'confirm', 'done'].includes(state.step) && (
 				<div className="smb-front-step">
 					<StepHeader
 						title={placeholderTitle(state.step)}
@@ -136,6 +167,12 @@ export default function App({ fixedStoreId = 0 }) {
 							<dd>{state.storeId ?? '-'}</dd>
 							<dt>担当者 ID</dt>
 							<dd>{state.staffId ?? '-'}</dd>
+							<dt>選択日</dt>
+							<dd>{state.date ?? '-'}</dd>
+							<dt>選択時間</dt>
+							<dd>{state.time ?? '-'}</dd>
+							<dt>schedule ID</dt>
+							<dd>{state.scheduleId ?? '-'}</dd>
 							<dt>flow_order</dt>
 							<dd>{state.settings?.flow_order ?? '-'}</dd>
 						</dl>

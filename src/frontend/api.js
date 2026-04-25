@@ -96,4 +96,11 @@ export const publicAPI = {
 	staff: (storeId) => apiGet('public/staff', storeId ? { store_id: storeId } : undefined),
 	settings: () => apiGet('public/settings'),
 	customFields: () => apiGet('public/custom-fields'),
+	availability: ({ storeId, staffId, dateFrom, dateTo } = {}) =>
+		apiGet('public/availability', {
+			store_id: storeId || undefined,
+			staff_id: staffId || undefined,
+			date_from: dateFrom || undefined,
+			date_to: dateTo || undefined,
+		}),
 };
