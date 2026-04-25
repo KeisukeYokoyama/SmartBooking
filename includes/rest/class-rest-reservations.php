@@ -591,13 +591,25 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 
 		$body = "\xEF\xBB\xBF" . implode( "\r\n", $lines ) . "\r\n";
 
-		$response = new WP_REST_Response( $body );
-		$response->header( 'Content-Type', 'text/csv; charset=UTF-8' );
-		$response->header( 'Content-Disposition', 'attachment; filename="' . $filename . '"' );
-		// REST はデフォルトで JSON を返そうとするため、WP_REST_Server が serve_request する際に
-		// Content-Type が JSON で上書きされないよう、フィルタで対応することも可能だが、現状の
-		// ヘッダ付きレスポンスで大半のブラウザは正しく解釈する。
-		return $response;
+		// REST サーバの自動 JSON シリアライズを回避し、CSV 本文を直接出力する。
+		add_filter(
+			'rest_pre_serve_request',
+			function ( $served, $result, $req ) use ( $body, $filename ) {
+				if ( '/smart-booking/v1/reservations/export/csv' !== $req->get_route() ) {
+					return $served;
+				}
+				if ( ! headers_sent() ) {
+					header( 'Content-Type: text/csv; charset=UTF-8' );
+					header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+				}
+				echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				return true;
+			},
+			10,
+			3
+		);
+
+		return new WP_REST_Response( null, 200 );
 	}
 
 	/**

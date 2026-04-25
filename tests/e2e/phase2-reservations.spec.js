@@ -13,7 +13,7 @@ const fs = require('node:fs');
 const { test, expect } = require('@playwright/test');
 const { bootstrapAdmin, restCall, restoreSnapshot, ymd } = require('./phase2-helpers');
 
-test.describe.configure({ mode: 'default' });
+test.describe.configure({ mode: 'serial' });
 
 // 異なる店舗を使いたいテストもあるので、共通 fixture として REST で予約を準備する関数を用意.
 async function seedReservations(page, n = 3, dateOffset = 2) {

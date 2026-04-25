@@ -226,8 +226,10 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_store_create_failed', '店舗の作成に失敗しました。', 500 );
 		}
 
-		$id = (int) $wpdb->insert_id;
-		return $this->get_item( new WP_REST_Request( 'GET', '', array( 'id' => $id ) ) );
+		$id      = (int) $wpdb->insert_id;
+		$get_req = new WP_REST_Request( 'GET' );
+		$get_req->set_param( 'id', $id );
+		return $this->get_item( $get_req );
 	}
 
 	/**
