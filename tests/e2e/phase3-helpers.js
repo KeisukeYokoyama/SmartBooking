@@ -55,11 +55,28 @@ function restoreBaseline() {
 	wpCli(
 		`wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='店舗1', is_active=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='担当者1', is_active=1, store_id=1 WHERE id = 1; DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
 	);
-	// オプションのリセット: flow_order / completion_message を既定値へ.
-	wpCli(`wp option delete smb_booking_flow_order`);
-	wpCli(`wp option delete smb_completion_message`);
-	wpCli(`wp option delete smb_booking_deadline_days`);
-	wpCli(`wp option delete smb_booking_deadline_hours`);
+	// オプションのリセット: テスト中に書き換える可能性のあるキーは全て delete し、
+	// 既定値（CLAUDE.md の class-activator.php と class-rest-public.php に基づく）に戻す.
+	const optionsToDelete = [
+		'smb_booking_flow_order',
+		'smb_completion_message',
+		'smb_booking_deadline_days',
+		'smb_booking_deadline_hours',
+		'smb_calendar_view_mode',
+		'smb_display_days',
+		'smb_color_button',
+		'smb_color_date_selected',
+		'smb_color_time_selected',
+		'smb_color_required_mark',
+		'smb_color_focus',
+	];
+	optionsToDelete.forEach((k) => {
+		try {
+			wpCli(`wp option delete ${k}`);
+		} catch (e) {
+			// 既に未設定なら無視.
+		}
+	});
 }
 
 /**
