@@ -17,35 +17,46 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-global $wpdb;
+/**
+ * アンインストール処理本体。
+ *
+ * グローバルスコープで変数を持たないよう関数化している。
+ *
+ * @return void
+ */
+function smart_booking_run_uninstall() {
+	global $wpdb;
 
-$prefix = $wpdb->prefix . 'smb_';
-$tables = array(
-	$prefix . 'reservation_meta',
-	$prefix . 'reservations',
-	$prefix . 'schedules',
-	$prefix . 'staff',
-	$prefix . 'stores',
-	$prefix . 'custom_fields',
-);
+	$smart_booking_prefix = $wpdb->prefix . 'smb_';
+	$smart_booking_tables = array(
+		$smart_booking_prefix . 'reservation_meta',
+		$smart_booking_prefix . 'reservations',
+		$smart_booking_prefix . 'schedules',
+		$smart_booking_prefix . 'staff',
+		$smart_booking_prefix . 'stores',
+		$smart_booking_prefix . 'custom_fields',
+	);
 
-foreach ( $tables as $table ) {
-	// テーブル名は信頼できる内部定数由来。プレースホルダでは識別子を扱えないため直接埋め込む。
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
-}
+	foreach ( $smart_booking_tables as $smart_booking_table ) {
+		// テーブル名は信頼できる内部定数由来。プレースホルダでは識別子を扱えないため直接埋め込む。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "DROP TABLE IF EXISTS {$smart_booking_table}" );
+	}
 
-// smb_ プレフィックスのオプションを全削除.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$option_names = $wpdb->get_col(
-	$wpdb->prepare(
-		"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-		$wpdb->esc_like( 'smb_' ) . '%'
-	)
-);
+	// smb_ プレフィックスのオプションを全削除.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$smart_booking_option_names = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( 'smb_' ) . '%'
+		)
+	);
 
-if ( is_array( $option_names ) ) {
-	foreach ( $option_names as $option_name ) {
-		delete_option( $option_name );
+	if ( is_array( $smart_booking_option_names ) ) {
+		foreach ( $smart_booking_option_names as $smart_booking_option_name ) {
+			delete_option( $smart_booking_option_name );
+		}
 	}
 }
+
+smart_booking_run_uninstall();

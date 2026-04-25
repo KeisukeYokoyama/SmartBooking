@@ -140,10 +140,10 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 
 		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY schedule_date ASC, start_time ASC';
 		if ( ! empty( $params ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$rows = $wpdb->get_results( $sql, ARRAY_A );
 		}
 		if ( ! is_array( $rows ) ) {
@@ -162,7 +162,7 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$id = (int) $request['id'];
 		$t  = $this->table();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_schedule_not_found', '指定されたスケジュールが見つかりません。', 404 );
@@ -275,7 +275,7 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$id = (int) $request['id'];
 		$t  = $this->table();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_schedule_not_found', '指定されたスケジュールが見つかりません。', 404 );
@@ -344,13 +344,13 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 		$t            = $this->table();
 		$reservations = $wpdb->prefix . 'smb_reservations';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE id = %d", $id ) );
 		if ( 0 === $exists ) {
 			return $this->error( 'smb_schedule_not_found', '指定されたスケジュールが見つかりません。', 404 );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$used = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$reservations} WHERE schedule_id = %d", $id ) );
 		if ( $used > 0 && ! $request->get_param( 'force' ) ) {
 			return $this->error(
@@ -424,23 +424,24 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 			$params[] = absint( $request->get_param( 'staff_id' ) );
 		}
 		$sql = "SELECT * FROM {$t} WHERE " . implode( ' AND ', $where );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$sources = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 		if ( empty( $sources ) ) {
 			return $this->error( 'smb_copy_no_source', 'コピー元のスケジュールが見つかりません。', 404 );
 		}
 
-		$now             = $this->now_mysql();
-		$inserted_total  = 0;
-		$skipped_total   = 0;
+		$now               = $this->now_mysql();
+		$inserted_total    = 0;
+		$skipped_total     = 0;
 		$overwritten_total = 0;
 
 		foreach ( $target_dates as $date ) {
 			// 既存確認.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$existing = (int) $wpdb->get_var(
 				$wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE schedule_date = %s", $date )
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			if ( $existing > 0 && ! $overwrite ) {
 				$skipped_total += $existing;
@@ -449,13 +450,14 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 
 			if ( $existing > 0 && $overwrite ) {
 				// 既存の booked_count > 0 の枠は保護。
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$wpdb->query(
 					$wpdb->prepare(
 						"DELETE FROM {$t} WHERE schedule_date = %s AND booked_count = 0",
 						$date
 					)
 				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$overwritten_total += $existing;
 			}
 

@@ -129,7 +129,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	public function get_items() {
 		global $wpdb;
 		$t = $this->table();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results( "SELECT * FROM {$t} ORDER BY sort_order ASC, id ASC", ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
@@ -147,7 +147,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$id = (int) $request['id'];
 		$t  = $this->table();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_field_not_found', '指定されたフィールドが見つかりません。', 404 );
@@ -178,20 +178,20 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		$key = sanitize_key( (string) $request->get_param( 'field_key' ) );
 		if ( '' === $key ) {
 			// 自動生成: field_N.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$max = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t}" );
 			$key = 'field_' . ( $max + 1 );
 		}
 
 		// 既存 key との衝突チェック.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE field_key = %s", $key ) );
 		if ( $exists > 0 ) {
 			// 衝突した場合は suffix を付ける.
 			$i = 2;
 			do {
 				$candidate = $key . '_' . $i;
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE field_key = %s", $candidate ) );
 				++$i;
 			} while ( $exists > 0 && $i < 100 );
@@ -262,7 +262,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$id = (int) $request['id'];
 		$t  = $this->table();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_field_not_found', '指定されたフィールドが見つかりません。', 404 );
@@ -333,7 +333,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$id = (int) $request['id'];
 		$t  = $this->table();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_field_not_found', '指定されたフィールドが見つかりません。', 404 );

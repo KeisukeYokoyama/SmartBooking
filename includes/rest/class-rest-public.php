@@ -214,7 +214,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	public function get_stores() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'smb_stores';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, name, description, image_id, calendar_color, prefecture, city, address_line, phone, sort_order
 			FROM {$table}
@@ -222,6 +223,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
 		}
@@ -264,8 +266,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		$store_id = absint( $request->get_param( 'store_id' ) );
 
+		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( $store_id > 0 ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT id, store_id, name, description, image_id, sort_order
@@ -277,7 +280,6 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				ARRAY_A
 			);
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			$rows = $wpdb->get_results(
 				"SELECT id, store_id, name, description, image_id, sort_order
 				FROM {$table}
@@ -286,6 +288,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				ARRAY_A
 			);
 		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
 		}
@@ -362,13 +365,15 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	public function get_custom_fields() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'smb_custom_fields';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order
 			FROM {$table}
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
 		}
@@ -435,8 +440,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 		if ( null === $date_to ) {
 			// 今日 + (display_days - 1) 日後までを含める。
-			$end_ts    = strtotime( $today_str . ' +' . ( $display_days - 1 ) . ' days' );
-			$date_to   = false !== $end_ts ? gmdate( 'Y-m-d', $end_ts ) : $today_str;
+			$end_ts  = strtotime( $today_str . ' +' . ( $display_days - 1 ) . ' days' );
+			$date_to = false !== $end_ts ? gmdate( 'Y-m-d', $end_ts ) : $today_str;
 		}
 		if ( strcmp( $date_from, $date_to ) > 0 ) {
 			// 範囲が逆転している場合は空配列を返す。
@@ -459,7 +464,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			WHERE " . implode( ' AND ', $where ) . '
 			ORDER BY schedule_date ASC, start_time ASC';
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
@@ -469,6 +474,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		$deadline_hours = max( 0, (int) get_option( 'smb_booking_deadline_hours', 0 ) );
 
 		// 締切判定用にサイトタイムゾーンの「現在時刻」を取得する。
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- サイトTZ基準の Unix 秒で日時計算するため明示的に timestamp を要求。
 		$now_ts = (int) current_time( 'timestamp' );
 
 		$out = array();
@@ -477,7 +483,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$booked_count = (int) $row['booked_count'];
 
 			// 予約枠の開始日時（サイトタイムゾーン）を算出。start_time は HH:MM:SS。
-			$slot_ts = strtotime( $row['schedule_date'] . ' ' . $row['start_time'] );
+			$slot_ts      = strtotime( $row['schedule_date'] . ' ' . $row['start_time'] );
 			$availability = 'available';
 
 			$is_closed = false;
@@ -507,8 +513,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
 				$availability = 'full';
 			} elseif ( $capacity > 0 ) {
-				$available     = $capacity - $booked_count;
-				$ratio_thresh  = (int) ceil( $capacity * 0.3 );
+				$available    = $capacity - $booked_count;
+				$ratio_thresh = (int) ceil( $capacity * 0.3 );
 				if ( $available <= 2 || $available <= $ratio_thresh ) {
 					$availability = 'few_left';
 				}
@@ -581,18 +587,20 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		if ( $schedule_id <= 0 ) {
 			return $this->error( 'smb_reservation_schedule_required', 'ご希望の時間枠を選択してください。', 400 );
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$schedule = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$schedules_table} WHERE id = %d", $schedule_id ),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! $schedule || empty( $schedule['is_active'] ) ) {
 			return $this->error( 'smb_reservation_schedule_not_found', '指定された時間枠は予約を受け付けていません。', 400 );
 		}
 
 		// 過去日 / 締切超過チェック (get_availability と同等のロジック).
-		$slot_ts = strtotime( $schedule['schedule_date'] . ' ' . $schedule['start_time'] );
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- サイトTZ基準の Unix 秒で日時計算するため明示的に timestamp を要求。
 		$now_ts  = (int) current_time( 'timestamp' );
+		$slot_ts = strtotime( $schedule['schedule_date'] . ' ' . $schedule['start_time'] );
 		if ( false === $slot_ts || $slot_ts <= $now_ts ) {
 			return $this->error( 'smb_reservation_closed', 'この時間枠は予約受付を終了しました。', 400 );
 		}
@@ -631,11 +639,13 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		// カスタムフィールド必須チェック.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_defs = $wpdb->get_results(
 			"SELECT field_key, field_label, field_type, is_required FROM {$fields_table} ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! is_array( $field_defs ) ) {
 			$field_defs = array();
 		}
@@ -656,9 +666,14 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			}
 			$val = isset( $custom_fields_input[ $key ] ) ? $custom_fields_input[ $key ] : '';
 			if ( is_array( $val ) ) {
-				$empty = ( 0 === count( array_filter( $val, static function ( $v ) {
-					return '' !== trim( (string) $v );
-				} ) ) );
+				$empty = ( 0 === count(
+					array_filter(
+						$val,
+						static function ( $v ) {
+							return '' !== trim( (string) $v );
+						}
+					)
+				) );
 			} else {
 				$empty = ( '' === trim( (string) $val ) );
 			}
@@ -672,7 +687,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		// アトミック UPDATE: booked_count < capacity のときだけ +1.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$affected = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
@@ -680,6 +695,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				$schedule_id
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( 0 === (int) $affected ) {
 			return $this->error(
 				'smb_reservation_full',
@@ -712,13 +728,14 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		if ( false === $ok ) {
 			// ロールバック: 空き数を戻す.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE {$schedules_table} SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
 					$schedule_id
 				)
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			return $this->error( 'smb_reservation_create_failed', '予約の保存に失敗しました。時間をおいて再度お試しください。', 500 );
 		}
 
@@ -742,7 +759,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				$clean_arr = array_values(
 					array_map( 'sanitize_text_field', array_map( 'strval', $raw ) )
 				);
-				$value = wp_json_encode( $clean_arr );
+				$value     = wp_json_encode( $clean_arr );
 			} else {
 				$value = sanitize_textarea_field( (string) $raw );
 			}
@@ -761,14 +778,14 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// 店舗名・担当者名を引いて返す（完了画面で利用）.
 		$stores_table = $wpdb->prefix . 'smb_stores';
 		$staff_table  = $wpdb->prefix . 'smb_staff';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$store_name = (string) $wpdb->get_var(
 			$wpdb->prepare( "SELECT name FROM {$stores_table} WHERE id = %d", (int) $schedule['store_id'] )
 		);
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$staff_name = (string) $wpdb->get_var(
 			$wpdb->prepare( "SELECT name FROM {$staff_table} WHERE id = %d", (int) $schedule['staff_id'] )
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return rest_ensure_response(
 			array(

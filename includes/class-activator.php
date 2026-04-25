@@ -40,12 +40,12 @@ class Smart_Booking_Activator {
 	private static function seed_default_options() {
 		$defaults = array(
 			// 基本設定.
-			'smb_booking_flow_order'     => 'date-first',
-			'smb_calendar_view_mode'     => 'day-and-month',
-			'smb_display_days'           => 14,
-			'smb_booking_deadline_days'  => 0,
-			'smb_booking_deadline_hours' => 2,
-			'smb_completion_message'     => 'ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。',
+			'smb_booking_flow_order'         => 'date-first',
+			'smb_calendar_view_mode'         => 'day-and-month',
+			'smb_display_days'               => 14,
+			'smb_booking_deadline_days'      => 0,
+			'smb_booking_deadline_hours'     => 2,
+			'smb_completion_message'         => 'ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。',
 
 			// メール（デフォルト文面）.
 			'smb_mail_from_name'             => get_option( 'blogname', 'Smart Booking' ),
@@ -58,18 +58,18 @@ class Smart_Booking_Activator {
 			'smb_mail_approval_user_body'    => "{customer_name} 様\n\nご予約が確定しました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n当日お待ちしております。",
 
 			// 外部連携はデフォルト OFF（WordPress.org 審査ルール）.
-			'smb_google_calendar_enabled' => 0,
-			'smb_google_calendar_id'      => '',
-			'smb_chatwork_enabled'        => 0,
-			'smb_chatwork_api_token'      => '',
-			'smb_chatwork_room_id'        => '',
+			'smb_google_calendar_enabled'    => 0,
+			'smb_google_calendar_id'         => '',
+			'smb_chatwork_enabled'           => 0,
+			'smb_chatwork_api_token'         => '',
+			'smb_chatwork_room_id'           => '',
 
 			// デザイン（WordPress admin のブランド色ベース）.
-			'smb_color_button'        => '#2271b1',
-			'smb_color_date_selected' => '#2271b1',
-			'smb_color_time_selected' => '#2271b1',
-			'smb_color_required_mark' => '#d63638',
-			'smb_color_focus'         => '#2271b1',
+			'smb_color_button'               => '#2271b1',
+			'smb_color_date_selected'        => '#2271b1',
+			'smb_color_time_selected'        => '#2271b1',
+			'smb_color_required_mark'        => '#d63638',
+			'smb_color_focus'                => '#2271b1',
 		);
 
 		foreach ( $defaults as $key => $value ) {
@@ -222,7 +222,8 @@ class Smart_Booking_Activator {
 		$custom_fields_table = $wpdb->prefix . 'smb_custom_fields';
 
 		// デフォルト店舗: 未登録の場合のみ投入.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// テーブル名は信頼できる内部生成値。プレースホルダでは識別子を扱えないため直接埋め込む。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$stores_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$stores_table}" );
 		$store_id     = 0;
 		if ( 0 === $stores_count ) {
@@ -248,12 +249,12 @@ class Smart_Booking_Activator {
 			);
 			$store_id = (int) $wpdb->insert_id;
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$store_id = (int) $wpdb->get_var( "SELECT id FROM {$stores_table} ORDER BY id ASC LIMIT 1" );
 		}
 
 		// デフォルト担当者: 未登録の場合のみ投入.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$staff_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$staff_table}" );
 		if ( 0 === $staff_count && $store_id > 0 ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -276,7 +277,7 @@ class Smart_Booking_Activator {
 		}
 
 		// デフォルトカスタムフィールド: 未登録の場合のみ投入.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$fields_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$custom_fields_table}" );
 		if ( 0 === $fields_count ) {
 			$defaults = array(

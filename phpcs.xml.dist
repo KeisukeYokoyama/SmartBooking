@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<ruleset name="Smart Booking">
+  <description>Smart Booking PHPCS rules</description>
+
+  <file>.</file>
+
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/build/*</exclude-pattern>
+  <exclude-pattern>*/tests/e2e/*</exclude-pattern>
+
+  <arg name="basepath" value="."/>
+  <arg name="colors"/>
+  <arg value="sp"/>
+  <arg name="extensions" value="php"/>
+
+  <!-- WordPress-Extra: WordPress + best practices -->
+  <rule ref="WordPress-Extra">
+    <!-- 既存のファイル命名規約 (class-xxx.php) を採用しているため除外。
+         WordPress 公式は class-xxx.php を許容しているが、sniffer はクラス名と完全一致を要求する。 -->
+    <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+  </rule>
+
+  <!-- テキストドメイン -->
+  <rule ref="WordPress.WP.I18n">
+    <properties>
+      <property name="text_domain" type="array">
+        <element value="smart-booking"/>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- プラグインプレフィックス（命名規則） -->
+  <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+    <properties>
+      <property name="prefixes" type="array">
+        <element value="smart_booking"/>
+        <element value="Smart_Booking"/>
+      </property>
+    </properties>
+  </rule>
+
+  <!-- PHP 互換性 -->
+  <config name="testVersion" value="7.4-"/>
+  <rule ref="PHPCompatibilityWP"/>
+</ruleset>

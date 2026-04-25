@@ -125,10 +125,10 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 
 		$sql = "SELECT * FROM {$table} WHERE {$where} ORDER BY sort_order ASC, id ASC";
 		if ( ! empty( $params ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$rows = $wpdb->get_results( $sql, ARRAY_A );
 		}
 		if ( ! is_array( $rows ) ) {
@@ -150,11 +150,12 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		$table = $this->table();
 		$id    = (int) $request['id'];
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! $row ) {
 			return $this->error( 'smb_store_not_found', '指定された店舗が見つかりません。', 404 );
 		}
@@ -212,7 +213,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 			return $data;
 		}
 
-		$now          = $this->now_mysql();
+		$now                = $this->now_mysql();
 		$data['created_at'] = $now;
 		$data['updated_at'] = $now;
 
@@ -243,7 +244,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		$id    = (int) $request['id'];
 		$table = $this->table();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE id = %d", $id ) );
 		if ( 0 === $exists ) {
 			return $this->error( 'smb_store_not_found', '指定された店舗が見つかりません。', 404 );
@@ -276,20 +277,21 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 	 */
 	public function delete_item( $request ) {
 		global $wpdb;
-		$id            = (int) $request['id'];
-		$table         = $this->table();
-		$reservations  = $wpdb->prefix . 'smb_reservations';
+		$id           = (int) $request['id'];
+		$table        = $this->table();
+		$reservations = $wpdb->prefix . 'smb_reservations';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE id = %d", $id ) );
 		if ( 0 === $exists ) {
 			return $this->error( 'smb_store_not_found', '指定された店舗が見つかりません。', 404 );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$used = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM {$reservations} WHERE store_id = %d", $id )
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( $used > 0 ) {
 			return $this->error(
 				'smb_store_has_reservations',

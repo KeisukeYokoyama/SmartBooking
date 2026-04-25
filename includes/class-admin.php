@@ -144,10 +144,11 @@ class Smart_Booking_Admin {
 	/**
 	 * Smart Booking 管理ページでのみ admin バンドルを enqueue する。
 	 *
-	 * @param string $hook_suffix 現在の管理画面フック名。
+	 * @param string $hook_suffix 現在の管理画面フック名。WordPress 側から自動で渡される。
 	 * @return void
 	 */
-	public function enqueue_assets( $hook_suffix ) {
+	public function enqueue_assets( $hook_suffix ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		unset( $hook_suffix );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- 読み取りのみ。page パラメータで自プラグインのページかを判定する目的。
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		if ( '' === $page || ! array_key_exists( $page, $this->page_slugs ) ) {
