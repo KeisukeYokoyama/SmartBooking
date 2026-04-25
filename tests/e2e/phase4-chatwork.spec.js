@@ -202,7 +202,7 @@ function clearChatworkSettings() {
 /**
  * 管理画面 admin nonce 経由で /settings POST.
  * @param {import('@playwright/test').Page} page
- * @param {Object<string,any>} settings
+ * @param {Object<string,any>}              settings
  */
 async function postSettings( page, settings ) {
 	const nonce = await page.evaluate( () => {
@@ -273,8 +273,8 @@ async function getSettings( page ) {
  * 予約のステータスを admin REST PATCH で変更する.
  *
  * @param {import('@playwright/test').Page} page
- * @param {number} reservationId
- * @param {string} status
+ * @param {number}                          reservationId
+ * @param {string}                          status
  */
 async function patchReservationStatus( page, reservationId, status ) {
 	const nonce = await page.evaluate( () => {
@@ -312,8 +312,8 @@ async function patchReservationStatus( page, reservationId, status ) {
 /**
  * 公開 REST 経由で予約を作成する。
  *
- * @param {import('@playwright/test').Page} page
- * @param {number} scheduleId
+ * @param {import('@playwright/test').Page}         page
+ * @param {number}                                  scheduleId
  * @param {{name:string,email:string,phone:string}} customer
  */
 async function submitPublicReservation( page, scheduleId, customer ) {
@@ -328,9 +328,9 @@ async function submitPublicReservation( page, scheduleId, customer ) {
 	} );
 	if ( res.status !== 200 && res.status !== 201 ) {
 		throw new Error(
-			`public/reservations failed: status=${ res.status } body=${ JSON.stringify(
-				res.data
-			) }`
+			`public/reservations failed: status=${
+				res.status
+			} body=${ JSON.stringify( res.data ) }`
 		);
 	}
 	return res.data;
@@ -385,16 +385,19 @@ test.describe( 'Phase 4 Eval-C: ChatWork 通知', () => {
 			smb_chatwork_api_token: CHATWORK_API_TOKEN,
 			smb_chatwork_room_id: CHATWORK_ROOM_ID,
 		} );
-		expect( post.status, `POST /settings: ${ JSON.stringify( post ) }` ).toBe(
-			200
-		);
+		expect(
+			post.status,
+			`POST /settings: ${ JSON.stringify( post ) }`
+		).toBe( 200 );
 
 		const get = await getSettings( page );
 		expect( get.status ).toBe( 200 );
 		const settings = get.data?.settings || {};
 		expect( Number( settings.smb_chatwork_enabled ) ).toBe( 1 );
 		expect( settings.smb_chatwork_api_token ).toBe( CHATWORK_API_TOKEN );
-		expect( String( settings.smb_chatwork_room_id ) ).toBe( CHATWORK_ROOM_ID );
+		expect( String( settings.smb_chatwork_room_id ) ).toBe(
+			CHATWORK_ROOM_ID
+		);
 	} );
 
 	// ----------------------------------------------------------------
@@ -473,8 +476,7 @@ test.describe( 'Phase 4 Eval-C: ChatWork 通知', () => {
 		await new Promise( ( r ) => setTimeout( r, 3500 ) );
 		const messages = await fetchChatworkMessages();
 		const hit = messages.find(
-			( m ) =>
-				typeof m.body === 'string' && m.body.includes( uniqueName )
+			( m ) => typeof m.body === 'string' && m.body.includes( uniqueName )
 		);
 		if ( hit?.message_id ) {
 			// 万が一投稿されていたらクリーンアップして失敗を明示.
@@ -517,8 +519,7 @@ test.describe( 'Phase 4 Eval-C: ChatWork 通知', () => {
 		await new Promise( ( r ) => setTimeout( r, 3500 ) );
 		const messages = await fetchChatworkMessages();
 		const hit = messages.find(
-			( m ) =>
-				typeof m.body === 'string' && m.body.includes( uniqueName )
+			( m ) => typeof m.body === 'string' && m.body.includes( uniqueName )
 		);
 		if ( hit?.message_id ) {
 			postedMessageIds.push( hit.message_id );

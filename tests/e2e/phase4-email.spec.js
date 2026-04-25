@@ -129,8 +129,8 @@ function headerLines( headers ) {
 
 /**
  * 公開予約を作成して reservation_id を返す。失敗時は throw。
- * @param {import('@playwright/test').Page} page
- * @param {number} scheduleId
+ * @param {import('@playwright/test').Page}         page
+ * @param {number}                                  scheduleId
  * @param {{name:string,email:string,phone:string}} customer
  */
 async function submitPublicReservation( page, scheduleId, customer ) {
@@ -145,9 +145,9 @@ async function submitPublicReservation( page, scheduleId, customer ) {
 	} );
 	if ( res.status !== 200 && res.status !== 201 ) {
 		throw new Error(
-			`public/reservations failed: status=${ res.status } body=${ JSON.stringify(
-				res.data
-			) }`
+			`public/reservations failed: status=${
+				res.status
+			} body=${ JSON.stringify( res.data ) }`
 		);
 	}
 	return res.data;
@@ -160,10 +160,7 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		restoreBaseline();
 		clearMailLog();
 		// 受付/承認テンプレの既定値を確認するため、起動時の値で固定し直す。
-		setOptionRaw(
-			'smb_mail_from_name',
-			'Smart Booking Test'
-		);
+		setOptionRaw( 'smb_mail_from_name', 'Smart Booking Test' );
 		setOptionRaw( 'smb_mail_from_email', 'noreply@example.com' );
 		setOptionRaw(
 			'smb_mail_receipt_user_subject',
@@ -233,10 +230,11 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 
 		// 宛先で分類.
 		const userMail = log.find( ( m ) => m.to === 'hanako@example.com' );
-		const adminMail = log.find(
-			( m ) => m.to === 'store-a@example.com'
-		);
-		expect( userMail, 'user mail to hanako@example.com exists' ).toBeTruthy();
+		const adminMail = log.find( ( m ) => m.to === 'store-a@example.com' );
+		expect(
+			userMail,
+			'user mail to hanako@example.com exists'
+		).toBeTruthy();
 		expect(
 			adminMail,
 			'admin mail to store-a@example.com exists'
@@ -250,7 +248,9 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		// 本文: 各種変数が展開されている.
 		expect( userMail.message ).toContain( '山田 花子' );
 		// schedule_date は「YYYY年M月D日（曜）」形式.
-		expect( userMail.message ).toMatch( /\d{4}年\d{1,2}月\d{1,2}日（[日月火水木金土]）/ );
+		expect( userMail.message ).toMatch(
+			/\d{4}年\d{1,2}月\d{1,2}日（[日月火水木金土]）/
+		);
 		// schedule_time は「14:00〜15:00」形式.
 		expect( userMail.message ).toContain( '14:00〜15:00' );
 		// 予約番号は数値が render される.
@@ -356,7 +356,10 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 				? window.wpApiSettings.nonce
 				: '';
 		} );
-		expect( adminNonce, 'admin nonce available via wpApiSettings' ).toBeTruthy();
+		expect(
+			adminNonce,
+			'admin nonce available via wpApiSettings'
+		).toBeTruthy();
 
 		const patchRes = await page.evaluate(
 			async ( { id, nonce } ) => {

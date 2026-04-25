@@ -64,15 +64,6 @@ try {
 }
 
 /**
- * SQL 文字列リテラルとして安全な形にエスケープ.
- * @param {string} v
- * @return {string}
- */
-function sqlQuote( v ) {
-	return String( v ).replace( /'/g, "''" );
-}
-
-/**
  * 直接 wp option update / wp eval で GCal 設定を書き換える（REST 経由のテスト 1 番以外で使用）.
  *
  * credentials JSON は改行 / シングルクォート / 特殊文字を含むため `wp db query` には渡せない。
@@ -133,14 +124,17 @@ function getGcalEventIdMeta( reservationId ) {
 	const lines = out
 		.split( '\n' )
 		.map( ( s ) => s.trim() )
-		.filter( ( s ) => s.length > 0 && ! s.startsWith( 'ℹ' ) && ! s.startsWith( '✔' ) );
+		.filter(
+			( s ) =>
+				s.length > 0 && ! s.startsWith( 'ℹ' ) && ! s.startsWith( '✔' )
+		);
 	return lines[ 0 ] || '';
 }
 
 /**
  * REST 経由で settings を一括 POST する。admin ログイン済みの page を使う。
  * @param {import('@playwright/test').Page} page
- * @param {Object<string, any>} settings
+ * @param {Object<string, any>}             settings
  * @return {Promise<{ok:boolean,status:number,data:any}>}
  */
 async function postSettings( page, settings ) {
@@ -155,19 +149,16 @@ async function postSettings( page, settings ) {
 	}
 	return page.evaluate(
 		async ( { settings, nonce } ) => {
-			const res = await fetch(
-				'/wp-json/smart-booking/v1/settings',
-				{
-					method: 'POST',
-					credentials: 'same-origin',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-WP-Nonce': nonce,
-						Accept: 'application/json',
-					},
-					body: JSON.stringify( { settings } ),
-				}
-			);
+			const res = await fetch( '/wp-json/smart-booking/v1/settings', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': nonce,
+					Accept: 'application/json',
+				},
+				body: JSON.stringify( { settings } ),
+			} );
 			let data = null;
 			try {
 				data = await res.json();
@@ -191,30 +182,33 @@ async function getSettings( page ) {
 			? window.wpApiSettings.nonce
 			: '';
 	} );
-	return page.evaluate( async ( { nonce } ) => {
-		const res = await fetch( '/wp-json/smart-booking/v1/settings', {
-			method: 'GET',
-			credentials: 'same-origin',
-			headers: {
-				'X-WP-Nonce': nonce,
-				Accept: 'application/json',
-			},
-		} );
-		let data = null;
-		try {
-			data = await res.json();
-		} catch {
-			/* noop */
-		}
-		return { ok: res.ok, status: res.status, data };
-	}, { nonce } );
+	return page.evaluate(
+		async ( { nonce } ) => {
+			const res = await fetch( '/wp-json/smart-booking/v1/settings', {
+				method: 'GET',
+				credentials: 'same-origin',
+				headers: {
+					'X-WP-Nonce': nonce,
+					Accept: 'application/json',
+				},
+			} );
+			let data = null;
+			try {
+				data = await res.json();
+			} catch {
+				/* noop */
+			}
+			return { ok: res.ok, status: res.status, data };
+		},
+		{ nonce }
+	);
 }
 
 /**
  * 予約の status を REST PATCH で変更する（admin ログイン済み page で）.
  * @param {import('@playwright/test').Page} page
- * @param {number} reservationId
- * @param {string} status
+ * @param {number}                          reservationId
+ * @param {string}                          status
  */
 async function patchReservationStatus( page, reservationId, status ) {
 	const nonce = await page.evaluate( () => {
@@ -251,8 +245,8 @@ async function patchReservationStatus( page, reservationId, status ) {
 
 /**
  * 公開 REST 経由で予約を作成する。
- * @param {import('@playwright/test').Page} page
- * @param {number} scheduleId
+ * @param {import('@playwright/test').Page}         page
+ * @param {number}                                  scheduleId
  * @param {{name:string,email:string,phone:string}} customer
  */
 async function submitPublicReservation( page, scheduleId, customer ) {
@@ -267,9 +261,9 @@ async function submitPublicReservation( page, scheduleId, customer ) {
 	} );
 	if ( res.status !== 200 && res.status !== 201 ) {
 		throw new Error(
-			`public/reservations failed: status=${ res.status } body=${ JSON.stringify(
-				res.data
-			) }`
+			`public/reservations failed: status=${
+				res.status
+			} body=${ JSON.stringify( res.data ) }`
 		);
 	}
 	return res.data;
@@ -322,9 +316,9 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 			post.status,
 			`POST /settings: ${ JSON.stringify( post ) }`
 		).toBe( 200 );
-		expect( post.data?.settings?.smb_google_calendar_credentials_json ).toBe(
-			'***configured***'
-		);
+		expect(
+			post.data?.settings?.smb_google_calendar_credentials_json
+		).toBe( '***configured***' );
 
 		// 2) GET でマスク確認.
 		const get = await getSettings( page );
@@ -336,7 +330,9 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 		expect( settings.smb_google_calendar_credentials_json ).not.toContain(
 			'private_key'
 		);
-		expect( settings.smb_google_calendar_client_email ).toBe( CLIENT_EMAIL );
+		expect( settings.smb_google_calendar_client_email ).toBe(
+			CLIENT_EMAIL
+		);
 		expect( Number( settings.smb_google_calendar_enabled ) ).toBe( 1 );
 		expect( settings.smb_google_calendar_id ).toBe( CALENDAR_ID );
 	} );
@@ -432,10 +428,9 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 			}
 			await new Promise( ( r ) => setTimeout( r, 500 ) );
 		}
-		expect(
-			removed,
-			`_smb_gcal_event_id meta がキャンセル後も残存`
-		).toBe( true );
+		expect( removed, `_smb_gcal_event_id meta がキャンセル後も残存` ).toBe(
+			true
+		);
 	} );
 
 	// ----------------------------------------------------------------
