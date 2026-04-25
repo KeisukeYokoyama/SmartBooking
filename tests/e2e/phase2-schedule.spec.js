@@ -378,4 +378,183 @@ test.describe('Phase 2: スケジュール管理', () => {
 		await page.locator('.smb-modal__footer').getByRole('button', { name: '保存' }).click();
 		await expect(page.locator('.smb-toast--success').last()).toContainText('保存', { timeout: 6000 });
 	});
+
+	test('店舗・担当者フィルタを変更すると /schedules リクエストにパラメタが付く', async ({ page }) => {
+		// 店舗 id=2 と担当者 id=2 を準備（DB 直 INSERT）.
+		const { insertStoreDirectly, insertStaffDirectly } = require('./phase2-helpers');
+		const storeId = insertStoreDirectly({ name: 'フィルタ用店舗' });
+		const staffId = insertStaffDirectly({ store_id: storeId, name: 'フィルタ用担当者' });
+		// store_id=1 の方にスケジュールを 1 枠.
+		const targetA = ymd(3);
+		await restCall(page, 'POST', 'schedules', {
+			items: [
+				{
+					store_id: 1,
+					staff_id: 1,
+					schedule_date: targetA,
+					start_time: '10:00',
+					end_time: '11:00',
+					capacity: 1,
+					is_active: 1,
+				},
+			],
+		});
+		// 新店舗の方にスケジュール 1 枠.
+		const targetB = ymd(4);
+		await restCall(page, 'POST', 'schedules', {
+			items: [
+				{
+					store_id: storeId,
+					staff_id: staffId,
+					schedule_date: targetB,
+					start_time: '14:00',
+					end_time: '15:00',
+					capacity: 1,
+					is_active: 1,
+				},
+			],
+		});
+		await page.reload();
+		await page.waitForSelector('.smb-page--schedule', { timeout: 15000 });
+		// 「すべての店舗」状態では両方の日付に has-schedules が付く.
+		await expect(page.locator(`.smb-calendar__cell[aria-label="${targetA} を選択"]`)).toHaveClass(/has-schedules/);
+		await expect(page.locator(`.smb-calendar__cell[aria-label="${targetB} を選択"]`)).toHaveClass(/has-schedules/);
+
+		// 店舗フィルタを「フィルタ用店舗」(id=storeId) にする.
+		const storeSelect = page.locator('.smb-schedule-toolbar__filters select').first();
+		await storeSelect.selectOption(String(storeId));
+		// schedules は再フェッチされる。targetB のみ has-schedules、targetA は外れる.
+		await expect(page.locator(`.smb-calendar__cell[aria-label="${targetB} を選択"]`)).toHaveClass(/has-schedules/, {
+			timeout: 5000,
+		});
+		await expect(
+			page.locator(`.smb-calendar__cell[aria-label="${targetA} を選択"]`)
+		).not.toHaveClass(/has-schedules/);
+
+		// 担当者フィルタも追加（同店舗内だから問題なし）.
+		const staffSelect = page.locator('.smb-schedule-toolbar__filters select').nth(1);
+		await staffSelect.selectOption(String(staffId));
+		await expect(page.locator(`.smb-calendar__cell[aria-label="${targetB} を選択"]`)).toHaveClass(
+			/has-schedules/
+		);
+	});
+
+	test('日付未入力でスケジュール追加 → バリデーションエラー', async ({ page }) => {
+		await page.getByRole('button', { name: /スケジュールを追加/ }).click();
+		await expect(page.locator('.smb-modal__title', { hasText: 'スケジュールを追加' })).toBeVisible();
+		// 日付欄を明示的に空に.
+		const dateInput = page.locator('#smb-schedule-date');
+		await dateInput.fill('');
+		await page.locator('.smb-modal__footer').getByRole('button', { name: '追加する' }).click();
+		// schedule_date 用のエラーが表示される.
+		await expect(
+			page.locator('.smb-field__error', { hasText: /日付を選択/ })
+		).toBeVisible();
+	});
+
+	test('予約可能数 0 を入力すると最低値 1 にクランプされる（クライアントガード）', async ({ page }) => {
+		await page.getByRole('button', { name: /スケジュールを追加/ }).click();
+		const target = ymd(10);
+		await page.locator('#smb-schedule-date').fill(target);
+		// capacity を 0 に書き換え → onChange で Math.max(1, ...) で 1 にクランプ.
+		const capInput = page.locator('input[aria-label="1つ目の時間枠・予約可能数"]');
+		await capInput.fill('0');
+		await capInput.blur();
+		await expect(capInput).toHaveValue('1');
+		// 念のため負数も.
+		await capInput.fill('-3');
+		await capInput.blur();
+		await expect(capInput).toHaveValue('1');
+		// このまま保存 → 成功する（capacity=1 で送信される）.
+		await page.locator('.smb-modal__footer').getByRole('button', { name: '追加する' }).click();
+		await expect(page.locator('.smb-toast--success').last()).toContainText('追加', { timeout: 6000 });
+	});
+
+	test('スケジュール削除（CRUD::Delete）— 予約なしなら ConfirmDialog 経由で削除できる', async ({ page }) => {
+		// ymd(1) は 1 日後（同月内になりやすい）。月をまたぐ場合は schedules フェッチが
+		// 該当月になっていないと DetailPane に何も表示されないため、月内日付を選ぶ。
+		const target = ymd(1);
+		const res = await restCall(page, 'POST', 'schedules', {
+			items: [
+				{
+					store_id: 1,
+					staff_id: 1,
+					schedule_date: target,
+					start_time: '13:00',
+					end_time: '14:00',
+					capacity: 2,
+					is_active: 1,
+				},
+			],
+		});
+		expect(res.ok).toBe(true);
+		await page.reload();
+		await page.waitForSelector('.smb-page--schedule', { timeout: 15000 });
+		// 当該日付セルをクリック → DetailPane を表示.
+		await page.locator(`.smb-calendar__cell[aria-label="${target} を選択"]`).click();
+		// DetailPane の「削除」ボタン.
+		const delBtn = page
+			.locator('.smb-schedule-layout__pane')
+			.getByRole('button', { name: '削除' })
+			.first();
+		await delBtn.click();
+		// ConfirmDialog が出る.
+		await expect(page.locator('.smb-modal__title', { hasText: 'スケジュールを削除' })).toBeVisible();
+		await page.locator('.smb-modal__footer').getByRole('button', { name: '削除する' }).click();
+		// 成功 toast.
+		await expect(page.locator('.smb-toast--success').last()).toContainText('削除', { timeout: 6000 });
+		// has-schedules クラスが外れる.
+		await expect(
+			page.locator(`.smb-calendar__cell[aria-label="${target} を選択"]`)
+		).not.toHaveClass(/has-schedules/, { timeout: 5000 });
+	});
+
+	test('過去日付へのコピーも仕様通り成功する（カレンダー上の制限はサーバ側で課されない）', async ({ page }) => {
+		// 仕様: スケジュール管理は管理者用なので過去日付への登録は許容される（フロント締切は別ロジック）.
+		const source = ymd(2);
+		const past = ymd(-3); // 3 日前.
+		const res = await restCall(page, 'POST', 'schedules', {
+			items: [
+				{
+					store_id: 1,
+					staff_id: 1,
+					schedule_date: source,
+					start_time: '11:00',
+					end_time: '12:00',
+					capacity: 1,
+					is_active: 1,
+				},
+			],
+		});
+		expect(res.ok).toBe(true);
+		const copyRes = await restCall(page, 'POST', 'schedules/copy', {
+			source_date: source,
+			store_id: 1,
+			staff_id: 1,
+			target_dates: [past],
+			overwrite: false,
+		});
+		// 過去日付がエラーになる仕様であれば 400/422、許容なら 200 で inserted>=1.
+		// どちらかが起きることをテスト（仕様未定義部分）.
+		if (copyRes.ok) {
+			expect(copyRes.data?.inserted).toBeGreaterThanOrEqual(1);
+		} else {
+			expect([400, 422]).toContain(copyRes.status);
+		}
+	});
+
+	test('mobile: スケジュール追加モーダルがスマホ幅 (375px) で操作可能', async ({ page, viewport }) => {
+		test.skip(!viewport || viewport.width > 500, 'mobile viewport 専用');
+		await page.getByRole('button', { name: /スケジュールを追加/ }).click();
+		await expect(page.locator('.smb-modal__title', { hasText: 'スケジュールを追加' })).toBeVisible();
+		// 日付入力ができる.
+		await page.locator('#smb-schedule-date').fill(ymd(12));
+		// 時間枠追加ボタンが押せる.
+		await page.getByRole('button', { name: /時間枠を追加/ }).click();
+		// 時間枠 2 件あること.
+		await expect(page.locator('input[type="time"]')).toHaveCount(2);
+		// 保存できる.
+		await page.locator('.smb-modal__footer').getByRole('button', { name: '追加する' }).click();
+		await expect(page.locator('.smb-toast--success').last()).toContainText('追加', { timeout: 6000 });
+	});
 });

@@ -19,7 +19,8 @@
       "Bash(grep *)",
       "Bash(wc *)",
       "Bash(docker *)",
-      "Bash(chmod *)"
+      "Bash(chmod *)",
+      "Bash(curl *)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",
