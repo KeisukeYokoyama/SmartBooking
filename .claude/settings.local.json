@@ -20,7 +20,9 @@
       "Bash(wc *)",
       "Bash(docker *)",
       "Bash(chmod *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(cp /tmp/debug-mobile.spec.js /Users/keisukeyokoyama/dev/smart-booking/tests/e2e/debug-mobile.spec.js)",
+      "Bash(sed -i '' \"s|require\\('./tests/e2e/helpers'\\)|require\\('./helpers'\\)|\" /Users/keisukeyokoyama/dev/smart-booking/tests/e2e/debug-mobile.spec.js)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",
