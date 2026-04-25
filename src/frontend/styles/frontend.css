@@ -1,0 +1,382 @@
+/*!
+ * Smart Booking フロント予約フォームスタイル。
+ *
+ * 設計方針:
+ *   - `smb-front-` プレフィックスで全クラスを衝突回避。
+ *   - CSS カスタムプロパティで色を上書き可能（設定画面「デザイン」タブの値を App.jsx が差し込む）。
+ *   - モバイルファースト。スマホ幅 375px で違和感なく操作できることを優先。
+ *   - Gen-A では店舗・担当者カードと共通スタイル。カレンダー/フォームの本格スタイルは Gen-B/D。
+ */
+
+/* ---------- トークン ---------- */
+
+#smart-booking-app {
+	--smb-front-color-button: #1f2937;
+	--smb-front-color-button-text: #ffffff;
+	--smb-front-color-date-selected: #1f2937;
+	--smb-front-color-time-selected: #1f2937;
+	--smb-front-color-required: #ef4444;
+	--smb-front-color-focus: #2563eb;
+
+	--smb-front-text: #111827;
+	--smb-front-text-muted: #6b7280;
+	--smb-front-bg: #ffffff;
+	--smb-front-surface: #ffffff;
+	--smb-front-muted-bg: #f3f4f6;
+	--smb-front-border: #e5e7eb;
+	--smb-front-border-strong: #d1d5db;
+
+	--smb-front-radius: 12px;
+	--smb-front-radius-sm: 8px;
+
+	--smb-front-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+	--smb-front-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+
+	--smb-front-font: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+		'Noto Sans JP', Meiryo, sans-serif;
+
+	color: var(--smb-front-text);
+	font-family: var(--smb-front-font);
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+#smart-booking-app *,
+#smart-booking-app *::before,
+#smart-booking-app *::after {
+	box-sizing: border-box;
+}
+
+/* ---------- ルートコンテナ ---------- */
+
+.smb-front-root {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 16px;
+}
+
+.smb-front-loading {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 64px 16px;
+}
+
+/* ---------- ステップ ---------- */
+
+.smb-front-step {
+	background: var(--smb-front-surface);
+}
+
+.smb-front-step-header {
+	text-align: center;
+	margin-bottom: 24px;
+	position: relative;
+}
+
+.smb-front-step-header__back {
+	position: absolute;
+	left: 0;
+	top: 4px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	background: none;
+	border: none;
+	padding: 8px 10px;
+	font-size: 14px;
+	color: var(--smb-front-text-muted);
+	cursor: pointer;
+	border-radius: var(--smb-front-radius-sm);
+}
+
+.smb-front-step-header__back:hover {
+	background: var(--smb-front-muted-bg);
+	color: var(--smb-front-text);
+}
+
+.smb-front-step-header__back:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-step-header__title {
+	font-size: 20px;
+	font-weight: 700;
+	margin: 0 0 8px;
+	color: var(--smb-front-text);
+}
+
+.smb-front-step-header__subtitle {
+	color: var(--smb-front-text-muted);
+	font-size: 14px;
+	margin: 0;
+}
+
+/* ---------- カードリスト ---------- */
+
+.smb-front-cards {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 12px;
+}
+
+@media (min-width: 640px) {
+	.smb-front-cards {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+.smb-front-card {
+	display: flex;
+	width: 100%;
+	gap: 12px;
+	align-items: stretch;
+	padding: 16px;
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border);
+	border-radius: var(--smb-front-radius);
+	box-shadow: var(--smb-front-shadow-sm);
+	text-align: left;
+	cursor: pointer;
+	transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+	font-family: inherit;
+	color: inherit;
+}
+
+.smb-front-card:hover {
+	border-color: var(--smb-front-border-strong);
+	box-shadow: var(--smb-front-shadow);
+	transform: translateY(-1px);
+}
+
+.smb-front-card:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-card__media {
+	flex: 0 0 72px;
+	width: 72px;
+	height: 72px;
+	border-radius: var(--smb-front-radius-sm);
+	background: var(--smb-front-muted-bg);
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--smb-front-text-muted);
+	font-weight: 700;
+	font-size: 20px;
+}
+
+.smb-front-card__media--avatar {
+	border-radius: 50%;
+}
+
+.smb-front-card__media--placeholder {
+	color: #fff;
+}
+
+.smb-front-card__media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.smb-front-card__body {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.smb-front-card__name {
+	font-weight: 700;
+	font-size: 16px;
+	color: var(--smb-front-text);
+}
+
+.smb-front-card__desc {
+	font-size: 14px;
+	color: var(--smb-front-text-muted);
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+.smb-front-card__meta {
+	margin: 4px 0 0;
+	display: grid;
+	grid-template-columns: 48px 1fr;
+	row-gap: 2px;
+	column-gap: 8px;
+	font-size: 13px;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-card__meta dt {
+	font-weight: 600;
+}
+
+.smb-front-card__meta dd {
+	margin: 0;
+}
+
+.smb-front-card__cta {
+	align-self: center;
+	flex: 0 0 auto;
+	font-size: 13px;
+	color: var(--smb-front-color-button);
+	white-space: nowrap;
+	font-weight: 600;
+}
+
+/* ---------- 空状態・エラー ---------- */
+
+.smb-front-empty {
+	padding: 40px 16px;
+	text-align: center;
+	color: var(--smb-front-text-muted);
+	background: var(--smb-front-muted-bg);
+	border-radius: var(--smb-front-radius);
+}
+
+.smb-front-alert {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 16px;
+	border: 1px solid #fecaca;
+	background: #fef2f2;
+	border-radius: var(--smb-front-radius);
+	color: #991b1b;
+}
+
+.smb-front-alert__icon {
+	flex: 0 0 auto;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: #dc2626;
+	color: #fff;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+}
+
+.smb-front-alert__message {
+	flex: 1 1 auto;
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+.smb-front-alert__btn {
+	flex: 0 0 auto;
+	padding: 6px 12px;
+	border: 1px solid currentColor;
+	background: transparent;
+	color: inherit;
+	border-radius: var(--smb-front-radius-sm);
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.smb-front-alert__btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+/* ---------- スピナー ---------- */
+
+.smb-front-spinner {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.smb-front-spinner__dot {
+	display: inline-block;
+	width: 24px;
+	height: 24px;
+	border: 3px solid var(--smb-front-border);
+	border-top-color: var(--smb-front-color-button);
+	border-radius: 50%;
+	animation: smb-front-spin 800ms linear infinite;
+}
+
+.smb-front-spinner--lg .smb-front-spinner__dot {
+	width: 40px;
+	height: 40px;
+	border-width: 4px;
+}
+
+.smb-front-spinner--sm .smb-front-spinner__dot {
+	width: 16px;
+	height: 16px;
+	border-width: 2px;
+}
+
+.smb-front-spinner__sr {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+@keyframes smb-front-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ---------- プレースホルダー（Gen-B 以降で置換される） ---------- */
+
+.smb-front-placeholder {
+	padding: 24px;
+	background: var(--smb-front-muted-bg);
+	border-radius: var(--smb-front-radius);
+	color: var(--smb-front-text-muted);
+	font-size: 14px;
+}
+
+.smb-front-placeholder p {
+	margin: 0 0 12px;
+}
+
+.smb-front-placeholder__dl {
+	margin: 0;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 4px 16px;
+	font-size: 13px;
+}
+
+.smb-front-placeholder__dl dt {
+	font-weight: 600;
+	color: var(--smb-front-text);
+}
+
+.smb-front-placeholder__dl dd {
+	margin: 0;
+}
+
+.smb-front-placeholder code {
+	background: var(--smb-front-surface);
+	border: 1px solid var(--smb-front-border);
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-family: ui-monospace, SFMono-Regular, monospace;
+	font-size: 12px;
+	color: var(--smb-front-text);
+}

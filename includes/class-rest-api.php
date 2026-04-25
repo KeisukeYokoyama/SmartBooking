@@ -23,6 +23,7 @@ require_once SMART_BOOKING_PLUGIN_DIR . 'includes/rest/class-rest-schedules.php'
 require_once SMART_BOOKING_PLUGIN_DIR . 'includes/rest/class-rest-reservations.php';
 require_once SMART_BOOKING_PLUGIN_DIR . 'includes/rest/class-rest-custom-fields.php';
 require_once SMART_BOOKING_PLUGIN_DIR . 'includes/rest/class-rest-settings.php';
+require_once SMART_BOOKING_PLUGIN_DIR . 'includes/rest/class-rest-public.php';
 
 /**
  * REST API ディスパッチャクラス。
@@ -54,6 +55,7 @@ class Smart_Booking_REST_API {
 			new Smart_Booking_REST_Reservations(),
 			new Smart_Booking_REST_Custom_Fields(),
 			new Smart_Booking_REST_Settings(),
+			new Smart_Booking_REST_Public(),
 		);
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 	}

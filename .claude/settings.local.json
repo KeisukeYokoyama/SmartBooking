@@ -22,7 +22,9 @@
       "Bash(chmod *)",
       "Bash(curl *)",
       "Bash(cp /tmp/debug-mobile.spec.js /Users/keisukeyokoyama/dev/smart-booking/tests/e2e/debug-mobile.spec.js)",
-      "Bash(sed -i '' \"s|require\\('./tests/e2e/helpers'\\)|require\\('./helpers'\\)|\" /Users/keisukeyokoyama/dev/smart-booking/tests/e2e/debug-mobile.spec.js)"
+      "Bash(sed -i '' \"s|require\\('./tests/e2e/helpers'\\)|require\\('./helpers'\\)|\" /Users/keisukeyokoyama/dev/smart-booking/tests/e2e/debug-mobile.spec.js)",
+      "Bash(mv /tmp/smb-gen-a-check.js /Users/keisukeyokoyama/dev/smart-booking/tmp-smb-gen-a-check.js)",
+      "Bash(sed -i.bak \"s|require\\('playwright'\\)|require\\('@playwright/test'\\)|\" tmp-smb-gen-a-check.js)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",
