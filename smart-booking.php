@@ -30,6 +30,7 @@ require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-activator.php';
 require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-admin.php';
 require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-rest-api.php';
 require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-shortcode.php';
+require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-integrations.php';
 
 // 有効化フック: テーブル作成 + 初期データ投入（init ではなくここでのみ実行）.
 register_activation_hook( __FILE__, array( 'Smart_Booking_Activator', 'activate' ) );
@@ -53,5 +54,9 @@ function smart_booking_bootstrap() {
 	// フロントショートコード.
 	$shortcode = new Smart_Booking_Shortcode();
 	$shortcode->init();
+
+	// 外部連携 (メール / Google カレンダー / ChatWork). 内部で OFF を判定するので無条件 wire.
+	$integrations = new Smart_Booking_Integrations();
+	$integrations->init();
 }
 add_action( 'plugins_loaded', 'smart_booking_bootstrap' );

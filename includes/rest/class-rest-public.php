@@ -787,6 +787,16 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+		/**
+		 * 予約受付時のフック。
+		 *
+		 * メール / ChatWork / Google Calendar 連携クラスが購読する。エラーは握り潰してもよい
+		 * （連携失敗で予約自体を失敗扱いにはしない）。
+		 *
+		 * @param int $reservation_id 受け付けた予約 ID。
+		 */
+		do_action( 'smb_reservation_received', $reservation_id );
+
 		return rest_ensure_response(
 			array(
 				'id'                => $reservation_id,

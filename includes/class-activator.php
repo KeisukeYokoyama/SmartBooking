@@ -60,6 +60,8 @@ class Smart_Booking_Activator {
 			// 外部連携はデフォルト OFF（WordPress.org 審査ルール）.
 			'smb_google_calendar_enabled'    => 0,
 			'smb_google_calendar_id'         => '',
+			// サービスアカウント JSON（autoload=no で別保存。下の add_option で個別に処理）.
+			'smb_google_calendar_client_email' => '',
 			'smb_chatwork_enabled'           => 0,
 			'smb_chatwork_api_token'         => '',
 			'smb_chatwork_room_id'           => '',
@@ -74,6 +76,11 @@ class Smart_Booking_Activator {
 
 		foreach ( $defaults as $key => $value ) {
 			add_option( $key, $value );
+		}
+
+		// JSON サービスアカウントは autoload=no で初期化（巨大化を避ける）.
+		if ( false === get_option( 'smb_google_calendar_credentials_json', false ) ) {
+			add_option( 'smb_google_calendar_credentials_json', '', '', 'no' );
 		}
 	}
 

@@ -450,6 +450,21 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update( $t, $update, array( 'id' => $id ), $format, array( '%d' ) );
+
+		// ステータス遷移ベースのフック発火（連携クラスが購読）。
+		if ( isset( $update['status'] ) ) {
+			$old = (string) $row['status'];
+			$new = (string) $update['status'];
+			if ( 'approved' === $new && 'approved' !== $old ) {
+				/** @param int $id */
+				do_action( 'smb_reservation_approved', $id );
+			}
+			if ( 'cancelled' === $new && 'cancelled' !== $old ) {
+				/** @param int $id */
+				do_action( 'smb_reservation_cancelled', $id );
+			}
+		}
+
 		$request->set_param( 'id', $id );
 		return $this->get_item( $request );
 	}
@@ -481,6 +496,13 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 				)
 			);
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+
+		// 削除前にキャンセル相当のフックを発火（連携クラスが Google Calendar 等を後始末する）。
+		// ステータスが既に cancelled なら重複発火しない。
+		if ( 'cancelled' !== (string) $row['status'] ) {
+			/** @param int $id */
+			do_action( 'smb_reservation_cancelled', $id );
 		}
 
 		// メタも削除.
