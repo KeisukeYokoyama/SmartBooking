@@ -11,15 +11,18 @@ import App from './App';
 import './styles/frontend.css';
 
 function bootstrap() {
-	const container = document.getElementById('smart-booking-app');
-	if (!container) return;
-	const fixedStoreId = parseInt(container.getAttribute('data-store-id') || '0', 10) || 0;
-	const root = createRoot(container);
-	root.render(<App fixedStoreId={fixedStoreId} />);
+	const container = document.getElementById( 'smart-booking-app' );
+	if ( ! container ) {
+		return;
+	}
+	const fixedStoreId =
+		parseInt( container.getAttribute( 'data-store-id' ) || '0', 10 ) || 0;
+	const root = createRoot( container );
+	root.render( <App fixedStoreId={ fixedStoreId } /> );
 }
 
-if (document.readyState === 'loading') {
-	document.addEventListener('DOMContentLoaded', bootstrap);
+if ( document.readyState === 'loading' ) {
+	document.addEventListener( 'DOMContentLoaded', bootstrap );
 } else {
 	bootstrap();
 }

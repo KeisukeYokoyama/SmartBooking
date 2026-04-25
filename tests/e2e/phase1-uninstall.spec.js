@@ -15,38 +15,47 @@
  * 後処理:
  *   U-3 で Activator::activate を呼び直してテーブルを再生成し、他テストへの影響を無くす。
  */
-const { test, expect } = require('@playwright/test');
-const { wpCli, listSmbTables, countSmbOptions } = require('./helpers');
+const { test, expect } = require( '@playwright/test' );
+const { wpCli, listSmbTables, countSmbOptions } = require( './helpers' );
 
-test.describe.configure({ mode: 'serial' });
+test.describe.configure( { mode: 'serial' } );
 
-test.describe('Phase 1 (破壊的): アンインストール検証', () => {
-  test('U-1. uninstall.php 実行後に smb_ テーブル 6 つがすべて DROP される', () => {
-    // 事前確認: テーブルが存在すること.
-    const before = listSmbTables();
-    expect(before.length, `事前状態で 6 テーブルが存在していること: ${before.join(',')}`).toBe(6);
+test.describe( 'Phase 1 (破壊的): アンインストール検証', () => {
+	test( 'U-1. uninstall.php 実行後に smb_ テーブル 6 つがすべて DROP される', () => {
+		// 事前確認: テーブルが存在すること.
+		const before = listSmbTables();
+		expect(
+			before.length,
+			`事前状態で 6 テーブルが存在していること: ${ before.join( ',' ) }`
+		).toBe( 6 );
 
-    // uninstall.php を直接実行するため WP_UNINSTALL_PLUGIN を define してから require する.
-    // wp-env コンテナ内のプラグインパスは /var/www/html/wp-content/plugins/smart-booking/.
-    wpCli(
-      `eval "define('WP_UNINSTALL_PLUGIN', 'smart-booking/smart-booking.php'); require WP_PLUGIN_DIR . '/smart-booking/uninstall.php';"`
-    );
+		// uninstall.php を直接実行するため WP_UNINSTALL_PLUGIN を define してから require する.
+		// wp-env コンテナ内のプラグインパスは /var/www/html/wp-content/plugins/smart-booking/.
+		wpCli(
+			`eval "define('WP_UNINSTALL_PLUGIN', 'smart-booking/smart-booking.php'); require WP_PLUGIN_DIR . '/smart-booking/uninstall.php';"`
+		);
 
-    const remaining = listSmbTables();
-    expect(remaining, `残存テーブル: ${remaining.join(', ')}`).toEqual([]);
-  });
+		const remaining = listSmbTables();
+		expect(
+			remaining,
+			`残存テーブル: ${ remaining.join( ', ' ) }`
+		).toEqual( [] );
+	} );
 
-  test('U-2. wp_options から smb_ プレフィックスのレコードが全削除される', () => {
-    const count = countSmbOptions();
-    expect(count).toBe(0);
-  });
+	test( 'U-2. wp_options から smb_ プレフィックスのレコードが全削除される', () => {
+		const count = countSmbOptions();
+		expect( count ).toBe( 0 );
+	} );
 
-  test('U-3. プラグインを deactivate → activate するとテーブル 6 つが再生成される', () => {
-    // deactivate → activate で register_activation_hook 経由に Activator::activate() が走る.
-    // これは WordPress.org 審査時の再有効化シナリオに最も近い方式.
-    wpCli('plugin deactivate smart-booking');
-    wpCli('plugin activate smart-booking');
-    const tables = listSmbTables();
-    expect(tables.length, `再生成後のテーブル: ${tables.join(', ')}`).toBe(6);
-  });
-});
+	test( 'U-3. プラグインを deactivate → activate するとテーブル 6 つが再生成される', () => {
+		// deactivate → activate で register_activation_hook 経由に Activator::activate() が走る.
+		// これは WordPress.org 審査時の再有効化シナリオに最も近い方式.
+		wpCli( 'plugin deactivate smart-booking' );
+		wpCli( 'plugin activate smart-booking' );
+		const tables = listSmbTables();
+		expect(
+			tables.length,
+			`再生成後のテーブル: ${ tables.join( ', ' ) }`
+		).toBe( 6 );
+	} );
+} );

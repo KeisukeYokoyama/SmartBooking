@@ -58,58 +58,61 @@ export const INITIAL_STATE = {
 /**
  * flow_order を反映したステップの順序。
  *
- * @param {string} flowOrder
- * @returns {string[]}
+ * @param {string} flowOrder 'A' または 'B'
+ * @return {string[]} ステップ名の配列
  */
-export function getStepOrder(flowOrder) {
-	if (flowOrder === 'B') {
-		return ['store', 'staff', 'form', 'date', 'time', 'confirm', 'done'];
+export function getStepOrder( flowOrder ) {
+	if ( flowOrder === 'B' ) {
+		return [ 'store', 'staff', 'form', 'date', 'time', 'confirm', 'done' ];
 	}
-	return ['store', 'staff', 'date', 'time', 'form', 'confirm', 'done'];
+	return [ 'store', 'staff', 'date', 'time', 'form', 'confirm', 'done' ];
 }
 
 /**
  * スキップルールを適用して「最初に表示するステップ」を決定する。
  *
- * @param {object} params
- * @param {number} params.storeCount
- * @param {number} params.staffCountForResolvedStore
- * @param {number} params.fixedStoreId  ショートコードで指定された店舗 ID
- * @param {string} params.flowOrder
- * @returns {{ step: string, storeId: number|null, staffId: number|null }}
+ * @param {Object}   params
+ * @param {number}   params.storeCount
+ * @param {number}   params.staffCountForResolvedStore
+ * @param {number}   params.fixedStoreId               ショートコードで指定された店舗 ID
+ * @param {string}   params.flowOrder
+ * @param {Object[]} params.stores                     有効な店舗リスト
+ * @param {Object[]} params.staff                      担当者リスト
+ * @return {{ step: string, storeId: number|null, staffId: number|null }} 初期ステップ情報
  */
-export function resolveInitialStep({
+export function resolveInitialStep( {
 	storeCount,
 	staffCountForResolvedStore,
 	fixedStoreId,
 	flowOrder,
 	stores,
 	staff,
-}) {
+} ) {
 	let storeId = null;
 	let staffId = null;
 	let step = 'store';
 
 	// ショートコード属性で店舗固定の場合、store ステップをスキップ。
-	if (fixedStoreId > 0) {
+	if ( fixedStoreId > 0 ) {
 		storeId = fixedStoreId;
 		step = 'staff';
-	} else if (storeCount === 1) {
-		storeId = stores[0].id;
+	} else if ( storeCount === 1 ) {
+		storeId = stores[ 0 ].id;
 		step = 'staff';
 	} else {
 		return { step: 'store', storeId: null, staffId: null };
 	}
 
 	// 担当者が 1 人なら staff ステップをスキップ。
-	if (staffCountForResolvedStore === 1) {
-		const single = staff.find((s) => s.store_id === storeId) || staff[0];
-		if (single) {
+	if ( staffCountForResolvedStore === 1 ) {
+		const single =
+			staff.find( ( s ) => s.store_id === storeId ) || staff[ 0 ];
+		if ( single ) {
 			staffId = single.id;
 			// flow_order を考慮して次のステップを決定する。
-			const order = getStepOrder(flowOrder);
-			const idx = order.indexOf('staff');
-			step = order[idx + 1] || 'date';
+			const order = getStepOrder( flowOrder );
+			const idx = order.indexOf( 'staff' );
+			step = order[ idx + 1 ] || 'date';
 		}
 	}
 
@@ -126,28 +129,37 @@ export function resolveInitialStep({
  *
  * 真に戻れる step が 1 つでも存在すれば true。
  *
- * @param {object} state
- * @returns {boolean}
+ * @param {Object} state 現在のフォーム状態
+ * @return {boolean} 戻れるステップが存在すれば true
  */
-export function canGoBack(state) {
-	if (!state || !state.step) return false;
-	const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
-	const idx = order.indexOf(state.step);
-	if (idx <= 0) return false;
+export function canGoBack( state ) {
+	if ( ! state || ! state.step ) {
+		return false;
+	}
+	const order = getStepOrder(
+		state.settings ? state.settings.flow_order : 'A'
+	);
+	const idx = order.indexOf( state.step );
+	if ( idx <= 0 ) {
+		return false;
+	}
 
-	for (let i = idx - 1; i >= 0; i--) {
-		const s = order[i];
-		if (s === 'store') {
-			if (state.fixedStoreId > 0 || (state.stores || []).length <= 1) {
+	for ( let i = idx - 1; i >= 0; i-- ) {
+		const s = order[ i ];
+		if ( s === 'store' ) {
+			if (
+				state.fixedStoreId > 0 ||
+				( state.stores || [] ).length <= 1
+			) {
 				continue;
 			}
 			return true;
 		}
-		if (s === 'staff') {
-			const staffForStore = (state.staff || []).filter(
-				(x) => x.store_id === state.storeId,
+		if ( s === 'staff' ) {
+			const staffForStore = ( state.staff || [] ).filter(
+				( x ) => x.store_id === state.storeId
 			);
-			if (staffForStore.length <= 1) {
+			if ( staffForStore.length <= 1 ) {
 				continue;
 			}
 			return true;
@@ -161,21 +173,22 @@ export function canGoBack(state) {
 /**
  * reducer。
  *
- * @param {object} state
+ * @param {Object}                        state
  * @param {{type: string, payload?: any}} action
  */
-export function reducer(state, action) {
-	switch (action.type) {
+export function reducer( state, action ) {
+	switch ( action.type ) {
 		case 'INIT_START':
 			return { ...state, loading: true, error: null, step: 'loading' };
 
 		case 'INIT_SUCCESS': {
-			const { settings, stores, staff, customFields, fixedStoreId } = action.payload;
+			const { settings, stores, staff, customFields, fixedStoreId } =
+				action.payload;
 			const activeStores = stores;
 			const activeStaff = staff;
 
 			// 予約可能な店舗が 0 件（ショートコード指定店舗が無効な場合含む）。
-			if (activeStores.length === 0) {
+			if ( activeStores.length === 0 ) {
 				return {
 					...state,
 					loading: false,
@@ -189,7 +202,10 @@ export function reducer(state, action) {
 				};
 			}
 
-			if (fixedStoreId > 0 && !activeStores.some((s) => s.id === fixedStoreId)) {
+			if (
+				fixedStoreId > 0 &&
+				! activeStores.some( ( s ) => s.id === fixedStoreId )
+			) {
 				return {
 					...state,
 					loading: false,
@@ -203,18 +219,21 @@ export function reducer(state, action) {
 				};
 			}
 
-			const resolvedStoreId = fixedStoreId > 0 ? fixedStoreId : activeStores[0].id;
-			const staffForResolved = activeStaff.filter((s) => s.store_id === resolvedStoreId);
+			const resolvedStoreId =
+				fixedStoreId > 0 ? fixedStoreId : activeStores[ 0 ].id;
+			const staffForResolved = activeStaff.filter(
+				( s ) => s.store_id === resolvedStoreId
+			);
 			const staffCountForResolved = staffForResolved.length;
 
-			const { step, storeId, staffId } = resolveInitialStep({
+			const { step, storeId, staffId } = resolveInitialStep( {
 				storeCount: activeStores.length,
 				staffCountForResolvedStore: staffCountForResolved,
 				fixedStoreId,
 				flowOrder: settings.flow_order,
 				stores: activeStores,
 				staff: staffForResolved,
-			});
+			} );
 
 			return {
 				...state,
@@ -241,19 +260,21 @@ export function reducer(state, action) {
 
 		case 'SET_STORE': {
 			const storeId = action.payload;
-			const staffForStore = state.staff.filter((s) => s.store_id === storeId);
+			const staffForStore = state.staff.filter(
+				( s ) => s.store_id === storeId
+			);
 			// 担当者が 1 人なら staff をスキップ。
-			if (staffForStore.length === 1) {
-				const order = getStepOrder(state.settings.flow_order);
-				const idx = order.indexOf('staff');
+			if ( staffForStore.length === 1 ) {
+				const order = getStepOrder( state.settings.flow_order );
+				const idx = order.indexOf( 'staff' );
 				return {
 					...state,
 					storeId,
-					staffId: staffForStore[0].id,
-					step: order[idx + 1] || 'date',
+					staffId: staffForStore[ 0 ].id,
+					step: order[ idx + 1 ] || 'date',
 				};
 			}
-			if (staffForStore.length === 0) {
+			if ( staffForStore.length === 0 ) {
 				return {
 					...state,
 					storeId,
@@ -266,19 +287,22 @@ export function reducer(state, action) {
 		}
 
 		case 'SET_STAFF': {
-			const order = getStepOrder(state.settings.flow_order);
-			const idx = order.indexOf('staff');
+			const order = getStepOrder( state.settings.flow_order );
+			const idx = order.indexOf( 'staff' );
 			return {
 				...state,
 				staffId: action.payload,
-				step: order[idx + 1] || 'date',
+				step: order[ idx + 1 ] || 'date',
 			};
 		}
 
 		case 'SET_DATE': {
 			// 日付が変わった場合は、選択済みの時間枠をリセットする。
-			const newDate = action.payload && action.payload.date ? action.payload.date : null;
-			if (newDate === state.date) {
+			const newDate =
+				action.payload && action.payload.date
+					? action.payload.date
+					: null;
+			if ( newDate === state.date ) {
 				return state;
 			}
 			return {
@@ -292,10 +316,12 @@ export function reducer(state, action) {
 		case 'SET_TIME': {
 			// 時間枠クリックで time + scheduleId を同時に確定し、次ステップへ進める。
 			const payload = action.payload || {};
-			const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
+			const order = getStepOrder(
+				state.settings ? state.settings.flow_order : 'A'
+			);
 			// flow が time → form なら form へ、そうでなければ次ステップへ。
-			const timeIdx = order.indexOf('time');
-			const nextStep = order[timeIdx + 1] || 'form';
+			const timeIdx = order.indexOf( 'time' );
+			const nextStep = order[ timeIdx + 1 ] || 'form';
 			return {
 				...state,
 				time: payload.time || null,
@@ -312,10 +338,11 @@ export function reducer(state, action) {
 			};
 
 		case 'AVAILABILITY_SUCCESS': {
-			const { schedules, dateFrom, dateTo, storeId, staffId } = action.payload || {};
+			const { schedules, dateFrom, dateTo, storeId, staffId } =
+				action.payload || {};
 			return {
 				...state,
-				schedules: Array.isArray(schedules) ? schedules : [],
+				schedules: Array.isArray( schedules ) ? schedules : [],
 				availabilityLoading: false,
 				availabilityError: null,
 				availabilityRange: {
@@ -331,27 +358,35 @@ export function reducer(state, action) {
 			return {
 				...state,
 				availabilityLoading: false,
-				availabilityError: action.payload || 'スケジュールの取得に失敗しました。',
+				availabilityError:
+					action.payload || 'スケジュールの取得に失敗しました。',
 			};
 
 		case 'SET_FORM_VALUES':
-			return { ...state, formValues: { ...state.formValues, ...action.payload } };
+			return {
+				...state,
+				formValues: { ...state.formValues, ...action.payload },
+			};
 
 		case 'UPDATE_FORM_FIELD': {
 			const { key, value } = action.payload || {};
-			if (!key) return state;
+			if ( ! key ) {
+				return state;
+			}
 			return {
 				...state,
-				formValues: { ...state.formValues, [key]: value },
+				formValues: { ...state.formValues, [ key ]: value },
 			};
 		}
 
 		case 'GO_TO_CONFIRM': {
 			// flow_order に応じて確認画面または日付選択へ遷移。
 			// flow A: form → confirm。flow B: form → date（time/scheduleId は保持）。
-			const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
-			const formIdx = order.indexOf('form');
-			const nextStep = order[formIdx + 1] || 'confirm';
+			const order = getStepOrder(
+				state.settings ? state.settings.flow_order : 'A'
+			);
+			const formIdx = order.indexOf( 'form' );
+			const nextStep = order[ formIdx + 1 ] || 'confirm';
 			return {
 				...state,
 				step: nextStep,
@@ -391,9 +426,12 @@ export function reducer(state, action) {
 			const payload = action.payload;
 			let message;
 			let status = null;
-			if (payload && typeof payload === 'object') {
+			if ( payload && typeof payload === 'object' ) {
 				message = payload.message || '予約の送信に失敗しました。';
-				status = payload.status != null ? payload.status : null;
+				status =
+					payload.status !== null && payload.status !== undefined
+						? payload.status
+						: null;
 			} else {
 				message = payload || '予約の送信に失敗しました。';
 			}
@@ -411,7 +449,7 @@ export function reducer(state, action) {
 			// 例: ConfirmPage で 409 (満席) 後に「日付を選び直す」を押した時、
 			// 古い満席の枠を握ったままにせず、ユーザーに新しい時間枠を選び直させる。
 			// submitError もクリーンに消しておく。
-			if (next === 'date') {
+			if ( next === 'date' ) {
 				return {
 					...state,
 					step: 'date',
@@ -425,22 +463,31 @@ export function reducer(state, action) {
 		}
 
 		case 'GO_BACK': {
-			const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
-			const idx = order.indexOf(state.step);
-			if (idx <= 0) return state;
-			let prev = order[idx - 1];
+			const order = getStepOrder(
+				state.settings ? state.settings.flow_order : 'A'
+			);
+			const idx = order.indexOf( state.step );
+			if ( idx <= 0 ) {
+				return state;
+			}
+			let prev = order[ idx - 1 ];
 			// time ステップは DateSelect と一体化しているため date に集約する。
-			if (prev === 'time') {
+			if ( prev === 'time' ) {
 				prev = 'date';
 			}
 			// スキップされる step を飛ばす。
-			if (prev === 'store' && (state.fixedStoreId > 0 || state.stores.length <= 1)) {
-				prev = order[idx - 2] || state.step;
+			if (
+				prev === 'store' &&
+				( state.fixedStoreId > 0 || state.stores.length <= 1 )
+			) {
+				prev = order[ idx - 2 ] || state.step;
 			}
-			if (prev === 'staff') {
-				const staffForStore = state.staff.filter((s) => s.store_id === state.storeId);
-				if (staffForStore.length <= 1) {
-					prev = order[idx - 2] || state.step;
+			if ( prev === 'staff' ) {
+				const staffForStore = state.staff.filter(
+					( s ) => s.store_id === state.storeId
+				);
+				if ( staffForStore.length <= 1 ) {
+					prev = order[ idx - 2 ] || state.step;
 				}
 			}
 			return { ...state, step: prev };

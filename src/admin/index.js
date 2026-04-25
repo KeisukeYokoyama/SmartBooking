@@ -9,15 +9,17 @@ import App from './App';
 import './admin.scss';
 
 function bootstrap() {
-	const container = document.getElementById('smart-booking-admin-app');
-	if (!container) return;
-	const page = container.getAttribute('data-page') || 'schedule';
-	const root = createRoot(container);
-	root.render(<App page={page} />);
+	const container = document.getElementById( 'smart-booking-admin-app' );
+	if ( ! container ) {
+		return;
+	}
+	const page = container.getAttribute( 'data-page' ) || 'schedule';
+	const root = createRoot( container );
+	root.render( <App page={ page } /> );
 }
 
-if (document.readyState === 'loading') {
-	document.addEventListener('DOMContentLoaded', bootstrap);
+if ( document.readyState === 'loading' ) {
+	document.addEventListener( 'DOMContentLoaded', bootstrap );
 } else {
 	bootstrap();
 }
