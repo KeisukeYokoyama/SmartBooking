@@ -29,6 +29,7 @@ export default function StaffSelect({ staff, storeId, onSelect, onBack }) {
 								type="button"
 								className="smb-front-card"
 								onClick={() => onSelect(member.id)}
+								aria-label={`${member.name} を選択`}
 							>
 								{member.image_url ? (
 									<div className="smb-front-card__media smb-front-card__media--avatar">

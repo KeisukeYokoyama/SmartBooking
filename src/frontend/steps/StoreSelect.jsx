@@ -24,6 +24,7 @@ export default function StoreSelect({ stores, onSelect }) {
 								type="button"
 								className="smb-front-card"
 								onClick={() => onSelect(store.id)}
+								aria-label={`${store.name} を選択`}
 							>
 								{store.image_url ? (
 									<div className="smb-front-card__media">

@@ -46,6 +46,19 @@ export default function ConfirmPage({ state, dispatch }) {
 		}
 	}, []);
 
+	// 送信エラー発生時はエラーバナーへスクロール + フォーカスを移す（a11y）。
+	const errorRef = useRef(null);
+	useEffect(() => {
+		if (submitError && errorRef.current) {
+			if (typeof errorRef.current.scrollIntoView === 'function') {
+				errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+			if (typeof errorRef.current.focus === 'function') {
+				errorRef.current.focus();
+			}
+		}
+	}, [submitError]);
+
 	// 並び順を sort_order に揃える。
 	const orderedFields = useMemo(() => {
 		const list = Array.isArray(customFields) ? [...customFields] : [];
@@ -160,7 +173,11 @@ export default function ConfirmPage({ state, dispatch }) {
 			</section>
 
 			{submitError && (
-				<div className="smb-front-confirm__alert">
+				<div
+					className="smb-front-confirm__alert"
+					ref={errorRef}
+					tabIndex={-1}
+				>
 					<ErrorMessage message={submitError} />
 				</div>
 			)}

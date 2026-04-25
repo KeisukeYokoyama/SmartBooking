@@ -49,14 +49,18 @@ export default function TimeSelect({ state, dispatch }) {
 	};
 
 	return (
-		<div className="smb-front-time-slots">
+		<div
+			className="smb-front-time-slots"
+			role="region"
+			aria-label="選択した日の時間枠"
+		>
 			<div className="smb-front-time-slots__header">
-				<span className="smb-front-time-slots__date">{headerText}</span>
+				<span className="smb-front-time-slots__date" aria-live="polite">{headerText}</span>
 				<span className="smb-front-time-slots__subtitle">ご希望の時間を選んでください</span>
 			</div>
 
 			{daySchedules.length === 0 ? (
-				<p className="smb-front-empty smb-front-time-slots__empty">
+				<p className="smb-front-empty smb-front-time-slots__empty" role="status">
 					この日に予約可能な時間枠はありません。
 				</p>
 			) : (
@@ -65,6 +69,18 @@ export default function TimeSelect({ state, dispatch }) {
 						const label = AVAILABILITY_LABELS[s.availability] || '';
 						const isSelected = selectedTime === s.start_time && state.scheduleId === s.id;
 						const disabled = s.availability === 'full' || s.availability === 'closed';
+						// 「14時00分から15時00分 残りわずか」のように読み上げられるラベル。
+						const timeRangeJa = s.end_time
+							? `${s.start_time}から${s.end_time}`
+							: s.start_time;
+						const ariaLabel = [
+							timeRangeJa,
+							label,
+							disabled ? '選択不可' : '',
+							isSelected ? '選択中' : '',
+						]
+							.filter(Boolean)
+							.join(' ');
 						return (
 							<li key={s.id}>
 								<button
@@ -80,12 +96,13 @@ export default function TimeSelect({ state, dispatch }) {
 									disabled={disabled}
 									aria-disabled={disabled}
 									aria-pressed={isSelected}
+									aria-label={ariaLabel}
 								>
-									<span className="smb-front-time-btn__time">
+									<span className="smb-front-time-btn__time" aria-hidden="true">
 										{s.start_time}
 										{s.end_time ? (
 											<>
-												<span aria-hidden="true"> 〜 </span>
+												<span> 〜 </span>
 												{s.end_time}
 											</>
 										) : null}
@@ -93,6 +110,7 @@ export default function TimeSelect({ state, dispatch }) {
 									{label && (
 										<span
 											className={`smb-front-time-btn__badge is-${s.availability}`}
+											aria-hidden="true"
 										>
 											{label}
 										</span>

@@ -241,6 +241,17 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 				const isSelected = selectedYmd === d.ymd;
 				const isToday = isSameDay(d.date, todayDate);
 				const dow = d.date.getDay();
+				// スクリーンリーダー向けラベル: 「2026年5月1日 火曜日 残りわずか」等。
+				const ariaLabel = [
+					`${d.date.getFullYear()}年${d.date.getMonth() + 1}月${d.date.getDate()}日`,
+					`${d.weekdayLabel}曜日`,
+					isToday ? '本日' : '',
+					cls.label || '',
+					cls.disabled ? '選択不可' : '',
+					isSelected ? '選択中' : '',
+				]
+					.filter(Boolean)
+					.join(' ');
 				return (
 					<button
 						key={d.ymd}
@@ -263,6 +274,7 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 						disabled={cls.disabled}
 						aria-disabled={cls.disabled}
 						aria-pressed={isSelected}
+						aria-label={ariaLabel}
 					>
 						<span className="smb-front-day-tile__weekday">{d.weekdayLabel}</span>
 						<span className="smb-front-day-tile__day">{d.date.getDate()}</span>
@@ -270,7 +282,10 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 							{d.date.getMonth() + 1}月
 						</span>
 						{cls.label && (
-							<span className={`smb-front-day-tile__badge is-${cls.tone}`}>
+							<span
+								className={`smb-front-day-tile__badge is-${cls.tone}`}
+								aria-hidden="true"
+							>
 								{cls.label}
 							</span>
 						)}
@@ -357,6 +372,18 @@ function MonthCalendar({
 					const isSelected = selectedYmd === cell.ymd;
 					const isToday = isSameDay(cell.date, todayDate);
 					const dow = cell.weekdayIndex;
+					const cellAriaLabel = [
+						`${cell.date.getFullYear()}年${cell.date.getMonth() + 1}月${cell.date.getDate()}日`,
+						`${WEEKDAY_LABELS[dow]}曜日`,
+						isToday ? '本日' : '',
+						!cell.isCurrentMonth ? '月外' : '',
+						cell.isCurrentMonth && !inRange ? '範囲外' : '',
+						cls.label || '',
+						disabled ? '選択不可' : '',
+						isSelected ? '選択中' : '',
+					]
+						.filter(Boolean)
+						.join(' ');
 					return (
 						<button
 							key={cell.ymd}
@@ -381,10 +408,16 @@ function MonthCalendar({
 							disabled={disabled}
 							aria-disabled={disabled}
 							aria-pressed={isSelected}
+							aria-label={cellAriaLabel}
 						>
-							<span className="smb-front-month__cell-day">{cell.date.getDate()}</span>
+							<span className="smb-front-month__cell-day" aria-hidden="true">
+								{cell.date.getDate()}
+							</span>
 							{cls.label && cell.isCurrentMonth && inRange && (
-								<span className={`smb-front-month__cell-badge is-${cls.tone}`}>
+								<span
+									className={`smb-front-month__cell-badge is-${cls.tone}`}
+									aria-hidden="true"
+								>
 									{cls.label}
 								</span>
 							)}

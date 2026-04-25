@@ -166,6 +166,8 @@ export default function FormInput({ state, dispatch, onBack }) {
 									onChange={(e) => handleChange(f.field_key, e.target.value)}
 									aria-invalid={errMsg ? 'true' : 'false'}
 									aria-describedby={errMsg ? id + '-err' : undefined}
+									aria-required={required ? 'true' : undefined}
+									required={required}
 								>
 									<option value="">選択してください</option>
 									{opts.map((o) => (
@@ -175,7 +177,11 @@ export default function FormInput({ state, dispatch, onBack }) {
 									))}
 								</select>
 								{errMsg && (
-									<p id={id + '-err'} className="smb-front-form__error">
+									<p
+										id={id + '-err'}
+										className="smb-front-form__error"
+										role="alert"
+									>
 										{errMsg}
 									</p>
 								)}
@@ -197,6 +203,7 @@ export default function FormInput({ state, dispatch, onBack }) {
 									role="radiogroup"
 									aria-label={f.field_label}
 									aria-invalid={errMsg ? 'true' : 'false'}
+									aria-required={required ? 'true' : undefined}
 								>
 									{opts.map((o, i) => {
 										const optId = id + '-opt-' + i;
@@ -222,7 +229,11 @@ export default function FormInput({ state, dispatch, onBack }) {
 									})}
 								</div>
 								{errMsg && (
-									<p id={id + '-err'} className="smb-front-form__error">
+									<p
+										id={id + '-err'}
+										className="smb-front-form__error"
+										role="alert"
+									>
 										{errMsg}
 									</p>
 								)}
@@ -245,6 +256,7 @@ export default function FormInput({ state, dispatch, onBack }) {
 									role="group"
 									aria-label={f.field_label}
 									aria-invalid={errMsg ? 'true' : 'false'}
+									aria-required={required ? 'true' : undefined}
 								>
 									{opts.map((o, i) => {
 										const optId = id + '-opt-' + i;
@@ -273,7 +285,11 @@ export default function FormInput({ state, dispatch, onBack }) {
 									})}
 								</div>
 								{errMsg && (
-									<p id={id + '-err'} className="smb-front-form__error">
+									<p
+										id={id + '-err'}
+										className="smb-front-form__error"
+										role="alert"
+									>
 										{errMsg}
 									</p>
 								)}
@@ -298,9 +314,15 @@ export default function FormInput({ state, dispatch, onBack }) {
 									onChange={(e) => handleChange(f.field_key, e.target.value)}
 									aria-invalid={errMsg ? 'true' : 'false'}
 									aria-describedby={errMsg ? id + '-err' : undefined}
+									aria-required={required ? 'true' : undefined}
+									required={required}
 								/>
 								{errMsg && (
-									<p id={id + '-err'} className="smb-front-form__error">
+									<p
+										id={id + '-err'}
+										className="smb-front-form__error"
+										role="alert"
+									>
 										{errMsg}
 									</p>
 								)}
@@ -334,6 +356,8 @@ export default function FormInput({ state, dispatch, onBack }) {
 								autoComplete={autoComplete}
 								aria-invalid={errMsg ? 'true' : 'false'}
 								aria-describedby={errMsg ? id + '-err' : undefined}
+								aria-required={required ? 'true' : undefined}
+								required={required}
 							/>
 							{errMsg && (
 								<p id={id + '-err'} className="smb-front-form__error">

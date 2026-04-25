@@ -16,6 +16,9 @@
 	--smb-front-color-date-selected: #1f2937;
 	--smb-front-color-time-selected: #1f2937;
 	--smb-front-color-required: #ef4444;
+	/* エイリアス: 設定キー `color_required_mark` に対応する CSS 変数名も用意しておく。
+	   CSS 側では `--smb-front-color-required` を参照するが、App.jsx から両方に書き込む。*/
+	--smb-front-color-required-mark: var(--smb-front-color-required);
 	--smb-front-color-focus: #2563eb;
 
 	--smb-front-text: #111827;
@@ -855,7 +858,10 @@
 .smb-front-form__select:focus {
 	outline: none;
 	border-color: var(--smb-front-color-focus);
+	/* focus-ring を CSS カスタムプロパティ経由に。
+	   Chrome/Safari 現行は color-mix をサポート。未サポートブラウザ向けに下段のフォールバックを先に書く。*/
 	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--smb-front-color-focus) 22%, transparent);
 }
 
 .smb-front-form__input.has-error,
@@ -1166,4 +1172,154 @@
 
 .smb-front-done__message p:last-child {
 	margin-bottom: 0;
+}
+
+/* ---------- レスポンシブ最終調整 (Gen-D) ---------- */
+
+/*
+ * ≤480px: スマホ主要幅帯。375px（iPhone SE）でも違和感なく操作できることを担保する。
+ * - .smb-front-root の横パディングを少し詰める
+ * - 店舗/担当者カードは縦並び（Gen-A の 640px breakpoint 未満で既に 1 列）
+ * - 日付タイルをやや小さく、月グリッドを詰めてタップ領域 >= 44px を維持
+ * - 時間枠を 2 列に固定して押しやすく
+ * - 確認画面のラベル/値は縦スタック
+ */
+@media (max-width: 480px) {
+	.smb-front-root {
+		padding: 12px;
+	}
+
+	.smb-front-step-header__title {
+		font-size: 18px;
+	}
+
+	.smb-front-card {
+		padding: 12px;
+		gap: 10px;
+	}
+
+	.smb-front-card__media {
+		flex: 0 0 56px;
+		width: 56px;
+		height: 56px;
+		font-size: 16px;
+	}
+
+	.smb-front-card__cta {
+		display: none; /* スマホではカード全体タップで十分、矢印は省略 */
+	}
+
+	.smb-front-day-strip {
+		gap: 6px;
+		padding-left: 2px;
+		padding-right: 2px;
+	}
+
+	.smb-front-day-tile {
+		width: 60px;
+		min-height: 84px;
+		padding: 8px 4px;
+	}
+
+	.smb-front-day-tile__day {
+		font-size: 20px;
+	}
+
+	.smb-front-day-tile__badge {
+		font-size: 10px;
+		padding: 1px 5px;
+	}
+
+	.smb-front-month__cell {
+		min-height: 44px;
+		padding: 2px 1px;
+	}
+
+	.smb-front-month__cell-day {
+		font-size: 13px;
+	}
+
+	.smb-front-month__nav-btn {
+		padding: 6px 10px;
+	}
+
+	.smb-front-time-list {
+		/* 最低でも 2 列で並ぶよう minmax の下限を調整 */
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.smb-front-time-btn {
+		min-height: 52px;
+		padding: 8px 8px;
+	}
+
+	.smb-front-time-btn__time {
+		font-size: 14px;
+	}
+
+	.smb-front-confirm {
+		padding: 16px 16px;
+	}
+
+	.smb-front-done {
+		padding: 24px 8px;
+	}
+
+	.smb-front-done__number {
+		padding: 14px 20px;
+	}
+
+	.smb-front-done__number-value {
+		font-size: 24px;
+	}
+
+	/* iOS Safari の拡大ズーム防止のため input フォントサイズは 16px 以上を維持 */
+	.smb-front-form__input,
+	.smb-front-form__textarea,
+	.smb-front-form__select {
+		font-size: 16px;
+	}
+
+	.smb-front-btn--primary {
+		/* スマホではフル幅ボタンにして押しやすく */
+		min-width: 0;
+		width: 100%;
+	}
+
+	.smb-front-form__actions--confirm .smb-front-btn {
+		width: 100%;
+	}
+}
+
+/*
+ * ≥480px でのみ必要な微調整（primary ボタンの最小幅は既に指定済み）。
+ * Gen-D では追加調整なし。
+ */
+
+/* 印刷: 完了画面を整えておく。予約番号を控えとして保存できるように。 */
+@media print {
+	.smb-front-step-header__back,
+	.smb-front-form__actions,
+	.smb-front-alert__btn {
+		display: none !important;
+	}
+	.smb-front-root {
+		padding: 0;
+	}
+}
+
+/* アニメーション低減設定のユーザー尊重 */
+@media (prefers-reduced-motion: reduce) {
+	.smb-front-card,
+	.smb-front-day-tile,
+	.smb-front-time-btn,
+	.smb-front-btn,
+	.smb-front-form__input,
+	.smb-front-form__textarea,
+	.smb-front-form__select {
+		transition: none !important;
+	}
+	.smb-front-spinner__dot {
+		animation-duration: 1600ms;
+	}
 }

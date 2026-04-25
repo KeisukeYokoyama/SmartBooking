@@ -69,21 +69,30 @@ export default function App({ fixedStoreId = 0 }) {
 		};
 	}, [fixedStoreId]);
 
-	// CSS カスタムプロパティで色設定を適用（Gen-D で本格的に拡充）。
+	// CSS カスタムプロパティで色設定を適用（Gen-D で本格反映）。
+	// 設定画面デザインタブの5色（button / date_selected / time_selected / required_mark / focus）を
+	// root 要素のインライン style に差し込む。空文字/未設定なら CSS 側のデフォルトが使われる。
 	useEffect(() => {
 		if (!state.settings) return;
 		const root = document.getElementById('smart-booking-app');
 		if (!root) return;
-		const map = {
-			'--smb-front-color-button': state.settings.color_button,
-			'--smb-front-color-date-selected': state.settings.color_date_selected,
-			'--smb-front-color-time-selected': state.settings.color_time_selected,
-			'--smb-front-color-required': state.settings.color_required_mark,
-			'--smb-front-color-focus': state.settings.color_focus,
-		};
-		Object.entries(map).forEach(([prop, val]) => {
+		// プロパティキー → 設定キー対応。
+		// 必須マーク色は CSS 側で `--smb-front-color-required` と
+		// `--smb-front-color-required-mark` を両エイリアス対応させているため、両方へ書く。
+		const map = [
+			['--smb-front-color-button', state.settings.color_button],
+			['--smb-front-color-date-selected', state.settings.color_date_selected],
+			['--smb-front-color-time-selected', state.settings.color_time_selected],
+			['--smb-front-color-required', state.settings.color_required_mark],
+			['--smb-front-color-required-mark', state.settings.color_required_mark],
+			['--smb-front-color-focus', state.settings.color_focus],
+		];
+		map.forEach(([prop, val]) => {
 			if (val && typeof val === 'string' && val.length > 0) {
 				root.style.setProperty(prop, val);
+			} else {
+				// 設定がクリアされた場合は inline 指定を外して CSS 既定に戻す。
+				root.style.removeProperty(prop);
 			}
 		});
 	}, [state.settings]);
