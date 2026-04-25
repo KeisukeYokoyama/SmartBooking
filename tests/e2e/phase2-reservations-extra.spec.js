@@ -136,12 +136,12 @@ test.describe('Phase 2: 予約一覧 追加カバレッジ', () => {
 		const download = await downloadPromise;
 		const downloadPath = await download.path();
 		const content = fs.readFileSync(downloadPath, 'utf-8');
-		// CSV にフィルタが適用されていることを期待: 田中だけ含み佐藤/鈴木は含まれない.
-		// [BUG-3] 既存と同じ: WP_REST_Response にラップされて JSON 化されている.
-		// JSON でも田中の文字 (Unicode escape) は含まれているはず.
-		expect(content).toContain('\\u7530\\u4e2d'); // 田中.
-		expect(content).not.toContain('\\u4f50\\u85e4'); // 佐藤.
-		expect(content).not.toContain('\\u9234\\u6728'); // 鈴木.
+		// BUG-3 修正後: CSV は UTF-8 BOM + 平文テキストで出力される（JSON エスケープしない）.
+		expect(content.charCodeAt(0)).toBe(0xFEFF); // UTF-8 BOM.
+		expect(content).toContain('予約番号,予約日'); // ヘッダ行（平文）.
+		expect(content).toContain('田中一郎'); // 田中のみ一致.
+		expect(content).not.toContain('佐藤次郎');
+		expect(content).not.toContain('鈴木三郎');
 	});
 
 	test('手動予約作成モーダル: ステップ2で必須フィールドを空のまま「作成」を押すとエラー', async ({ page }) => {
