@@ -33,7 +33,9 @@
       "Bash(vendor/bin/phpcbf --standard=phpcs.xml.dist includes/)",
       "Bash(awk '{print $2, $11, $12, $13}')",
       "Bash(tee /tmp/playwright-final.log)",
-      "Bash(pkill -f playwright)"
+      "Bash(pkill -f playwright)",
+      "Bash(./vendor/bin/phpcs --standard=phpcs.xml.dist includes/)",
+      "Bash(./vendor/bin/phpcbf --standard=phpcs.xml.dist includes/)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",

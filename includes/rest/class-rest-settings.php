@@ -36,6 +36,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 			'smb_display_days'                     => 'int',
 			'smb_booking_deadline_days'            => 'int',
 			'smb_booking_deadline_hours'           => 'int',
+			'smb_show_store_front'                 => 'bool',
+			'smb_show_staff_front'                 => 'bool',
 			'smb_completion_message'               => 'html',
 
 			// メール通知.

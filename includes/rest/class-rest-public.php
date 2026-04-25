@@ -55,6 +55,16 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'default' => 0,
 				'type'    => 'int',
 			),
+			'smb_show_store_front'       => array(
+				'key'     => 'show_store_front',
+				'default' => 1,
+				'type'    => 'bool',
+			),
+			'smb_show_staff_front'       => array(
+				'key'     => 'show_staff_front',
+				'default' => 1,
+				'type'    => 'bool',
+			),
 			'smb_completion_message'     => array(
 				'key'     => 'completion_message',
 				'default' => '',
@@ -326,6 +336,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		foreach ( $schema as $option_key => $def ) {
 			$raw = get_option( $option_key, $def['default'] );
 			switch ( $def['type'] ) {
+				case 'bool':
+					$out[ $def['key'] ] = ( (int) $raw ) ? true : false;
+					break;
 				case 'int':
 					$out[ $def['key'] ] = (int) $raw;
 					break;
@@ -424,6 +437,10 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		$store_id = absint( $request->get_param( 'store_id' ) );
 		$staff_id = absint( $request->get_param( 'staff_id' ) );
+
+		// 担当者非表示モード: staff_id 未指定なら同一時刻枠を統合する。
+		$show_staff_front = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
+		$aggregate_staff  = ( 0 === $show_staff_front && $staff_id <= 0 );
 
 		$display_days = (int) get_option( 'smb_display_days', 7 );
 		if ( $display_days <= 0 ) {
@@ -534,7 +551,19 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'capacity'      => $capacity,
 				'booked_count'  => $booked_count,
 				'availability'  => $availability,
+				'_is_closed'    => $is_closed, // 内部用: 集約時の closed 判定で使用。
 			);
+		}
+
+		// 担当者非表示モード: 同じ (store_id, schedule_date, start_time, end_time) を統合する。
+		if ( $aggregate_staff && ! empty( $out ) ) {
+			$out = $this->aggregate_by_timeslot( $out );
+		} else {
+			// 通常モード: 内部フラグを除去して返す。
+			foreach ( $out as &$row_ref ) {
+				unset( $row_ref['_is_closed'] );
+			}
+			unset( $row_ref );
 		}
 
 		return rest_ensure_response(
@@ -544,6 +573,82 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'schedules' => $out,
 			)
 		);
+	}
+
+	/**
+	 * 担当者非表示モード時、同一 (store_id, schedule_date, start_time, end_time) の枠を統合する。
+	 *
+	 * - capacity, booked_count は合算。
+	 * - id は最も小さい id を代表として採用（フロントから返ってきた際にこの id をそのまま渡せばよい）。
+	 * - staff_id は 0（統合枠を示す）。
+	 * - availability は合算後の値で再判定。`closed` は構成枠すべてが closed のときのみ。
+	 *
+	 * @param array $rows get_availability の中間結果（各行に `_is_closed` を含む）。
+	 * @return array 統合後の rows（`_is_closed` は除去済み）。
+	 */
+	private function aggregate_by_timeslot( $rows ) {
+		$buckets = array();
+		foreach ( $rows as $row ) {
+			$key = (int) $row['store_id'] . '|' . (string) $row['schedule_date'] . '|' . (string) $row['start_time'] . '|' . (string) $row['end_time'];
+			if ( ! isset( $buckets[ $key ] ) ) {
+				$buckets[ $key ] = array(
+					'id'            => (int) $row['id'],
+					'store_id'      => (int) $row['store_id'],
+					'staff_id'      => 0,
+					'schedule_date' => (string) $row['schedule_date'],
+					'start_time'    => (string) $row['start_time'],
+					'end_time'      => (string) $row['end_time'],
+					'capacity'      => (int) $row['capacity'],
+					'booked_count'  => (int) $row['booked_count'],
+					'_all_closed'   => ! empty( $row['_is_closed'] ),
+				);
+				continue;
+			}
+			$bucket                  = &$buckets[ $key ];
+			$bucket['capacity']     += (int) $row['capacity'];
+			$bucket['booked_count'] += (int) $row['booked_count'];
+			// 代表 id は最小値を採用。
+			if ( (int) $row['id'] < (int) $bucket['id'] ) {
+				$bucket['id'] = (int) $row['id'];
+			}
+			// すべての構成枠が closed の場合のみ、統合枠を closed とする。
+			if ( empty( $row['_is_closed'] ) ) {
+				$bucket['_all_closed'] = false;
+			}
+			unset( $bucket );
+		}
+
+		$out = array();
+		foreach ( $buckets as $bucket ) {
+			$capacity     = (int) $bucket['capacity'];
+			$booked_count = (int) $bucket['booked_count'];
+
+			$availability = 'available';
+			if ( ! empty( $bucket['_all_closed'] ) ) {
+				$availability = 'closed';
+			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
+				$availability = 'full';
+			} elseif ( $capacity > 0 ) {
+				$available    = $capacity - $booked_count;
+				$ratio_thresh = (int) ceil( $capacity * 0.3 );
+				if ( $available <= 2 || $available <= $ratio_thresh ) {
+					$availability = 'few_left';
+				}
+			}
+
+			$out[] = array(
+				'id'            => (int) $bucket['id'],
+				'store_id'      => (int) $bucket['store_id'],
+				'staff_id'      => 0,
+				'schedule_date' => (string) $bucket['schedule_date'],
+				'start_time'    => (string) $bucket['start_time'],
+				'end_time'      => (string) $bucket['end_time'],
+				'capacity'      => $capacity,
+				'booked_count'  => $booked_count,
+				'availability'  => $availability,
+			);
+		}
+		return $out;
 	}
 
 	/**
@@ -686,16 +791,81 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			}
 		}
 
-		// アトミック UPDATE: booked_count < capacity のときだけ +1.
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$affected = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
-				$this->now_mysql(),
-				$schedule_id
-			)
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// 担当者非表示モード判定。OFF のときは同一時刻枠の他担当者にも空きを探しに行く。
+		$show_staff_front = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
+
+		// アトミック UPDATE 対象の schedule_id を決定する。
+		$now             = $this->now_mysql();
+		$booked_schedule = $schedule;
+		$booked_id       = $schedule_id;
+		$affected        = 0;
+		$staff_table     = $wpdb->prefix . 'smb_staff';
+
+		if ( 0 === $show_staff_front ) {
+			// 同一 (store_id, schedule_date, start_time) の有効な担当者枠を sort_order 順に走査。
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$candidates = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT s.id FROM {$schedules_table} s
+					INNER JOIN {$staff_table} st ON s.staff_id = st.id
+					WHERE s.store_id = %d
+						AND s.schedule_date = %s
+						AND s.start_time = %s
+						AND s.is_active = 1
+						AND st.is_active = 1
+					ORDER BY st.sort_order ASC, st.id ASC, s.id ASC",
+					(int) $schedule['store_id'],
+					(string) $schedule['schedule_date'],
+					(string) $schedule['start_time']
+				)
+			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			if ( ! is_array( $candidates ) || 0 === count( $candidates ) ) {
+				// フォールバック: 受け取った schedule_id 自体に対して試す（候補抽出に失敗した想定外ケース）。
+				$candidates = array( $schedule_id );
+			}
+			foreach ( $candidates as $cand_id ) {
+				$cand_id = (int) $cand_id;
+				if ( $cand_id <= 0 ) {
+					continue;
+				}
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$try = $wpdb->query(
+					$wpdb->prepare(
+						"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+						$now,
+						$cand_id
+					)
+				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				if ( (int) $try > 0 ) {
+					$affected  = (int) $try;
+					$booked_id = $cand_id;
+					if ( $cand_id !== $schedule_id ) {
+						// 採用枠の詳細を取り直す（store_id / schedule_date / start_time は同じだが staff_id が変わる）。
+						// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						$booked_schedule = $wpdb->get_row(
+							$wpdb->prepare( "SELECT * FROM {$schedules_table} WHERE id = %d", $cand_id ),
+							ARRAY_A
+						);
+						// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					}
+					break;
+				}
+			}
+		} else {
+			// 通常モード: 受け取った schedule_id でそのままアトミック UPDATE。
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$affected = (int) $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+					$now,
+					$schedule_id
+				)
+			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+
 		if ( 0 === (int) $affected ) {
 			return $this->error(
 				'smb_reservation_full',
@@ -704,17 +874,29 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			);
 		}
 
+		if ( ! is_array( $booked_schedule ) ) {
+			// 想定外: 採用 schedule の取得に失敗 → ロールバック。
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$schedules_table} SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
+					$booked_id
+				)
+			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			return $this->error( 'smb_reservation_create_failed', '予約の保存に失敗しました。時間をおいて再度お試しください。', 500 );
+		}
+
 		// 予約 INSERT.
-		$now = $this->now_mysql();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ok = $wpdb->insert(
 			$res_table,
 			array(
-				'store_id'       => (int) $schedule['store_id'],
-				'staff_id'       => (int) $schedule['staff_id'],
-				'schedule_id'    => (int) $schedule['id'],
-				'schedule_date'  => $schedule['schedule_date'],
-				'schedule_time'  => $schedule['start_time'],
+				'store_id'       => (int) $booked_schedule['store_id'],
+				'staff_id'       => (int) $booked_schedule['staff_id'],
+				'schedule_id'    => (int) $booked_schedule['id'],
+				'schedule_date'  => $booked_schedule['schedule_date'],
+				'schedule_time'  => $booked_schedule['start_time'],
 				'customer_name'  => $name,
 				'customer_email' => $email,
 				'customer_phone' => $phone,
@@ -732,7 +914,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE {$schedules_table} SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
-					$schedule_id
+					$booked_id
 				)
 			);
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -775,15 +957,14 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			);
 		}
 
-		// 店舗名・担当者名を引いて返す（完了画面で利用）.
+		// 店舗名・担当者名を引いて返す（完了画面で利用）. 採用された booked_schedule を参照する。
 		$stores_table = $wpdb->prefix . 'smb_stores';
-		$staff_table  = $wpdb->prefix . 'smb_staff';
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$store_name = (string) $wpdb->get_var(
-			$wpdb->prepare( "SELECT name FROM {$stores_table} WHERE id = %d", (int) $schedule['store_id'] )
+			$wpdb->prepare( "SELECT name FROM {$stores_table} WHERE id = %d", (int) $booked_schedule['store_id'] )
 		);
 		$staff_name = (string) $wpdb->get_var(
-			$wpdb->prepare( "SELECT name FROM {$staff_table} WHERE id = %d", (int) $schedule['staff_id'] )
+			$wpdb->prepare( "SELECT name FROM {$staff_table} WHERE id = %d", (int) $booked_schedule['staff_id'] )
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
@@ -800,9 +981,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		return rest_ensure_response(
 			array(
 				'id'                => $reservation_id,
-				'schedule_date'     => (string) $schedule['schedule_date'],
-				'schedule_time'     => substr( (string) $schedule['start_time'], 0, 5 ),
-				'schedule_end_time' => substr( (string) $schedule['end_time'], 0, 5 ),
+				'schedule_date'     => (string) $booked_schedule['schedule_date'],
+				'schedule_time'     => substr( (string) $booked_schedule['start_time'], 0, 5 ),
+				'schedule_end_time' => substr( (string) $booked_schedule['end_time'], 0, 5 ),
 				'store_name'        => $store_name,
 				'staff_name'        => $staff_name,
 				'status'            => 'pending',

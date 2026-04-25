@@ -47,16 +47,17 @@ class Smart_Booking_Email {
 
 		$formatted = $context['formatted'];
 
-		// ユーザー宛.
+		// ユーザー宛は表示制御を反映させたコンテキストでテンプレートを展開する。
+		$user_context = $this->context_for_user( $context );
 		$this->send(
 			(string) $formatted['customer_email'],
 			(string) get_option( 'smb_mail_receipt_user_subject', '' ),
 			(string) get_option( 'smb_mail_receipt_user_body', '' ),
-			$context,
+			$user_context,
 			array()
 		);
 
-		// 管理者宛（店舗メール）。担当者メールがあれば CC。.
+		// 管理者宛（店舗メール）。担当者メールがあれば CC。表示制御に関わらず常に値を含める。.
 		$cc          = array();
 		$staff_email = (string) $formatted['staff_email'];
 		if ( '' !== $staff_email && is_email( $staff_email ) ) {
@@ -84,13 +85,44 @@ class Smart_Booking_Email {
 
 		$formatted = $context['formatted'];
 
+		// ユーザー宛は表示制御を反映させたコンテキストでテンプレートを展開する。
+		$user_context = $this->context_for_user( $context );
 		$this->send(
 			(string) $formatted['customer_email'],
 			(string) get_option( 'smb_mail_approval_user_subject', '' ),
 			(string) get_option( 'smb_mail_approval_user_body', '' ),
-			$context,
+			$user_context,
 			array()
 		);
+	}
+
+	/**
+	 * ユーザー宛メール用に context を加工する。
+	 *
+	 * `smb_show_store_front` = 0 のとき `formatted.store_name` を空文字に置換し、
+	 * `smb_show_staff_front` = 0 のとき `formatted.staff_name` を空文字に置換する。
+	 * 管理者宛メールでは表示制御に関わらず元の値を保つ必要があるため、コピーを返す。
+	 *
+	 * @param array $context Smart_Booking_Reservation_Context::build() 戻り値。
+	 * @return array
+	 */
+	private function context_for_user( $context ) {
+		if ( ! is_array( $context ) || empty( $context['formatted'] ) || ! is_array( $context['formatted'] ) ) {
+			return $context;
+		}
+		$show_store = ( (int) get_option( 'smb_show_store_front', 1 ) ) ? 1 : 0;
+		$show_staff = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
+		if ( 1 === $show_store && 1 === $show_staff ) {
+			return $context;
+		}
+		$copy = $context;
+		if ( 0 === $show_store ) {
+			$copy['formatted']['store_name'] = '';
+		}
+		if ( 0 === $show_staff ) {
+			$copy['formatted']['staff_name'] = '';
+		}
+		return $copy;
 	}
 
 	/**
