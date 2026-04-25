@@ -111,9 +111,9 @@ function restoreSnapshot() {
 				timeout: 30000,
 			}
 		);
-		// 初期カスタムフィールド（customer_name/email/phone）以外を削除 + 初期フィールドの is_required と field_type をリセット.
+		// 初期カスタムフィールド（customer_name/email/phone）以外を削除 + 初期フィールドの label/type/required をリセット.
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET is_required=1 WHERE field_key IN ('customer_name','customer_email','customer_phone');"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
 			{
 				cwd: path.resolve(__dirname, '..', '..'),
 				encoding: 'utf8',

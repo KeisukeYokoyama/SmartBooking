@@ -10,13 +10,35 @@
  * - テーマタブで色を保存
  */
 const { test, expect } = require('@playwright/test');
+const { execSync } = require('node:child_process');
+const path = require('node:path');
 const { bootstrapAdmin, restCall, restoreSnapshot } = require('./phase2-helpers');
 
 test.describe.configure({ mode: 'default' });
 
+/**
+ * テーマカラー設定をデフォルトに戻す（restoreSnapshot はカラー options には触らないため）.
+ */
+function restoreThemeColors() {
+	try {
+		execSync(
+			`npx wp-env run cli wp db query "DELETE FROM wp_options WHERE option_name IN ('smb_color_button','smb_color_date_selected','smb_color_time_selected','smb_color_required_mark','smb_color_focus');"`,
+			{
+				cwd: path.resolve(__dirname, '..', '..'),
+				encoding: 'utf8',
+				stdio: ['ignore', 'pipe', 'pipe'],
+				timeout: 30000,
+			}
+		);
+	} catch (e) {
+		// noop.
+	}
+}
+
 test.describe('Phase 2: フォーム設定（フィールド）', () => {
 	test.afterAll(() => {
 		restoreSnapshot();
+		restoreThemeColors();
 	});
 
 	test.beforeEach(async ({ page }) => {
@@ -182,8 +204,17 @@ test.describe('Phase 2: フォーム設定（フィールド）', () => {
 		await page.locator('.smb-tab', { hasText: 'テーマ設定' }).click();
 		await expect(page.locator('.smb-theme-settings')).toBeVisible();
 		// HEX テキスト入力を書き換え.
+		// 前回のテスト実行で残った値と一致しないように、ランダムなHEXカラーを生成.
+		const rand = Math.floor(Math.random() * 0xffffff)
+			.toString(16)
+			.padStart(6, '0');
+		const newColor = `#${rand}`;
 		const hexInputs = page.locator('input[aria-label*="カラーコード"]');
-		await hexInputs.first().fill('#ff0000');
+		await hexInputs.first().fill(newColor);
+		// 入力値が React state に反映されるまで待つ（保存ボタンが enabled に変わる）.
+		await expect(page.getByRole('button', { name: 'テーマ設定を保存' })).toBeEnabled({
+			timeout: 3000,
+		});
 		await page.getByRole('button', { name: 'テーマ設定を保存' }).click();
 		await expect(page.locator('.smb-toast--success').last()).toContainText('保存', { timeout: 6000 });
 	});
