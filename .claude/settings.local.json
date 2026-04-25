@@ -35,7 +35,8 @@
       "Bash(tee /tmp/playwright-final.log)",
       "Bash(pkill -f playwright)",
       "Bash(./vendor/bin/phpcs --standard=phpcs.xml.dist includes/)",
-      "Bash(./vendor/bin/phpcbf --standard=phpcs.xml.dist includes/)"
+      "Bash(./vendor/bin/phpcbf --standard=phpcs.xml.dist includes/)",
+      "Bash(npx prettier *)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",

@@ -49,6 +49,10 @@ export default function DonePage({ state }) {
 			? settings.completion_message
 			: '';
 
+	// 設定で店舗・担当者の表示を OFF にしている場合、完了画面でも該当行を出さない。
+	const showStore = settings ? settings.show_store_front !== false : true;
+	const showStaff = settings ? settings.show_staff_front !== false : true;
+
 	return (
 		<div className="smb-front-step" ref={topRef}>
 			<div className="smb-front-done">
@@ -68,13 +72,13 @@ export default function DonePage({ state }) {
 				</div>
 
 				<dl className="smb-front-done__summary">
-					{completedReservation.store_name && (
+					{showStore && completedReservation.store_name && (
 						<>
 							<dt>店舗</dt>
 							<dd>{completedReservation.store_name}</dd>
 						</>
 					)}
-					{completedReservation.staff_name && (
+					{showStaff && completedReservation.staff_name && (
 						<>
 							<dt>担当者</dt>
 							<dd>{completedReservation.staff_name}</dd>

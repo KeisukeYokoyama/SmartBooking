@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import Button from '../../components/Button';
 import Input, { Field } from '../../components/Input';
 import Select from '../../components/Select';
+import Switch from '../../components/Switch';
 import Textarea from '../../components/Textarea';
 
 const FLOW_OPTIONS = [
@@ -53,6 +54,17 @@ function hydrate(settings) {
 	else if (days > 0 && hours > 0) type = 'days';
 	else type = 'hours';
 
+	// 表示制御フラグはバックエンドから 0/1 / true/false いずれの形でも返り得るため正規化する。
+	// キーが未定義（旧データ）の場合はデフォルト ON 扱いにする（既存挙動互換）。
+	const showStore =
+		settings.smb_show_store_front === undefined
+			? true
+			: !! Number(settings.smb_show_store_front);
+	const showStaff =
+		settings.smb_show_staff_front === undefined
+			? true
+			: !! Number(settings.smb_show_staff_front);
+
 	return {
 		smb_booking_flow_order: settings.smb_booking_flow_order || 'date-first',
 		smb_calendar_view_mode: settings.smb_calendar_view_mode || 'day-horizontal',
@@ -61,6 +73,8 @@ function hydrate(settings) {
 		smb_booking_deadline_hours: String(hours || 2),
 		smb_booking_deadline_days: String(days || 1),
 		smb_completion_message: settings.smb_completion_message || '',
+		smb_show_store_front: showStore,
+		smb_show_staff_front: showStaff,
 	};
 }
 
@@ -88,6 +102,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 			smb_calendar_view_mode: values.smb_calendar_view_mode,
 			smb_display_days: Number(values.smb_display_days) || 30,
 			smb_completion_message: values.smb_completion_message,
+			smb_show_store_front: values.smb_show_store_front ? 1 : 0,
+			smb_show_staff_front: values.smb_show_staff_front ? 1 : 0,
 		};
 		// 締切: 選択された type のみ値を送り、他方は 0（無効）にする
 		if (values.smb_booking_deadline_type === 'hours') {
@@ -215,6 +231,53 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						help="例: 3 と設定すると、4/27 の予約は 4/24 まで受付。"
 					/>
 				)}
+			</div>
+
+			<div className="smb-settings-section">
+				<div className="smb-settings-section__header">
+					<h3 className="smb-settings-section__title">フロント表示</h3>
+					<p className="smb-settings-section__lead">
+						予約フォームに「店舗選択」「担当者選択」のステップを表示するかどうかを切り替えます。
+					</p>
+				</div>
+
+				<div className="smb-settings-row">
+					<div className="smb-settings-row__label">店舗選択ステップ</div>
+					<div className="smb-settings-row__control">
+						<Switch
+							checked={values.smb_show_store_front}
+							onChange={(v) => update({ smb_show_store_front: v })}
+							label={
+								values.smb_show_store_front
+									? '表示する（フロントに店舗選択ステップを出す）'
+									: '表示しない（自動で店舗を割り当てる）'
+							}
+						/>
+						<p className="smb-field-help">
+							OFFにしても、管理画面ではスケジュールに店舗を紐づけて管理できます。<br />
+							店舗が1つだけの場合、この設定に関わらず自動的にスキップされます。
+						</p>
+					</div>
+				</div>
+
+				<div className="smb-settings-row">
+					<div className="smb-settings-row__label">担当者選択ステップ</div>
+					<div className="smb-settings-row__control">
+						<Switch
+							checked={values.smb_show_staff_front}
+							onChange={(v) => update({ smb_show_staff_front: v })}
+							label={
+								values.smb_show_staff_front
+									? '表示する（フロントに担当者選択ステップを出す）'
+									: '表示しない（空いている担当者を自動で割り当てる）'
+							}
+						/>
+						<p className="smb-field-help">
+							OFFにしても、管理画面ではスケジュールに担当者を紐づけて管理できます。<br />
+							担当者が1人だけの場合、この設定に関わらず自動的にスキップされます。
+						</p>
+					</div>
+				</div>
 			</div>
 
 			<div className="smb-settings-section">

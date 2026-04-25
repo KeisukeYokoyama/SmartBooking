@@ -47,10 +47,15 @@ export default function ConfirmPage({ state, dispatch }) {
 		schedules,
 		date,
 		time,
+		settings,
 		submitting,
 		submitError,
 		submitErrorStatus,
 	} = state;
+	// 設定で店舗・担当者の表示を OFF にしている場合、確認画面でも該当行を出さない。
+	// 未設定（旧挙動）はデフォルト ON 扱い（!== false）。
+	const showStore = settings ? settings.show_store_front !== false : true;
+	const showStaff = settings ? settings.show_staff_front !== false : true;
 	const topRef = useRef(null);
 
 	useEffect(() => {
@@ -152,13 +157,13 @@ export default function ConfirmPage({ state, dispatch }) {
 			<section className="smb-front-confirm">
 				<h3 className="smb-front-confirm__group-title">ご予約内容</h3>
 				<dl className="smb-front-confirm__list">
-					{store && (
+					{showStore && store && (
 						<>
 							<dt>店舗</dt>
 							<dd>{store.name}</dd>
 						</>
 					)}
-					{staffMember && (
+					{showStaff && staffMember && (
 						<>
 							<dt>担当者</dt>
 							<dd>{staffMember.name}</dd>
