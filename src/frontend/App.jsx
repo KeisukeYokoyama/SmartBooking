@@ -20,7 +20,7 @@ import { useEffect, useReducer } from 'react';
 import { publicAPI } from './api';
 import ErrorMessage from './components/ErrorMessage';
 import Spinner from './components/Spinner';
-import { INITIAL_STATE, reducer } from './state';
+import { canGoBack, INITIAL_STATE, reducer } from './state';
 import ConfirmPage from './steps/ConfirmPage';
 import DateSelect from './steps/DateSelect';
 import DonePage from './steps/DonePage';
@@ -130,10 +130,8 @@ export default function App({ fixedStoreId = 0 }) {
 					storeId={state.storeId}
 					onSelect={(staffId) => dispatch({ type: 'SET_STAFF', payload: staffId })}
 					onBack={
-						// 店舗選択ステップがスキップされていない場合だけ戻るボタンを出す。
-						state.fixedStoreId > 0 || state.stores.length <= 1
-							? undefined
-							: () => dispatch({ type: 'GO_BACK' })
+						// 戻れる先のステップが存在する場合だけ「戻る」を出す。
+						canGoBack(state) ? () => dispatch({ type: 'GO_BACK' }) : undefined
 					}
 				/>
 			)}
@@ -148,7 +146,9 @@ export default function App({ fixedStoreId = 0 }) {
 				<DateSelect
 					state={state}
 					dispatch={dispatch}
-					onBack={() => dispatch({ type: 'GO_BACK' })}
+					onBack={
+						canGoBack(state) ? () => dispatch({ type: 'GO_BACK' }) : undefined
+					}
 				>
 					<TimeSelect state={state} dispatch={dispatch} />
 				</DateSelect>
@@ -161,7 +161,9 @@ export default function App({ fixedStoreId = 0 }) {
 				<DateSelect
 					state={state}
 					dispatch={dispatch}
-					onBack={() => dispatch({ type: 'GO_BACK' })}
+					onBack={
+						canGoBack(state) ? () => dispatch({ type: 'GO_BACK' }) : undefined
+					}
 				>
 					<TimeSelect state={state} dispatch={dispatch} />
 				</DateSelect>
@@ -171,7 +173,9 @@ export default function App({ fixedStoreId = 0 }) {
 				<FormInput
 					state={state}
 					dispatch={dispatch}
-					onBack={() => dispatch({ type: 'GO_BACK' })}
+					onBack={
+						canGoBack(state) ? () => dispatch({ type: 'GO_BACK' }) : undefined
+					}
 				/>
 			)}
 

@@ -51,6 +51,11 @@ function validateField(field, value) {
 		if (!PHONE_RE.test(str)) {
 			return '電話番号は数字・ハイフン・括弧・+ のみで入力してください。';
 		}
+		// 数字部分だけ抽出して桁数を検証（日本固定 10 桁・携帯 11 桁、E.164 最大 15 桁）。
+		const digits = str.replace(/\D/g, '');
+		if (digits.length < 9 || digits.length > 15) {
+			return '電話番号の桁数が正しくありません。';
+		}
 	}
 	return null;
 }
@@ -360,7 +365,11 @@ export default function FormInput({ state, dispatch, onBack }) {
 								required={required}
 							/>
 							{errMsg && (
-								<p id={id + '-err'} className="smb-front-form__error">
+								<p
+									id={id + '-err'}
+									className="smb-front-form__error"
+									role="alert"
+								>
 									{errMsg}
 								</p>
 							)}

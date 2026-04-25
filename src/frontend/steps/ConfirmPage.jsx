@@ -36,7 +36,21 @@ function renderValue(field, rawVal) {
 }
 
 export default function ConfirmPage({ state, dispatch }) {
-	const { formValues, customFields, stores, staff, storeId, staffId, scheduleId, schedules, date, time, submitting, submitError } = state;
+	const {
+		formValues,
+		customFields,
+		stores,
+		staff,
+		storeId,
+		staffId,
+		scheduleId,
+		schedules,
+		date,
+		time,
+		submitting,
+		submitError,
+		submitErrorStatus,
+	} = state;
 	const topRef = useRef(null);
 
 	useEffect(() => {
@@ -113,7 +127,13 @@ export default function ConfirmPage({ state, dispatch }) {
 			if (err && err.status === 409) {
 				msg = err.message || 'この時間枠は満席になりました。お手数ですが別の時間枠をお選びください。';
 			}
-			dispatch({ type: 'SUBMIT_FAIL', payload: msg });
+			dispatch({
+				type: 'SUBMIT_FAIL',
+				payload: {
+					message: msg,
+					status: err && err.status ? err.status : null,
+				},
+			});
 		}
 	};
 
@@ -179,6 +199,19 @@ export default function ConfirmPage({ state, dispatch }) {
 					tabIndex={-1}
 				>
 					<ErrorMessage message={submitError} />
+					{submitErrorStatus === 409 && (
+						<div className="smb-front-confirm__alert-actions">
+							<button
+								type="button"
+								className="smb-front-btn smb-front-btn--secondary"
+								onClick={() =>
+									dispatch({ type: 'GO_TO_STEP', payload: 'date' })
+								}
+							>
+								日付を選び直す
+							</button>
+						</div>
+					)}
 				</div>
 			)}
 

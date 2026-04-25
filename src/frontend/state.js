@@ -51,6 +51,7 @@ export const INITIAL_STATE = {
 	// 予約送信の UI ステート (Gen-C)。
 	submitting: false,
 	submitError: null,
+	submitErrorStatus: null, // 直近の送信失敗の HTTP status (例: 409)。導線出し分けに使用。
 	completedReservation: null, // { id, schedule_date, schedule_time, store_name, staff_name } | null
 };
 
@@ -113,6 +114,48 @@ export function resolveInitialStep({
 	}
 
 	return { step, storeId, staffId };
+}
+
+/**
+ * 現在ステップから戻れる先のステップが存在するかどうかを判定する。
+ *
+ * スキップされる可能性のある step:
+ *   - 'store':  fixedStoreId > 0 か、または有効店舗が 1 つ以下ならスキップ
+ *   - 'staff':  当該 store_id に紐づく担当者が 1 人以下ならスキップ
+ *   - その他:   スキップしない
+ *
+ * 真に戻れる step が 1 つでも存在すれば true。
+ *
+ * @param {object} state
+ * @returns {boolean}
+ */
+export function canGoBack(state) {
+	if (!state || !state.step) return false;
+	const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
+	const idx = order.indexOf(state.step);
+	if (idx <= 0) return false;
+
+	for (let i = idx - 1; i >= 0; i--) {
+		const s = order[i];
+		if (s === 'store') {
+			if (state.fixedStoreId > 0 || (state.stores || []).length <= 1) {
+				continue;
+			}
+			return true;
+		}
+		if (s === 'staff') {
+			const staffForStore = (state.staff || []).filter(
+				(x) => x.store_id === state.storeId,
+			);
+			if (staffForStore.length <= 1) {
+				continue;
+			}
+			return true;
+		}
+		// それ以外のステップ（date / time / form）はスキップしない。
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -303,30 +346,64 @@ export function reducer(state, action) {
 			};
 		}
 
-		case 'GO_TO_CONFIRM':
-			return { ...state, step: 'confirm', submitError: null };
+		case 'GO_TO_CONFIRM': {
+			// flow_order に応じて確認画面または日付選択へ遷移。
+			// flow A: form → confirm。flow B: form → date（time/scheduleId は保持）。
+			const order = getStepOrder(state.settings ? state.settings.flow_order : 'A');
+			const formIdx = order.indexOf('form');
+			const nextStep = order[formIdx + 1] || 'confirm';
+			return {
+				...state,
+				step: nextStep,
+				submitError: null,
+				submitErrorStatus: null,
+			};
+		}
 
 		case 'GO_BACK_FROM_CONFIRM':
-			return { ...state, step: 'form', submitError: null };
+			return {
+				...state,
+				step: 'form',
+				submitError: null,
+				submitErrorStatus: null,
+			};
 
 		case 'SUBMIT_START':
-			return { ...state, submitting: true, submitError: null };
+			return {
+				...state,
+				submitting: true,
+				submitError: null,
+				submitErrorStatus: null,
+			};
 
 		case 'SUBMIT_SUCCESS':
 			return {
 				...state,
 				submitting: false,
 				submitError: null,
+				submitErrorStatus: null,
 				completedReservation: action.payload || null,
 				step: 'done',
 			};
 
-		case 'SUBMIT_FAIL':
+		case 'SUBMIT_FAIL': {
+			// 後方互換: payload が文字列で来たら { message, status: null } として扱う。
+			const payload = action.payload;
+			let message;
+			let status = null;
+			if (payload && typeof payload === 'object') {
+				message = payload.message || '予約の送信に失敗しました。';
+				status = payload.status != null ? payload.status : null;
+			} else {
+				message = payload || '予約の送信に失敗しました。';
+			}
 			return {
 				...state,
 				submitting: false,
-				submitError: action.payload || '予約の送信に失敗しました。',
+				submitError: message,
+				submitErrorStatus: status,
 			};
+		}
 
 		case 'GO_TO_STEP':
 			return { ...state, step: action.payload };
