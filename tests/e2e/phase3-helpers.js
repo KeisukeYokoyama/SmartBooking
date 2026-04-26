@@ -55,16 +55,26 @@ async function gotoFrontForm( page ) {
 }
 
 /**
- * DB をベースライン（店舗1・担当者1・スケジュール0・予約0・初期カスタムフィールド3）へ復元。
+ * システムエンティティ方式（is_system カラム導入）に伴うベースライン:
  *
- * ID は保持しない（autoincrement のリセットはしない）。データ内容のみベースラインへ戻す。
+ * - id=1: name='デフォルト', is_system=1, is_active=1（ユーザーには非表示のシステムエンティティ）
+ * - id=2: name='店舗1' / '担当者1', is_system=0, is_active=1（ユーザーが作成した相当）
+ * - スケジュール 0、予約 0、初期カスタムフィールド 3
+ *
+ * 既存テストが ID=2 の「店舗1 / 担当者1」を期待するため、AUTO_INCREMENT を 2 に揃える。
  */
+const USER_STORE_ID = 2;
+const USER_STAFF_ID = 2;
+
 function restoreBaseline() {
 	wpCli(
-		`wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='店舗1', is_active=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='担当者1', is_active=1, store_id=1 WHERE id = 1; DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
+		`wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smb_stores AUTO_INCREMENT=2; ALTER TABLE wp_smb_staff AUTO_INCREMENT=2; INSERT INTO wp_smb_stores (id, name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES (${ USER_STORE_ID }, '店舗1', '', '', '', '', '', '', 0, '#3B82F6', 1, 0, 10, NOW(), NOW()); INSERT INTO wp_smb_staff (id, store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STAFF_ID }, ${ USER_STORE_ID }, '担当者1', '', '', '', 0, 10, 1, 0, NOW(), NOW()); ALTER TABLE wp_smb_stores AUTO_INCREMENT=3; ALTER TABLE wp_smb_staff AUTO_INCREMENT=3; DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
 	);
 	// オプションのリセット: テスト中に書き換える可能性のあるキーは全て delete し、
 	// 既定値（CLAUDE.md の class-activator.php と class-rest-public.php に基づく）に戻す.
+	// NOTE: phase6-visibility 等で smb_show_store_front / smb_show_staff_front を 0 に
+	// 上書きするテストがあるため、それらも必ずクリアする（残ると後続テストが
+	// 「show_store_front=false → 店舗ステップスキップ」になり予期せぬ失敗を起こす）。
 	const optionsToDelete = [
 		'smb_booking_flow_order',
 		'smb_completion_message',
@@ -77,6 +87,8 @@ function restoreBaseline() {
 		'smb_color_time_selected',
 		'smb_color_required_mark',
 		'smb_color_focus',
+		'smb_show_store_front',
+		'smb_show_staff_front',
 	];
 	optionsToDelete.forEach( ( k ) => {
 		try {
@@ -85,6 +97,16 @@ function restoreBaseline() {
 			// 既に未設定なら無視.
 		}
 	} );
+}
+
+/**
+ * システムエンティティ（id=1）のみが存在するベースライン。ユーザー店舗・担当者は 0 件。
+ * 「ユーザー作成エンティティが 0 件」の挙動を確認したいテスト（phase7 等）で使う。
+ */
+function restoreBaselineSystemOnly() {
+	wpCli(
+		`wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smb_stores AUTO_INCREMENT=2; ALTER TABLE wp_smb_staff AUTO_INCREMENT=2; DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
+	);
 }
 
 /**
@@ -110,10 +132,10 @@ function insertStore(
 	name,
 	{ is_active = 1, sort_order = 20, calendar_color = '#2271b1' } = {}
 ) {
-	const sql = `INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('${ name.replace(
+	const sql = `INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('${ name.replace(
 		/'/g,
 		"''"
-	) }', '', '', '', '', '', '', 0, '${ calendar_color }', ${ is_active }, ${ sort_order }, NOW(), NOW());`;
+	) }', '', '', '', '', '', '', 0, '${ calendar_color }', ${ is_active }, 0, ${ sort_order }, NOW(), NOW());`;
 	wpCli( `wp db query "${ sql }"` );
 	const out = wpCli(
 		`wp db query "SELECT MAX(id) FROM wp_smb_stores;" --skip-column-names`
@@ -131,10 +153,10 @@ function insertStore(
  * @param root0.sort_order
  */
 function insertStaff( storeId, name, { is_active = 1, sort_order = 20 } = {} ) {
-	const sql = `INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, created_at, updated_at) VALUES (${ storeId }, '${ name.replace(
+	const sql = `INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ storeId }, '${ name.replace(
 		/'/g,
 		"''"
-	) }', '', '', '', 0, ${ sort_order }, ${ is_active }, NOW(), NOW());`;
+	) }', '', '', '', 0, ${ sort_order }, ${ is_active }, 0, NOW(), NOW());`;
 	wpCli( `wp db query "${ sql }"` );
 	const out = wpCli(
 		`wp db query "SELECT MAX(id) FROM wp_smb_staff;" --skip-column-names`
@@ -357,6 +379,7 @@ module.exports = {
 	FRONT_PAGE_PATH,
 	gotoFrontForm,
 	restoreBaseline,
+	restoreBaselineSystemOnly,
 	setOption,
 	insertStore,
 	insertStaff,
@@ -369,4 +392,6 @@ module.exports = {
 	fillCoreFormAndGoConfirm,
 	ymd,
 	weekdayIndex,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 };

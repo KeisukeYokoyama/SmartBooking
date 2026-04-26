@@ -109,13 +109,23 @@ function resetSchedulesAndReservations() {
 }
 
 /**
- * Phase 1 スナップショットに存在しない余分な店舗・担当者・カスタムフィールドを削除する。
+ * システムエンティティ（is_system=1）の id=1 と、ユーザー作成エンティティ（is_system=0）の id=2 を seed する。
+ *
+ * - id=1: name='デフォルト', is_system=1, is_active=1（ユーザーには非表示）
+ * - id=2: name='店舗1' / '担当者1', is_system=0, is_active=1（既存テストが期待する「店舗1 / 担当者1」）
+ *
+ * 既存テストが ID=1 や 名前 '店舗1' / '担当者1' に依存しているため、AUTO_INCREMENT を 2 に揃えて
+ * ユーザー店舗/担当者が必ず id=2 で作成されるようにする。
  */
+const USER_STORE_ID = 2;
+const USER_STAFF_ID = 2;
+
 function restoreSnapshot() {
 	try {
-		// id=1 の既定の店舗・担当者だけを残す + id=1 の状態を初期値にリセット.
+		// 予約・スケジュール・余分な行を削除 → AUTO_INCREMENT を 2 に固定 → ユーザー店舗・担当者を id=2 で seed。
+		// id=1 はシステムエンティティのまま保持（マイグレーションで is_system=1 になっている）。
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='店舗1', is_active=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='担当者1', is_active=1, store_id=1 WHERE id = 1;"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smb_stores AUTO_INCREMENT=2; ALTER TABLE wp_smb_staff AUTO_INCREMENT=2; INSERT INTO wp_smb_stores (id, name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES (${ USER_STORE_ID }, '店舗1', '', '', '', '', '', '', 0, '#3B82F6', 1, 0, 10, NOW(), NOW()); INSERT INTO wp_smb_staff (id, store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STAFF_ID }, ${ USER_STORE_ID }, '担当者1', '', '', '', 0, 10, 1, 0, NOW(), NOW()); ALTER TABLE wp_smb_stores AUTO_INCREMENT=3; ALTER TABLE wp_smb_staff AUTO_INCREMENT=3;"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -124,6 +134,35 @@ function restoreSnapshot() {
 			}
 		);
 		// 初期カスタムフィールド（customer_name/email/phone）以外を削除 + 初期フィールドの label/type/required をリセット.
+		execSync(
+			`npx wp-env run cli wp db query "DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
+			{
+				cwd: path.resolve( __dirname, '..', '..' ),
+				encoding: 'utf8',
+				stdio: [ 'ignore', 'pipe', 'pipe' ],
+				timeout: 30000,
+			}
+		);
+	} catch ( _e ) {
+		// noop.
+	}
+}
+
+/**
+ * システムエンティティ（id=1）のみを残し、ユーザー店舗・担当者を一切作らないベースライン。
+ * 「ユーザー作成エンティティが 0 件」の挙動を確認したいテストで使う。
+ */
+function restoreSnapshotSystemOnly() {
+	try {
+		execSync(
+			`npx wp-env run cli wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smb_stores AUTO_INCREMENT=2; ALTER TABLE wp_smb_staff AUTO_INCREMENT=2;"`,
+			{
+				cwd: path.resolve( __dirname, '..', '..' ),
+				encoding: 'utf8',
+				stdio: [ 'ignore', 'pipe', 'pipe' ],
+				timeout: 30000,
+			}
+		);
 		execSync(
 			`npx wp-env run cli wp db query "DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
 			{
@@ -172,10 +211,10 @@ function insertStoreDirectly( {
 	is_active = 1,
 	sort_order = 20,
 } ) {
-	const sql = `INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('${ name.replace(
+	const sql = `INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('${ name.replace(
 		/'/g,
 		"''"
-	) }', '', '', '', '', '', '', 0, '${ calendar_color }', ${ is_active }, ${ sort_order }, NOW(), NOW());`;
+	) }', '', '', '', '', '', '', 0, '${ calendar_color }', ${ is_active }, 0, ${ sort_order }, NOW(), NOW());`;
 	execSync( `npx wp-env run cli wp db query "${ sql }"`, {
 		cwd: path.resolve( __dirname, '..', '..' ),
 		encoding: 'utf8',
@@ -199,10 +238,10 @@ function insertStaffDirectly( {
 	is_active = 1,
 	sort_order = 20,
 } ) {
-	const sql = `INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, created_at, updated_at) VALUES (${ store_id }, '${ name.replace(
+	const sql = `INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ store_id }, '${ name.replace(
 		/'/g,
 		"''"
-	) }', '', '', '', 0, ${ sort_order }, ${ is_active }, NOW(), NOW());`;
+	) }', '', '', '', 0, ${ sort_order }, ${ is_active }, 0, NOW(), NOW());`;
 	execSync( `npx wp-env run cli wp db query "${ sql }"`, {
 		cwd: path.resolve( __dirname, '..', '..' ),
 		encoding: 'utf8',
@@ -251,8 +290,11 @@ module.exports = {
 	bootstrapAdmin,
 	resetSchedulesAndReservations,
 	restoreSnapshot,
+	restoreSnapshotSystemOnly,
 	insertStoreDirectly,
 	insertStaffDirectly,
 	countTable,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 };
