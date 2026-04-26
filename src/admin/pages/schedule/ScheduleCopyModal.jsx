@@ -68,6 +68,12 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 		return expandPattern(rangeFrom, rangeTo, weekdays, source?.date);
 	}, [mode, rangeFrom, rangeTo, weekdays, source]);
 
+	// isDirty: ユーザーがコピー対象を 1 件でも指定したら閉じる前に確認する。
+	// パターンモードでは曜日が選ばれていれば dirty とみなす（rangeFrom/To は初期値が入るため）。
+	const isDirty =
+		!submitting &&
+		(individualDates.length > 0 || weekdays.size > 0 || overwrite);
+
 	const handlePickerChange = (value) => {
 		setPickerDate(value);
 		if (!value) return;
@@ -119,6 +125,7 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 		<Modal
 			open={open}
 			onClose={onClose}
+			isDirty={isDirty}
 			title="スケジュールをコピー"
 			size="lg"
 			footer={

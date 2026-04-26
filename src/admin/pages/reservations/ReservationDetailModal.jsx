@@ -75,14 +75,17 @@ export default function ReservationDetailModal({
 		};
 	}, [open, reservationId]);
 
-	const dirty = data && (status !== data.status || (memo || '') !== (data.admin_memo || ''));
+	const dirty = !!data && (status !== data.status || (memo || '') !== (data.admin_memo || ''));
+	// Modal の isDirty 機構に統一: Escape/背景クリック/× ボタンは Modal 側で確認、
+	// フッターの「閉じる」ボタンはここで同じ文言の確認をかける（同一ガードを通る）。
+	const isDirty = !submitting && dirty;
+	const dirtyConfirmMessage = '変更内容が保存されていません。閉じてもよろしいですか？';
 
-	const handleClose = () => {
+	const handleCloseFromButton = () => {
 		if (submitting) return;
-		if (dirty) {
-			const ok = typeof window !== 'undefined'
-				? window.confirm('変更内容が保存されていません。閉じてもよろしいですか？')
-				: true;
+		if (isDirty) {
+			const ok =
+				typeof window !== 'undefined' ? window.confirm(dirtyConfirmMessage) : true;
 			if (!ok) return;
 		}
 		onClose();
@@ -129,7 +132,9 @@ export default function ReservationDetailModal({
 	return (
 		<Modal
 			open={open}
-			onClose={handleClose}
+			onClose={onClose}
+			isDirty={isDirty}
+			dirtyConfirmMessage={dirtyConfirmMessage}
 			title={data ? `予約 #${data.id} の詳細` : '予約の詳細'}
 			size="lg"
 			footer={
@@ -138,7 +143,7 @@ export default function ReservationDetailModal({
 						削除
 					</Button>
 					<div className="smb-modal__spacer" />
-					<Button variant="secondary" onClick={handleClose} disabled={submitting}>
+					<Button variant="secondary" onClick={handleCloseFromButton} disabled={submitting}>
 						閉じる
 					</Button>
 					<Button variant="primary" onClick={handleSave} loading={submitting} disabled={!data || !dirty}>

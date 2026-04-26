@@ -272,7 +272,14 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 	}
 
 	/**
-	 * 削除。予約が紐づいている場合は409。
+	 * 削除。
+	 *
+	 * 危険操作ガード:
+	 *   1) 予約が紐づいている場合は 409 (smb_store_has_reservations)
+	 *   2) 予約はないがスケジュールが残っている場合は 409 (smb_store_has_schedules)
+	 *
+	 * いずれもエラーデータに count を含めて返し、フロントが件数付きメッセージを構築できるようにする。
+	 * is_system=1（システムエンティティ）は従来通り 400 で拒否。
 	 *
 	 * @param WP_REST_Request $request リクエスト.
 	 * @return WP_REST_Response|WP_Error
@@ -282,6 +289,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		$id           = (int) $request['id'];
 		$table        = $this->table();
 		$reservations = $wpdb->prefix . 'smb_reservations';
+		$schedules    = $wpdb->prefix . 'smb_schedules';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$table} WHERE id = %d", $id ), ARRAY_A );
@@ -292,16 +300,43 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_store_is_system', 'このエンティティは削除できません。', 400 );
 		}
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$used = (int) $wpdb->get_var(
+		// 予約チェックを先に行う。既存テストが「予約紐付き → 409」を期待しているため順序維持。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$reservation_count = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM {$reservations} WHERE store_id = %d", $id )
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( $used > 0 ) {
-			return $this->error(
+		if ( $reservation_count > 0 ) {
+			return new WP_Error(
 				'smb_store_has_reservations',
-				'この店舗には予約が存在するため削除できません。先に予約を削除または移動してください。',
-				409
+				sprintf(
+					/* translators: %d: 件数 */
+					'この店舗には%d件の予約が登録されているため削除できません。先に予約を削除または移動してください。',
+					$reservation_count
+				),
+				array(
+					'status' => 409,
+					'count'  => $reservation_count,
+				)
+			);
+		}
+
+		// 予約は無いがスケジュールが残っている場合は、ユーザーに先に削除させる。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$schedule_count = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$schedules} WHERE store_id = %d", $id )
+		);
+		if ( $schedule_count > 0 ) {
+			return new WP_Error(
+				'smb_store_has_schedules',
+				sprintf(
+					/* translators: %d: 件数 */
+					'この店舗には%d件のスケジュールが登録されているため削除できません。先にスケジュールを削除してください。',
+					$schedule_count
+				),
+				array(
+					'status' => 409,
+					'count'  => $schedule_count,
+				)
 			);
 		}
 

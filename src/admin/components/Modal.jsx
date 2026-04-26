@@ -3,16 +3,41 @@
  *
  * - Escape キーで閉じる
  * - 背景クリックで閉じる
+ * - 「×」ボタンで閉じる
  * - open ↔ close で fade+scale のトランジション
  * - 開いた直後にモーダル内の最初のフォーカス可能要素に自動フォーカス
+ *
+ * isDirty=true のときは Escape / 背景クリック / × クリックで window.confirm を
+ * 出してから閉じる。誤操作で入力途中の内容を失わないためのガード。
  *
  * 外部ライブラリ不使用（YAGNI）。
  */
 import { useEffect, useRef } from 'react';
 
-export default function Modal({ open, onClose, title, children, footer, size = 'md', closeOnBackdrop = true }) {
+export default function Modal({
+	open,
+	onClose,
+	title,
+	children,
+	footer,
+	size = 'md',
+	closeOnBackdrop = true,
+	isDirty = false,
+	dirtyConfirmMessage = '入力内容が破棄されますが、よろしいですか？',
+}) {
 	const dialogRef = useRef(null);
 	const previouslyFocusedRef = useRef(null);
+	// 最新の isDirty / dirtyConfirmMessage を ref で保持する。
+	// keydown ハンドラはマウント時にしか登録しないので、勢いで closure の値を使うと古い値で判断してしまう。
+	const isDirtyRef = useRef(isDirty);
+	const dirtyConfirmMessageRef = useRef(dirtyConfirmMessage);
+
+	useEffect(() => {
+		isDirtyRef.current = isDirty;
+	}, [isDirty]);
+	useEffect(() => {
+		dirtyConfirmMessageRef.current = dirtyConfirmMessage;
+	}, [dirtyConfirmMessage]);
 
 	useEffect(() => {
 		if (!open) return undefined;
@@ -20,7 +45,13 @@ export default function Modal({ open, onClose, title, children, footer, size = '
 		const handleKey = (e) => {
 			if (e.key === 'Escape') {
 				e.stopPropagation();
-				onClose && onClose();
+				if (!onClose) return;
+				if (isDirtyRef.current) {
+					if (typeof window !== 'undefined' && !window.confirm(dirtyConfirmMessageRef.current)) {
+						return;
+					}
+				}
+				onClose();
 			}
 		};
 		document.addEventListener('keydown', handleKey, true);
@@ -51,9 +82,19 @@ export default function Modal({ open, onClose, title, children, footer, size = '
 
 	if (!open) return null;
 
+	const tryClose = () => {
+		if (!onClose) return;
+		if (isDirty) {
+			if (typeof window !== 'undefined' && !window.confirm(dirtyConfirmMessage)) {
+				return;
+			}
+		}
+		onClose();
+	};
+
 	const handleBackdropClick = (e) => {
 		if (!closeOnBackdrop) return;
-		if (e.target === e.currentTarget) onClose && onClose();
+		if (e.target === e.currentTarget) tryClose();
 	};
 
 	return (
@@ -76,7 +117,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
 						type="button"
 						className="smb-modal__close"
 						aria-label="閉じる"
-						onClick={() => onClose && onClose()}
+						onClick={tryClose}
 					>
 						×
 					</button>

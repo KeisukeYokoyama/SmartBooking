@@ -5,7 +5,7 @@
  * 住所は都道府県セレクト + 市区町村 + 番地の3段構成で入力ミスを減らす。
  * カレンダー色は `<input type="color">` + HEX テキスト併用で、キーボードでも指定可能にする。
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import MediaPicker from '../../components/MediaPicker';
@@ -35,21 +35,25 @@ const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 export default function StoreFormModal({ open, store, onClose, onSubmit, submitting }) {
 	const [values, setValues] = useState(EMPTY);
 	const [errors, setErrors] = useState({});
+	const initialRef = useRef(EMPTY);
 
 	useEffect(() => {
 		if (open) {
 			setErrors({});
-			if (store) {
-				setValues({
-					...EMPTY,
-					...store,
-					calendar_color: store.calendar_color || '#2271b1',
-				});
-			} else {
-				setValues(EMPTY);
-			}
+			const init = store
+				? {
+						...EMPTY,
+						...store,
+						calendar_color: store.calendar_color || '#2271b1',
+					}
+				: EMPTY;
+			initialRef.current = init;
+			setValues(init);
 		}
 	}, [open, store]);
+
+	const computedIsDirty = JSON.stringify(values) !== JSON.stringify(initialRef.current);
+	const isDirty = !submitting && computedIsDirty;
 
 	const update = (patch) => setValues((prev) => ({ ...prev, ...patch }));
 
@@ -78,6 +82,7 @@ export default function StoreFormModal({ open, store, onClose, onSubmit, submitt
 		<Modal
 			open={open}
 			onClose={onClose}
+			isDirty={isDirty}
 			title={store ? '店舗を編集' : '店舗を追加'}
 			size="lg"
 			footer={

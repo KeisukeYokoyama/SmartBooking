@@ -84,6 +84,27 @@ export default function StoresPage() {
 	};
 
 	const toggleStoreActive = async (store, isActive) => {
+		// 無効化（ON→OFF）の場合、紐づくスケジュールがあるとフロント予約フォームから消えるため、
+		// ユーザーに件数付きで確認する。スケジュール件数取得に失敗した場合は汎用メッセージで確認。
+		if (!isActive && !!store.is_active) {
+			let count = null;
+			try {
+				const list = await API.schedules.list({ store_id: store.id });
+				if (Array.isArray(list)) count = list.length;
+			} catch {
+				count = null;
+			}
+			const msg =
+				count !== null && count > 0
+					? `この店舗には${count}件のスケジュールが登録されています。無効にすると、フロントの予約フォームに表示されなくなります。よろしいですか？`
+					: count === 0
+						? null
+						: '店舗を無効にすると、フロントの予約フォームに表示されなくなります。よろしいですか？';
+			if (msg) {
+				const ok = typeof window !== 'undefined' ? window.confirm(msg) : true;
+				if (!ok) return; // スイッチは元の値を維持（楽観更新前に return）.
+			}
+		}
 		// 楽観更新.
 		setStores((prev) => prev.map((s) => (s.id === store.id ? { ...s, is_active: isActive ? 1 : 0 } : s)));
 		try {
@@ -121,6 +142,26 @@ export default function StoresPage() {
 	};
 
 	const toggleStaffActive = async (target, isActive) => {
+		// 担当者の無効化（ON→OFF）も同様に、紐づくスケジュール件数を確認する。
+		if (!isActive && !!target.is_active) {
+			let count = null;
+			try {
+				const list = await API.schedules.list({ staff_id: target.id });
+				if (Array.isArray(list)) count = list.length;
+			} catch {
+				count = null;
+			}
+			const msg =
+				count !== null && count > 0
+					? `この担当者には${count}件のスケジュールが登録されています。無効にすると、フロントの予約フォームに表示されなくなります。よろしいですか？`
+					: count === 0
+						? null
+						: '担当者を無効にすると、フロントの予約フォームに表示されなくなります。よろしいですか？';
+			if (msg) {
+				const ok = typeof window !== 'undefined' ? window.confirm(msg) : true;
+				if (!ok) return;
+			}
+		}
 		setStaff((prev) => prev.map((s) => (s.id === target.id ? { ...s, is_active: isActive ? 1 : 0 } : s)));
 		try {
 			await API.staff.update(target.id, { ...target, is_active: isActive ? 1 : 0 });
@@ -159,7 +200,23 @@ export default function StoresPage() {
 
 	// --- 削除 ---
 
-	const askDelete = (kind, item) => setDeleteTarget({ kind, item });
+	// 担当者削除の場合は CASCADE 削除されるスケジュール件数を事前取得し、
+	// 確認ダイアログのメッセージに含めてユーザーに警告する。
+	// 件数取得に失敗した場合は scheduleCount=null として汎用メッセージで進める。
+	const askDelete = async (kind, item) => {
+		if (kind === 'staff') {
+			let scheduleCount = null;
+			try {
+				const list = await API.schedules.list({ staff_id: item.id });
+				if (Array.isArray(list)) scheduleCount = list.length;
+			} catch {
+				scheduleCount = null;
+			}
+			setDeleteTarget({ kind, item, scheduleCount });
+		} else {
+			setDeleteTarget({ kind, item, scheduleCount: null });
+		}
+	};
 
 	const confirmDelete = async () => {
 		if (!deleteTarget) return;
@@ -349,11 +406,19 @@ export default function StoresPage() {
 			<ConfirmDialog
 				open={!!deleteTarget}
 				title={deleteTarget?.kind === 'store' ? '店舗を削除' : '担当者を削除'}
-				message={
-					deleteTarget?.kind === 'store'
-						? `「${deleteTarget?.item?.name}」を削除します。この操作は取り消せません。予約が紐づいている場合は削除できません。`
-						: `「${deleteTarget?.item?.name}」を削除します。この操作は取り消せません。予約が紐づいている場合は削除できません。`
-				}
+				message={(() => {
+					if (!deleteTarget) return '';
+					const name = deleteTarget.item?.name || '';
+					if (deleteTarget.kind === 'store') {
+						return `「${name}」を削除します。この操作は取り消せません。予約またはスケジュールが紐づいている場合は削除できません。`;
+					}
+					// 担当者: スケジュール件数が取得できていれば CASCADE 削除を明示する。
+					const c = deleteTarget.scheduleCount;
+					if (typeof c === 'number' && c > 0) {
+						return `「${name}」を削除します。この担当者には${c}件のスケジュールが登録されており、それらも一緒に削除されます。予約が紐づいている場合は削除できません。この操作は取り消せません。`;
+					}
+					return `「${name}」を削除します。この操作は取り消せません。予約が紐づいている場合は削除できません。`;
+				})()}
 				confirmLabel="削除する"
 				cancelLabel="キャンセル"
 				loading={deleting}

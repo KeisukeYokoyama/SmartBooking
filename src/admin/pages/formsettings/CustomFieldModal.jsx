@@ -8,7 +8,7 @@
  *    - is_required を 0 にできない（必須固定）
  *    - field_key は常に読み取り専用
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '../../components/Button';
 import Input, { Field } from '../../components/Input';
 import Modal from '../../components/Modal';
@@ -64,29 +64,38 @@ export default function CustomFieldModal({
 	const [errors, setErrors] = useState({});
 	const [keyTouched, setKeyTouched] = useState(false);
 	const [optionsText, setOptionsText] = useState('');
+	const initialRef = useRef({ values: EMPTY, optionsText: '' });
 
 	useEffect(() => {
 		if (!open) return;
 		setErrors({});
 		if (field) {
-			setValues({
+			const init = {
 				field_label: field.field_label || '',
 				field_key: field.field_key || '',
 				field_type: field.field_type || 'text',
 				field_options: Array.isArray(field.field_options) ? field.field_options : [],
 				placeholder: field.placeholder || '',
 				is_required: field.is_required ? 1 : 0,
-			});
-			setOptionsText(
-				(Array.isArray(field.field_options) ? field.field_options : []).join('\n')
-			);
+			};
+			setValues(init);
+			const optsText = (Array.isArray(field.field_options) ? field.field_options : []).join('\n');
+			setOptionsText(optsText);
 			setKeyTouched(true);
+			initialRef.current = { values: init, optionsText: optsText };
 		} else {
-			setValues({ ...EMPTY, field_type: defaultType });
+			const init = { ...EMPTY, field_type: defaultType };
+			setValues(init);
 			setOptionsText('');
 			setKeyTouched(false);
+			initialRef.current = { values: init, optionsText: '' };
 		}
 	}, [open, field, defaultType]);
+
+	const computedIsDirty =
+		JSON.stringify(values) !== JSON.stringify(initialRef.current.values) ||
+		optionsText !== initialRef.current.optionsText;
+	const isDirty = !submitting && computedIsDirty;
 
 	const update = (patch) => setValues((prev) => ({ ...prev, ...patch }));
 
@@ -173,6 +182,7 @@ export default function CustomFieldModal({
 		<Modal
 			open={open}
 			onClose={onClose}
+			isDirty={isDirty}
 			title={title}
 			size="md"
 			footer={

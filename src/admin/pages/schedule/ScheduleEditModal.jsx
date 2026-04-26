@@ -9,7 +9,7 @@
  * 予約紐付き（booked_count > 0）の行は start_time・capacity 変更不可。
  * 日付・店舗・担当者は編集不可（変更したい場合は削除して追加し直す運用）。
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Switch from '../../components/Switch';
@@ -28,39 +28,49 @@ export default function ScheduleEditModal({
 	const [slotDuration, setSlotDuration] = useState(60);
 	const [groupActive, setGroupActive] = useState(true);
 	const [errors, setErrors] = useState({});
+	const initialRef = useRef({ slots: [], slotDuration: 60, groupActive: true });
 
 	useEffect(() => {
 		if (!open || !group) return;
 		setErrors({});
-		setSlots(
-			group.slots.map((s) => ({
-				id: s.id,
-				start_time: (s.start_time || '').slice(0, 5),
-				end_time: (s.end_time || '').slice(0, 5),
-				capacity: s.capacity,
-				is_active: s.is_active,
-				booked_count: s.booked_count,
-				_originalCapacity: s.capacity,
-				_originalStart: (s.start_time || '').slice(0, 5),
-				_originalEnd: (s.end_time || '').slice(0, 5),
-				_originalActive: s.is_active,
-			}))
-		);
+		const initSlots = group.slots.map((s) => ({
+			id: s.id,
+			start_time: (s.start_time || '').slice(0, 5),
+			end_time: (s.end_time || '').slice(0, 5),
+			capacity: s.capacity,
+			is_active: s.is_active,
+			booked_count: s.booked_count,
+			_originalCapacity: s.capacity,
+			_originalStart: (s.start_time || '').slice(0, 5),
+			_originalEnd: (s.end_time || '').slice(0, 5),
+			_originalActive: s.is_active,
+		}));
+		setSlots(initSlots);
 		// 既存データの単位を推定: 最初の行の end - start.
+		let initDuration = 60;
 		if (group.slots[0]) {
 			const s = timeToMinutes(group.slots[0].start_time);
 			const e = timeToMinutes(group.slots[0].end_time);
 			if (s !== null && e !== null && e - s > 0) {
-				setSlotDuration(e - s);
-			} else {
-				setSlotDuration(60);
+				initDuration = e - s;
 			}
-		} else {
-			setSlotDuration(60);
 		}
+		setSlotDuration(initDuration);
 		// グループ全体の is_active（1件でも有効なら有効表示）.
-		setGroupActive(group.slots.some((s) => s.is_active));
+		const initGroupActive = group.slots.some((s) => s.is_active);
+		setGroupActive(initGroupActive);
+		initialRef.current = {
+			slots: initSlots,
+			slotDuration: initDuration,
+			groupActive: initGroupActive,
+		};
 	}, [open, group]);
+
+	const computedIsDirty =
+		JSON.stringify(slots) !== JSON.stringify(initialRef.current.slots) ||
+		slotDuration !== initialRef.current.slotDuration ||
+		groupActive !== initialRef.current.groupActive;
+	const isDirty = !submitting && computedIsDirty;
 
 	const validate = () => {
 		const next = { slots: [] };
@@ -164,6 +174,7 @@ export default function ScheduleEditModal({
 		<Modal
 			open={open}
 			onClose={onClose}
+			isDirty={isDirty}
 			title="スケジュールを編集"
 			size="lg"
 			footer={

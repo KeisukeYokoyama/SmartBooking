@@ -147,6 +147,18 @@ export default function ManualReservationModal({
 		[schedules, scheduleId]
 	);
 
+	// isDirty: ステップ1で予約枠を選んでいる、もしくはステップ2でフォームに入力がある場合は
+	// 閉じる前に確認する。ステップ1の店舗/担当者/日付の変更だけでは確認しない（軽い操作のため）。
+	const hasFormInput =
+		!!form.customer_name.trim() ||
+		!!form.customer_email.trim() ||
+		!!form.customer_phone.trim() ||
+		!!form.admin_memo.trim() ||
+		Object.values(meta).some(
+			(v) => v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0)
+		);
+	const isDirty = !submitting && (step === 2 || !!scheduleId || hasFormInput);
+
 	const selectedStaffName = useMemo(() => {
 		if (!selectedSchedule) return '';
 		const sf = staff.find((s) => s.id === selectedSchedule.staff_id);
@@ -305,7 +317,14 @@ export default function ManualReservationModal({
 	}
 
 	return (
-		<Modal open={open} onClose={onClose} title="予約を手動で作成" size="lg" footer={footer}>
+		<Modal
+			open={open}
+			onClose={onClose}
+			isDirty={isDirty}
+			title="予約を手動で作成"
+			size="lg"
+			footer={footer}
+		>
 			<ol className="smb-step-indicator" aria-label="ステップ">
 				<li className={`smb-step-indicator__item ${step === 1 ? 'is-current' : step > 1 ? 'is-done' : ''}`}>
 					<span className="smb-step-indicator__num">1</span>

@@ -1,7 +1,8 @@
 /**
  * 担当者の追加・編集モーダル。
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { API } from '../../api';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import MediaPicker from '../../components/MediaPicker';
@@ -25,22 +26,26 @@ const EMPTY = {
 export default function StaffFormModal({ open, staff, stores = [], onClose, onSubmit, submitting }) {
 	const [values, setValues] = useState(EMPTY);
 	const [errors, setErrors] = useState({});
+	const initialRef = useRef(EMPTY);
 
 	useEffect(() => {
 		if (open) {
 			setErrors({});
-			if (staff) {
-				setValues({ ...EMPTY, ...staff });
-			} else {
-				setValues({
-					...EMPTY,
-					store_id: stores.length > 0 ? stores[0].id : 0,
-				});
-			}
+			const init = staff
+				? { ...EMPTY, ...staff }
+				: {
+						...EMPTY,
+						store_id: stores.length > 0 ? stores[0].id : 0,
+					};
+			initialRef.current = init;
+			setValues(init);
 		}
 	}, [open, staff, stores]);
 
 	const update = (patch) => setValues((prev) => ({ ...prev, ...patch }));
+
+	const computedIsDirty = JSON.stringify(values) !== JSON.stringify(initialRef.current);
+	const isDirty = !submitting && computedIsDirty;
 
 	const validate = () => {
 		const next = {};
@@ -53,9 +58,33 @@ export default function StaffFormModal({ open, staff, stores = [], onClose, onSu
 		return Object.keys(next).length === 0;
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 		if (!validate()) return;
+
+		// 編集モードで store_id が変更された場合、既存スケジュールへの影響を警告する。
+		// 既存のスケジュールは元の店舗に紐づいたままになるため、ユーザーに明示的な確認を求める。
+		if (staff && Number(initialRef.current.store_id) !== Number(values.store_id)) {
+			let count = null;
+			try {
+				const list = await API.schedules.list({ staff_id: staff.id });
+				if (Array.isArray(list)) count = list.length;
+			} catch {
+				// 件数取得に失敗してもブロックせず、汎用文言で確認する。
+				count = null;
+			}
+			const msg =
+				count !== null && count > 0
+					? `この担当者には${count}件のスケジュールが登録されています。店舗を変更しても、既存のスケジュールは元の店舗に紐づいたままになります。よろしいですか？`
+					: count === 0
+						? null
+						: '所属店舗を変更します。既存のスケジュールは元の店舗に紐づいたままになる場合があります。よろしいですか？';
+			if (msg) {
+				const ok = typeof window !== 'undefined' ? window.confirm(msg) : true;
+				if (!ok) return;
+			}
+		}
+
 		onSubmit(values);
 	};
 
@@ -68,6 +97,7 @@ export default function StaffFormModal({ open, staff, stores = [], onClose, onSu
 		<Modal
 			open={open}
 			onClose={onClose}
+			isDirty={isDirty}
 			title={staff ? '担当者を編集' : '担当者を追加'}
 			size="lg"
 			footer={

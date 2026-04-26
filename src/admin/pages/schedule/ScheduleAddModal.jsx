@@ -21,7 +21,7 @@
  * 送信:
  *   同一の日付・店舗・担当者に対し複数時間枠を items: [] として一括 POST。
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Select from '../../components/Select';
@@ -55,6 +55,7 @@ export default function ScheduleAddModal({
 }) {
 	const [values, setValues] = useState(EMPTY_VALUES);
 	const [errors, setErrors] = useState({});
+	const initialRef = useRef(EMPTY_VALUES);
 
 	// モーダルを開くたびに初期化.
 	useEffect(() => {
@@ -76,13 +77,15 @@ export default function ScheduleAddModal({
 				: staffForStore.length === 1
 					? staffForStore[0].id
 					: '';
-		setValues({
+		const init = {
 			...EMPTY_VALUES,
 			schedule_date: defaultDate || toYmd(new Date()),
 			store_id: pickedStoreId || '',
 			staff_id: pickedStaffId || '',
 			slots: [{ id: null, start_time: '10:00', capacity: 1, is_active: 1, booked_count: 0 }],
-		});
+		};
+		initialRef.current = init;
+		setValues(init);
 	}, [open, defaultDate, defaultStoreId, defaultStaffId, stores, staff]);
 
 	// 店舗変更時に担当者を自動絞り込み.
@@ -107,6 +110,9 @@ export default function ScheduleAddModal({
 	}, [staffOptions, open, values.staff_id]);
 
 	const update = (patch) => setValues((prev) => ({ ...prev, ...patch }));
+
+	const computedIsDirty = JSON.stringify(values) !== JSON.stringify(initialRef.current);
+	const isDirty = !submitting && computedIsDirty;
 
 	// システムエンティティ方式: ユーザー作成の店舗・担当者が無い場合はドロップダウンを出さず、
 	// store_id / staff_id を未指定のまま POST する（サーバ側で is_system=1 のエンティティを自動補完）。
@@ -231,6 +237,7 @@ export default function ScheduleAddModal({
 		<Modal
 			open={open}
 			onClose={onClose}
+			isDirty={isDirty}
 			title="スケジュールを追加"
 			size="lg"
 			footer={
