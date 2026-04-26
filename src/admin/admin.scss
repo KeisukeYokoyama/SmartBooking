@@ -1402,6 +1402,11 @@
 		.smb-calendar__day {
 			color: var(--smb-color-text-subtle);
 		}
+
+		.smb-calendar__dots,
+		.smb-calendar__summary {
+			opacity: 0.55;
+		}
 	}
 
 	&.is-today {
@@ -1843,6 +1848,118 @@
 	&.is-inactive {
 		background: var(--smb-color-bg);
 		color: var(--smb-color-text-muted);
+	}
+}
+
+/* 月一覧テーブル（フラット形式）。 */
+
+.smb-schedule-table-wrap {
+	overflow-x: auto;
+	border: 1px solid var(--smb-color-divider);
+	border-radius: var(--smb-radius);
+	background: var(--smb-color-bg-elev);
+}
+
+.smb-schedule-table-flat {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+	min-width: 720px;
+
+	th,
+	td {
+		padding: 8px 10px;
+		text-align: left;
+		border-bottom: 1px solid var(--smb-color-divider);
+		vertical-align: middle;
+	}
+
+	thead th {
+		background: var(--smb-color-bg);
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--smb-color-text-muted);
+		text-transform: none;
+		letter-spacing: normal;
+		white-space: nowrap;
+	}
+
+	tbody tr {
+		&:hover {
+			background: var(--smb-color-primary-bg);
+		}
+		&.is-inactive {
+			opacity: 0.6;
+		}
+	}
+
+	.smb-col-date {
+		min-width: 140px;
+		white-space: nowrap;
+	}
+	.smb-col-time {
+		min-width: 110px;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+	.smb-col-store {
+		min-width: 140px;
+	}
+	.smb-col-staff {
+		min-width: 110px;
+		color: var(--smb-color-text-muted);
+	}
+	.smb-col-num {
+		width: 60px;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	.smb-col-status {
+		width: 96px;
+	}
+	.smb-col-actions {
+		width: 156px;
+	}
+}
+
+.smb-schedule-row__date {
+	font-weight: 600;
+	color: var(--smb-color-text);
+}
+
+.smb-schedule-row__time {
+	font-weight: 600;
+	color: var(--smb-color-text);
+}
+
+.smb-schedule-row__color {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	margin-right: 6px;
+	vertical-align: middle;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.smb-schedule-row__store {
+	font-weight: 500;
+}
+
+.smb-schedule-row__actions {
+	display: inline-flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+@media (max-width: 782px) {
+	.smb-schedule-table-flat {
+		font-size: 12px;
+
+		th,
+		td {
+			padding: 6px 8px;
+		}
 	}
 }
 

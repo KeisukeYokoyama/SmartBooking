@@ -51,6 +51,7 @@ export default function ScheduleAddModal({
 	defaultDate,
 	defaultStoreId,
 	defaultStaffId,
+	schedulesByDate,
 }) {
 	const [values, setValues] = useState(EMPTY_VALUES);
 	const [errors, setErrors] = useState({});
@@ -112,6 +113,32 @@ export default function ScheduleAddModal({
 	const showStoreSelect = stores.filter((s) => s.is_active).length > 0;
 	const showStaffSelect = staffOptions.length > 0;
 
+	// 重複登録防止: 同一 (日付, 店舗, 担当者) で既に登録されている start_time の集合と、
+	// その時間枠に予約が紐づいているか（true なら絶対に削除/上書き不可）を Map で持つ。
+	// 店舗/担当者が未選択の場合は、サーバ側でシステムエンティティ（is_system=1）に補完されるので、
+	// そのケースでも store_id=null/staff_id=null として既存判定する。
+	const existingByStart = useMemo(() => {
+		const map = new Map();
+		if (!values.schedule_date || !schedulesByDate) return map;
+		const list = schedulesByDate.get(values.schedule_date) || [];
+		const wantStoreId = values.store_id ? Number(values.store_id) : null;
+		const wantStaffId = values.staff_id ? Number(values.staff_id) : null;
+		list.forEach((s) => {
+			// 店舗/担当者が指定されているならそれだけ。未指定の場合は全件対象（ユーザーが
+			// どのシステムエンティティに対して追加するか判別しにくいため、表示上は出す）。
+			if (wantStoreId !== null && Number(s.store_id) !== wantStoreId) return;
+			if (wantStaffId !== null && Number(s.staff_id) !== wantStaffId) return;
+			const start = (s.start_time || '').slice(0, 5);
+			if (!start) return;
+			const prev = map.get(start);
+			map.set(start, {
+				start,
+				booked: Math.max(prev?.booked || 0, Number(s.booked_count) || 0),
+			});
+		});
+		return map;
+	}, [schedulesByDate, values.schedule_date, values.store_id, values.staff_id]);
+
 	const validate = () => {
 		const next = { slots: [] };
 		if (!values.schedule_date) next.schedule_date = '日付を選択してください。';
@@ -123,13 +150,15 @@ export default function ScheduleAddModal({
 		if (!Array.isArray(values.slots) || values.slots.length === 0) {
 			next.slotsGeneral = '時間枠を1件以上追加してください。';
 		} else {
-			// 重複チェック（単位時間幅で衝突するか）.
+			// 既に登録済み（フロントで非送信扱いとなる）行はバリデーション/重複チェックの対象外.
 			const normalized = values.slots.map((s, i) => ({
 				...s,
 				index: i,
 				startMin: timeToMinutes(s.start_time),
+				existing: existingByStart.has((s.start_time || '').slice(0, 5)),
 			}));
 			normalized.forEach((s, i) => {
+				if (s.existing) return;
 				if (s.startMin === null) {
 					next.slots[i] = '開始時間の形式が正しくありません。';
 				} else if (Number(s.capacity) < 1) {
@@ -137,7 +166,7 @@ export default function ScheduleAddModal({
 				}
 			});
 			const sorted = [...normalized]
-				.filter((s) => s.startMin !== null)
+				.filter((s) => !s.existing && s.startMin !== null)
 				.sort((a, b) => a.startMin - b.startMin);
 			for (let i = 1; i < sorted.length; i += 1) {
 				const prev = sorted[i - 1];
@@ -146,6 +175,11 @@ export default function ScheduleAddModal({
 					next.slots[cur.index] =
 						`前の時間枠（${prev.start_time}）と重なっています。時間枠単位（${values.slotDuration}分）以上の間隔を空けてください。`;
 				}
+			}
+			// 全て「登録済み」だけだった場合は実質追加対象なしなので案内.
+			const sendable = normalized.filter((s) => !s.existing);
+			if (sendable.length === 0) {
+				next.slotsGeneral = '追加できる時間枠がありません（全て既に登録済みです）。';
 			}
 		}
 
@@ -163,21 +197,22 @@ export default function ScheduleAddModal({
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (!validate()) return;
-		// items 配列として送信.
-		// store_id / staff_id は未指定なら 0 を送る → サーバ側でシステムエンティティへ自動補完される。
-		const items = values.slots.map((s) => {
-			const startMin = timeToMinutes(s.start_time);
-			const endMin = Math.min(24 * 60 - 1, (startMin ?? 0) + values.slotDuration);
-			return {
-				store_id: values.store_id ? Number(values.store_id) : 0,
-				staff_id: values.staff_id ? Number(values.staff_id) : 0,
-				schedule_date: values.schedule_date,
-				start_time: s.start_time,
-				end_time: minutesToTime(endMin),
-				capacity: Number(s.capacity),
-				is_active: values.is_active ? 1 : 0,
-			};
-		});
+		// 既存登録済みの時間枠は除外して送信（バックエンド側でも防御済み）.
+		const items = values.slots
+			.filter((s) => !existingByStart.has((s.start_time || '').slice(0, 5)))
+			.map((s) => {
+				const startMin = timeToMinutes(s.start_time);
+				const endMin = Math.min(24 * 60 - 1, (startMin ?? 0) + values.slotDuration);
+				return {
+					store_id: values.store_id ? Number(values.store_id) : 0,
+					staff_id: values.staff_id ? Number(values.staff_id) : 0,
+					schedule_date: values.schedule_date,
+					start_time: s.start_time,
+					end_time: minutesToTime(endMin),
+					capacity: Number(s.capacity),
+					is_active: values.is_active ? 1 : 0,
+				};
+			});
 		onSubmit(items);
 	};
 
@@ -263,6 +298,7 @@ export default function ScheduleAddModal({
 					onSlotsChange={(slots) => update({ slots })}
 					onDurationChange={(slotDuration) => update({ slotDuration })}
 					errors={{ slots: errors.slots, slotsGeneral: errors.slotsGeneral }}
+					existingStartTimes={existingByStart}
 				/>
 
 				<div className="smb-field">

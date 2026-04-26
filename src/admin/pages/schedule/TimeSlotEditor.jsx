@@ -26,6 +26,7 @@ export default function TimeSlotEditor({
 	onSlotsChange,
 	onDurationChange,
 	errors = {},
+	existingStartTimes = null,
 }) {
 	const handleAdd = () => {
 		// 末尾行の開始時間 + 単位 を提案。最初の1件は 10:00。
@@ -91,11 +92,18 @@ export default function TimeSlotEditor({
 					<ul className="smb-slot-editor__list" role="list">
 						{slots.map((slot, i) => {
 							const locked = Number(slot.booked_count) > 0;
+							const startKey = (slot.start_time || '').slice(0, 5);
+							const existing = existingStartTimes
+								? existingStartTimes.get(startKey)
+								: null;
+							// 既存登録あり & このモーダル内のスロットには id がない（=新規追加行）→ 「登録済み」扱い.
+							// id がある行は編集モーダル経由の既存行なので通常表示.
+							const alreadyRegistered = !!existing && slot.id == null;
 							const err = errors.slots && errors.slots[i];
 							return (
 								<li
 									key={slot.id != null ? `id-${slot.id}` : `row-${i}`}
-									className={`smb-slot-editor__row ${err ? 'has-error' : ''} ${locked ? 'is-locked' : ''}`}
+									className={`smb-slot-editor__row ${err ? 'has-error' : ''} ${locked ? 'is-locked' : ''} ${alreadyRegistered ? 'is-existing' : ''}`}
 								>
 									<div className="smb-slot-editor__row-fields">
 										<label className="smb-slot-editor__cell">
@@ -124,6 +132,7 @@ export default function TimeSlotEditor({
 														capacity: Math.max(1, Number(e.target.value) || 1),
 													})
 												}
+												disabled={alreadyRegistered}
 												aria-label={`${i + 1}つ目の時間枠・予約可能数`}
 											/>
 										</label>
@@ -142,6 +151,11 @@ export default function TimeSlotEditor({
 									{locked && (
 										<p className="smb-slot-editor__lock-note">
 											この時間枠には予約（{slot.booked_count}件）があるため、時間と削除は変更できません。
+										</p>
+									)}
+									{alreadyRegistered && !locked && (
+										<p className="smb-slot-editor__lock-note">
+											この時間（{startKey}）は既に登録済みです。送信時にスキップされます。
 										</p>
 									)}
 									{err && <p className="smb-field__error">{err}</p>}

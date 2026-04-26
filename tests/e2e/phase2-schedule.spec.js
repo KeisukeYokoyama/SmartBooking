@@ -23,7 +23,7 @@ test.describe.configure( { mode: 'default' } );
 
 /**
  * 指定オフセット日後の日付を返す。ただし、結果が翌月以降になる場合は当月末日に丸める。
- * カレンダーの「is-other-month」セルは disabled なので、当月内のセルしかクリックできない。
+ * 当月内日付に固定したいテスト（編集など、選択月の schedule を直接 DetailPane に出す必要があるもの）で使う。
  * @param {number} offsetDays
  * @return {string} YYYY-MM-DD
  */
@@ -74,49 +74,38 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		await expect( page.locator( '.smb-calendar__cell' ) ).toHaveCount( 42 );
 	} );
 
-	test( '[BUG-4] 隣月セル（is-other-month）は disabled で aria-disabled=true', async ( {
+	test( '隣月セル（is-other-month）はクリック可能（disabled ではない）', async ( {
 		page,
 	} ) => {
 		// グリッドが完全に描画されるのを待つ.
 		await expect( page.locator( '.smb-calendar__cell' ) ).toHaveCount( 42 );
 		const otherCells = page.locator( '.smb-calendar__cell.is-other-month' );
 		const count = await otherCells.count();
-		expect( count ).toBeGreaterThan( 0 ); // 最低 1 セルはあるはず.
+		expect( count ).toBeGreaterThan( 0 );
 		for ( let i = 0; i < count; i++ ) {
 			const cell = otherCells.nth( i );
-			await expect( cell ).toBeDisabled();
-			await expect( cell ).toHaveAttribute( 'aria-disabled', 'true' );
+			await expect( cell ).toBeEnabled();
 		}
 	} );
 
-	test( '[BUG-4] 隣月セルをクリックしても選択状態が変わらない', async ( {
+	test( '隣月セルをクリックすると選択状態になる（カレンダーの月は変わらない）', async ( {
 		page,
 	} ) => {
 		await expect( page.locator( '.smb-calendar__cell' ) ).toHaveCount( 42 );
-		// 現在選択されているセル (もしあれば) の aria-label をスナップショット.
-		const selectedBefore = await page.evaluate( () => {
-			const el = document.querySelector(
-				'.smb-calendar__cell.is-selected'
-			);
-			return el ? el.getAttribute( 'aria-label' ) : null;
-		} );
-		// 最初の隣月セルを force クリック（disabled でも DOM クリックは強制発火できる）.
+		const monthLabelBefore = await page
+			.locator( '.smb-schedule-toolbar__month' )
+			.innerText();
+		// 最初の隣月セルをクリック.
 		const firstOther = page
 			.locator( '.smb-calendar__cell.is-other-month' )
 			.first();
-		await firstOther.click( { force: true } ).catch( () => {} );
-		// 100ms 待って React の状態更新をカバー.
-		await page.waitForTimeout( 100 );
-		// 選択セルの aria-label が変わっていないこと.
-		const selectedAfter = await page.evaluate( () => {
-			const el = document.querySelector(
-				'.smb-calendar__cell.is-selected'
-			);
-			return el ? el.getAttribute( 'aria-label' ) : null;
-		} );
-		expect( selectedAfter ).toBe( selectedBefore );
-		// 隣月セル自身が selected になっていないこと.
-		await expect( firstOther ).not.toHaveClass( /is-selected/ );
+		await firstOther.click();
+		await expect( firstOther ).toHaveClass( /is-selected/ );
+		// 月見出しは変わらない（自動ジャンプしない）.
+		const monthLabelAfter = await page
+			.locator( '.smb-schedule-toolbar__month' )
+			.innerText();
+		expect( monthLabelAfter ).toBe( monthLabelBefore );
 	} );
 
 	test( 'ヘッダの「スケジュールを追加」ボタンからモーダルが開く', async ( {
@@ -208,7 +197,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		page,
 	} ) => {
 		// 準備: スケジュールを1件 API 経由で作成.
-		// 月をまたぐと is-other-month で disabled になるため、当月内日付に固定する.
+		// 月をまたぐとスケジュールは表示中の月の枠外になりリスト一覧から外れるため、
+		// 当月内日付に固定して DetailPane と List 両方で確認できるようにする.
 		const target = ymdInCurrentMonth( 5 );
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [

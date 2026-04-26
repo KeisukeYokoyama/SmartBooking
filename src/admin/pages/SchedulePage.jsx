@@ -31,7 +31,7 @@ import ScheduleCopyModal from './schedule/ScheduleCopyModal';
 import ScheduleDetailPane from './schedule/ScheduleDetailPane';
 import ScheduleEditModal from './schedule/ScheduleEditModal';
 import ScheduleList from './schedule/ScheduleList';
-import { addMonths, endOfMonth, formatYearMonth, startOfMonth, toYmd } from './schedule/dateUtils';
+import { addDays, addMonths, endOfMonth, formatYearMonth, startOfMonth, toYmd } from './schedule/dateUtils';
 import Button from '../components/Button';
 
 export default function SchedulePage() {
@@ -86,9 +86,11 @@ export default function SchedulePage() {
 	const loadSchedules = useCallback(async () => {
 		setScheduleLoading(true);
 		try {
+			// カレンダーグリッドは月初の前週日曜から月末の翌週土曜まで描画される（最大±7日）。
+			// 隣月セルにもスケジュール情報を出すため、取得範囲を ±7 日広げる。
 			const params = {
-				date_from: toYmd(startOfMonth(currentMonth)),
-				date_to: toYmd(endOfMonth(currentMonth)),
+				date_from: toYmd(addDays(startOfMonth(currentMonth), -7)),
+				date_to: toYmd(addDays(endOfMonth(currentMonth), 7)),
 			};
 			if (selectedStoreId) params.store_id = selectedStoreId;
 			if (selectedStaffId) params.staff_id = selectedStaffId;
@@ -122,6 +124,16 @@ export default function SchedulePage() {
 	}, [staff]);
 
 	const schedulesByDate = useMemo(() => groupSchedulesByDate(schedules), [schedules]);
+
+	// スケジュール一覧（下部セクション）は currentMonth に属する日付のみ表示する.
+	// loadSchedules は ±7 日広く取得しているため、ここで絞り込む.
+	const schedulesInCurrentMonth = useMemo(() => {
+		const fromYmdStr = toYmd(startOfMonth(currentMonth));
+		const toYmdStr = toYmd(endOfMonth(currentMonth));
+		return schedules.filter(
+			(s) => s.schedule_date >= fromYmdStr && s.schedule_date <= toYmdStr
+		);
+	}, [schedules, currentMonth]);
 
 	const staffFilterOptions = useMemo(() => {
 		if (!selectedStoreId) return staff;
@@ -158,10 +170,21 @@ export default function SchedulePage() {
 	const submitAdd = async (items) => {
 		setSubmitting(true);
 		try {
-			await API.schedules.create({ items });
-			showToast(`スケジュールを追加しました（${items.length}件）`, 'success');
+			if (!items || items.length === 0) {
+				showToast('追加できる時間枠がありません（全て既に登録済みです）。', 'info');
+				return;
+			}
+			const res = await API.schedules.create({ items });
+			const created = Number(res?.created || 0);
+			const updated = Number(res?.updated || 0);
+			const skipped = Number(res?.skipped || 0);
+			const parts = [];
+			if (created > 0) parts.push(`${created}件追加`);
+			if (updated > 0) parts.push(`${updated}件更新`);
+			if (skipped > 0) parts.push(`${skipped}件スキップ（予約あり）`);
+			const message = parts.length > 0 ? `スケジュールを追加: ${parts.join(' / ')}` : 'スケジュールを追加しました';
+			showToast(message, 'success');
 			closeAdd();
-			// 追加した日付を選択状態にする.
 			if (items[0]) setSelectedYmd(items[0].schedule_date);
 			await loadSchedules();
 		} catch (err) {
@@ -442,7 +465,7 @@ export default function SchedulePage() {
 					{formatYearMonth(currentMonth)}のスケジュール一覧
 				</h2>
 				<ScheduleList
-					schedules={schedules}
+					schedules={schedulesInCurrentMonth}
 					storesById={storesById}
 					staffById={staffById}
 					onEdit={openEdit}
@@ -461,6 +484,7 @@ export default function SchedulePage() {
 				defaultDate={addModal.defaultDate}
 				defaultStoreId={selectedStoreId ? Number(selectedStoreId) : null}
 				defaultStaffId={selectedStaffId ? Number(selectedStaffId) : null}
+				schedulesByDate={schedulesByDate}
 			/>
 
 			<ScheduleEditModal

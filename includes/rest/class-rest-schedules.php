@@ -272,11 +272,16 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 	/**
 	 * 作成（単一 or 配列）。
 	 *
+	 * 同一の (store_id, staff_id, schedule_date, start_time) が既に存在する場合:
+	 *   - booked_count = 0 → 既存レコードの capacity / end_time / is_active を上書き UPDATE（idempotent）
+	 *   - booked_count > 0 → スキップ（予約済み枠を守る）
+	 *
 	 * @param WP_REST_Request $request リクエスト.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_item( $request ) {
 		global $wpdb;
+		$t     = $this->table();
 		$items = $request->get_param( 'items' );
 		if ( is_array( $items ) && ! empty( $items ) ) {
 			$batch = $items;
@@ -285,23 +290,63 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 		}
 
 		$created_ids = array();
+		$updated_ids = array();
+		$skipped     = array();
 		$now         = $this->now_mysql();
 
 		foreach ( $batch as $one ) {
 			$data = $this->sanitize_one( $one );
 			if ( is_wp_error( $data ) ) {
-				// 失敗しても作成済みは残す（PARTIAL 成功）。メッセージで通知。
 				return $this->error(
 					$data->get_error_code(),
-					$data->get_error_message() . ( count( $created_ids ) > 0 ? sprintf( '（%d 件は作成済み）', count( $created_ids ) ) : '' ),
+					$data->get_error_message() . (
+						( count( $created_ids ) + count( $updated_ids ) ) > 0
+							? sprintf( '（%d 件は作成済み）', count( $created_ids ) + count( $updated_ids ) )
+							: ''
+					),
 					400
 				);
 			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$existing = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT id, booked_count FROM {$t} WHERE store_id = %d AND staff_id = %d AND schedule_date = %s AND start_time = %s LIMIT 1",
+					$data['store_id'],
+					$data['staff_id'],
+					$data['schedule_date'],
+					$data['start_time']
+				),
+				ARRAY_A
+			);
+
+			if ( $existing ) {
+				if ( (int) $existing['booked_count'] > 0 ) {
+					$skipped[] = (int) $existing['id'];
+					continue;
+				}
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->update(
+					$t,
+					array(
+						'end_time'   => $data['end_time'],
+						'capacity'   => $data['capacity'],
+						'is_active'  => $data['is_active'],
+						'updated_at' => $now,
+					),
+					array( 'id' => (int) $existing['id'] ),
+					array( '%s', '%d', '%d', '%s' ),
+					array( '%d' )
+				);
+				$updated_ids[] = (int) $existing['id'];
+				continue;
+			}
+
 			$data['created_at'] = $now;
 			$data['updated_at'] = $now;
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
-				$this->table(),
+				$t,
 				$data,
 				array( '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
 			);
@@ -310,8 +355,12 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 
 		return rest_ensure_response(
 			array(
-				'created' => count( $created_ids ),
-				'ids'     => $created_ids,
+				'created'     => count( $created_ids ),
+				'ids'         => $created_ids,
+				'updated'     => count( $updated_ids ),
+				'updated_ids' => $updated_ids,
+				'skipped'     => count( $skipped ),
+				'skipped_ids' => $skipped,
 			)
 		);
 	}

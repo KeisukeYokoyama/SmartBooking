@@ -97,12 +97,7 @@ export default function CalendarGrid({
 							]
 								.filter(Boolean)
 								.join(' ')}
-							onClick={() => {
-								if (!cell.isCurrentMonth) return;
-								onSelect(cell.ymd);
-							}}
-							disabled={!cell.isCurrentMonth}
-							aria-disabled={!cell.isCurrentMonth}
+							onClick={() => onSelect(cell.ymd)}
 							aria-label={`${cell.ymd} を選択`}
 							aria-pressed={isSelected}
 						>
