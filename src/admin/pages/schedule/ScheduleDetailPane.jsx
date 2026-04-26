@@ -88,6 +88,11 @@ export default function ScheduleDetailPane({
 							(sum, s) => sum + Number(s.booked_count || 0),
 							0
 						);
+						// storesById / staffById に無いレコードはシステムエンティティ。
+						// 内部 ID は見せず「—」表記にする。両方ともシステムなら見出しに「スケジュール」とだけ出す。
+						const isSystemStore = !store;
+						const isSystemStaff = !staff;
+						const storeLabel = isSystemStore ? 'スケジュール' : store.name;
 						return (
 							<li key={`${g.store_id}:${g.staff_id}`} className="smb-schedule-group">
 								<div
@@ -99,11 +104,13 @@ export default function ScheduleDetailPane({
 									<div className="smb-schedule-group__head">
 										<div>
 											<h3 className="smb-schedule-group__store">
-												{store?.name || `店舗ID ${g.store_id}`}
+												{storeLabel}
 											</h3>
-											<p className="smb-schedule-group__staff">
-												担当: {staff?.name || `担当者ID ${g.staff_id}`}
-											</p>
+											{!isSystemStaff && (
+												<p className="smb-schedule-group__staff">
+													担当: {staff.name}
+												</p>
+											)}
 										</div>
 										<div className="smb-schedule-group__actions">
 											<button

@@ -19,8 +19,13 @@ export default function ReservationCardList({
 	return (
 		<ul className="smb-reservation-cards" role="list">
 			{items.map((r) => {
-				const storeName = storeMap.get(r.store_id)?.name || '—';
-				const staffName = staffMap.get(r.staff_id)?.name || '—';
+				// システムエンティティ（is_system=1）はユーザーに非表示。「—」表記。
+				const storeName = r.store_is_system
+					? '—'
+					: storeMap.get(r.store_id)?.name || '—';
+				const staffName = r.staff_is_system
+					? '—'
+					: staffMap.get(r.staff_id)?.name || '—';
 				const pending = pendingRowIds.has(r.id);
 				return (
 					<li

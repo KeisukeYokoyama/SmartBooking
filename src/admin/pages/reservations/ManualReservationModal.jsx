@@ -63,10 +63,16 @@ export default function ManualReservationModal({
 	const [submitting, setSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState(null);
 
+	// システムエンティティ方式: ユーザー店舗・担当者が無い場合はドロップダウンを出さず、
+	// 日付だけで該当日のスケジュール（システム店舗のもの含む）を取得する。
+	const hasUserStores = stores.length > 0;
+	const hasUserStaff = staff.length > 0;
+
 	// 開閉時に状態をリセット.
 	useEffect(() => {
 		if (open) {
 			setStep(1);
+			// ユーザー店舗が無い場合は store_id を空のままにする。
 			setStoreId(stores[0] ? String(stores[0].id) : '');
 			setStaffId('');
 			setDate(toYmd(new Date()));
@@ -100,18 +106,22 @@ export default function ManualReservationModal({
 		[stores]
 	);
 
-	// スケジュールを取得（店舗 + 日付指定時、担当者は任意）.
+	// スケジュールを取得（日付指定時。店舗・担当者は任意）.
+	// ユーザー店舗が無い場合は store_id を送らず、その日全体のスケジュールを取得する
+	// （システム店舗のスケジュールも含めて返る）。
 	useEffect(() => {
-		if (!open || step !== 1 || !storeId || !date) return;
+		if (!open || step !== 1 || !date) return;
+		// ユーザー店舗が存在するのに未選択の場合だけスケジュール取得を待つ。
+		if (hasUserStores && !storeId) return;
 		let cancelled = false;
 		setScheduleLoading(true);
 		setScheduleError(null);
 		setScheduleId(null);
 		const params = {
-			store_id: storeId,
 			date_from: date,
 			date_to: date,
 		};
+		if (storeId) params.store_id = storeId;
 		if (staffId) params.staff_id = staffId;
 		API.schedules
 			.list(params)
@@ -130,7 +140,7 @@ export default function ManualReservationModal({
 		return () => {
 			cancelled = true;
 		};
-	}, [open, step, storeId, staffId, date]);
+	}, [open, step, storeId, staffId, date, hasUserStores]);
 
 	const selectedSchedule = useMemo(
 		() => schedules.find((s) => s.id === scheduleId) || null,
@@ -242,9 +252,15 @@ export default function ManualReservationModal({
 				setSubmitError('この時間枠はちょうど満席になりました。別の枠を選択してください。');
 				setStep(1);
 				// スケジュール再取得で最新の残数を反映.
-				if (storeId && date) {
+				if (date) {
+					const reloadParams = {
+						date_from: date,
+						date_to: date,
+					};
+					if (storeId) reloadParams.store_id = storeId;
+					if (staffId) reloadParams.staff_id = staffId;
 					API.schedules
-						.list({ store_id: storeId, staff_id: staffId || undefined, date_from: date, date_to: date })
+						.list(reloadParams)
 						.then((rows) => setSchedules(Array.isArray(rows) ? rows : []))
 						.catch(() => {});
 				}
@@ -308,23 +324,31 @@ export default function ManualReservationModal({
 			{step === 1 && (
 				<div className="smb-manual-step">
 					<div className="smb-manual-step__filters">
-						<Select
-							label="店舗"
-							required
-							value={storeId}
-							onChange={(e) => {
-								setStoreId(e.target.value);
-								setStaffId('');
-							}}
-							options={storeOptions}
-						/>
-						<Select
-							label="担当者"
-							value={staffId}
-							onChange={(e) => setStaffId(e.target.value)}
-							options={staffOptions}
-							help={storeId ? '指定した店舗の担当者で絞り込めます。' : '先に店舗を選択してください。'}
-						/>
+						{hasUserStores && (
+							<Select
+								label="店舗"
+								required
+								value={storeId}
+								onChange={(e) => {
+									setStoreId(e.target.value);
+									setStaffId('');
+								}}
+								options={storeOptions}
+							/>
+						)}
+						{hasUserStaff && (
+							<Select
+								label="担当者"
+								value={staffId}
+								onChange={(e) => setStaffId(e.target.value)}
+								options={staffOptions}
+								help={
+									hasUserStores && !storeId
+										? '先に店舗を選択してください。'
+										: '担当者で絞り込めます。'
+								}
+							/>
+						)}
 						<div className="smb-field">
 							<label className="smb-field__label" htmlFor="smb-manual-date">
 								<span>予約日</span>
@@ -352,14 +376,17 @@ export default function ManualReservationModal({
 							</div>
 						)}
 						{!scheduleLoading && scheduleError && <ErrorMessage message={scheduleError} />}
-						{!scheduleLoading && !scheduleError && !storeId && (
+						{!scheduleLoading && !scheduleError && hasUserStores && !storeId && (
 							<p className="smb-manual-step__empty">店舗を選択すると予約枠が表示されます。</p>
 						)}
-						{!scheduleLoading && !scheduleError && storeId && schedules.length === 0 && (
-							<p className="smb-manual-step__empty">
-								指定の条件ではスケジュールが登録されていません。スケジュール管理画面で登録してください。
-							</p>
-						)}
+						{!scheduleLoading &&
+							!scheduleError &&
+							(!hasUserStores || storeId) &&
+							schedules.length === 0 && (
+								<p className="smb-manual-step__empty">
+									指定の条件ではスケジュールが登録されていません。スケジュール管理画面で登録してください。
+								</p>
+							)}
 						{!scheduleLoading && !scheduleError && schedules.length > 0 && (
 							<ul className="smb-manual-step__slot-list" role="list">
 								{schedules.map((s) => {
@@ -405,8 +432,7 @@ export default function ManualReservationModal({
 							{formatLocalDate(selectedSchedule.schedule_date)}{' '}
 							{String(selectedSchedule.start_time).slice(0, 5)}〜
 							{String(selectedSchedule.end_time).slice(0, 5)}
-							{' / '}
-							{selectedStoreName}
+							{selectedStoreName && ` / ${selectedStoreName}`}
 							{selectedStaffName && ` / ${selectedStaffName}`}
 						</span>
 					</div>

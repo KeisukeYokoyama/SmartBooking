@@ -45,14 +45,33 @@ export default function App({ fixedStoreId = 0 }) {
 					publicAPI.customFields(),
 				]);
 				if (cancelled) return;
+				// ショートコードから localize された hasUserStores / hasUserStaff。
+				// API レスポンス（is_system=0 のみ）の長さでも判定できるが、
+				// バックエンドが付与した値の方が信頼できる（DB を直接参照しているため）。
+				const ctx =
+					typeof window !== 'undefined' && window.smartBookingFrontend
+						? window.smartBookingFrontend
+						: {};
+				const apiStores = Array.isArray(stores) ? stores : [];
+				const apiStaff = Array.isArray(staff) ? staff : [];
+				const hasUserStores =
+					typeof ctx.hasUserStores === 'boolean'
+						? ctx.hasUserStores
+						: apiStores.length > 0;
+				const hasUserStaff =
+					typeof ctx.hasUserStaff === 'boolean'
+						? ctx.hasUserStaff
+						: apiStaff.length > 0;
 				dispatch({
 					type: 'INIT_SUCCESS',
 					payload: {
-						stores: Array.isArray(stores) ? stores : [],
-						staff: Array.isArray(staff) ? staff : [],
+						stores: apiStores,
+						staff: apiStaff,
 						customFields: Array.isArray(customFields) ? customFields : [],
 						settings: settings || {},
 						fixedStoreId,
+						hasUserStores,
+						hasUserStaff,
 					},
 				});
 			} catch (err) {

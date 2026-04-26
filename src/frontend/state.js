@@ -34,6 +34,12 @@ export const INITIAL_STATE = {
 	// ショートコード属性で指定された固定店舗 (0 なら未指定)。
 	fixedStoreId: 0,
 
+	// システムエンティティ方式: ユーザー作成 (is_system=0) かつ is_active=1 のレコードの有無。
+	// ショートコード localize 経由で App.jsx から INIT_SUCCESS payload に詰められる。
+	// false の場合、対応するステップは完全スキップし storeId/staffId=0 でサーバ側自動振り分けに委ねる。
+	hasUserStores: true,
+	hasUserStaff: true,
+
 	// 選択値。
 	storeId: null,
 	staffId: null,
@@ -71,6 +77,12 @@ export function getStepOrder( flowOrder ) {
 /**
  * スキップルールを適用して「最初に表示するステップ」を決定する。
  *
+ * システムエンティティ方式:
+ *   ユーザーが店舗・担当者を 1 つも作成していない場合（hasUserStores=false など）、
+ *   API は空配列を返すが裏側にシステムエンティティが存在する。
+ *   この場合は storeId / staffId を 0（未確定）のまま該当ステップを完全スキップし、
+ *   サーバ側でシステムエンティティへ自動振り分けされる前提で進める。
+ *
  * @param {Object}   params
  * @param {number}   params.storeCount
  * @param {number}   params.staffCountForResolvedStore
@@ -80,6 +92,8 @@ export function getStepOrder( flowOrder ) {
  * @param {Object[]} params.staff                      担当者リスト
  * @param {boolean}  [params.showStoreFront=true]      フロントで店舗選択を表示するか
  * @param {boolean}  [params.showStaffFront=true]      フロントで担当者選択を表示するか
+ * @param {boolean}  [params.hasUserStores=true]       ユーザー作成 (is_system=0) の有効店舗が存在するか
+ * @param {boolean}  [params.hasUserStaff=true]        ユーザー作成 (is_system=0) の有効担当者が存在するか
  * @return {{ step: string, storeId: number|null, staffId: number|null }} 初期ステップ情報
  */
 export function resolveInitialStep( {
@@ -91,17 +105,23 @@ export function resolveInitialStep( {
 	staff,
 	showStoreFront = true,
 	showStaffFront = true,
+	hasUserStores = true,
+	hasUserStaff = true,
 } ) {
 	let storeId = null;
 	let staffId = null;
 	let step = 'store';
 
 	// 店舗ステップのスキップ判定:
+	//   0. ユーザー店舗が無い（システム店舗で運用） → storeId=0 のまま完全スキップ
 	//   1. ショートコードで店舗固定 → 固定店舗を選択
 	//   2. 有効な店舗が 1 つだけ → 自動選択
 	//   3. show_store_front=false → ショートコード指定があればその店舗、なければ stores[0]
 	//      （stores は呼び出し元で sort_order ASC 済みである前提）
-	if ( fixedStoreId > 0 ) {
+	if ( ! hasUserStores ) {
+		storeId = 0;
+		step = 'staff';
+	} else if ( fixedStoreId > 0 ) {
 		storeId = fixedStoreId;
 		step = 'staff';
 	} else if ( storeCount === 1 ) {
@@ -115,10 +135,16 @@ export function resolveInitialStep( {
 	}
 
 	// 担当者ステップのスキップ判定:
+	//   0. ユーザー担当者が無い（システム担当者で運用） → staffId=0 のまま完全スキップ
 	//   1. 担当者が 1 人だけ → 自動選択
 	//   2. show_staff_front=false → サーバ側で自動振り分けに任せ、staffId は 0（未確定）のまま
 	//      `/public/availability` へのリクエストでは staff_id を送らず、サーバが統合スケジュールを返す。
-	if ( staffCountForResolvedStore === 1 ) {
+	if ( ! hasUserStaff ) {
+		staffId = 0;
+		const order = getStepOrder( flowOrder );
+		const idx = order.indexOf( 'staff' );
+		step = order[ idx + 1 ] || 'date';
+	} else if ( staffCountForResolvedStore === 1 ) {
 		const single =
 			staff.find( ( s ) => s.store_id === storeId ) || staff[ 0 ];
 		if ( single ) {
@@ -143,8 +169,8 @@ export function resolveInitialStep( {
  * 現在ステップから戻れる先のステップが存在するかどうかを判定する。
  *
  * スキップされる可能性のある step:
- *   - 'store':  fixedStoreId > 0 / 有効店舗が 1 つ以下 / show_store_front=false ならスキップ
- *   - 'staff':  当該 store_id に紐づく担当者が 1 人以下 / show_staff_front=false ならスキップ
+ *   - 'store':  hasUserStores=false / fixedStoreId > 0 / 有効店舗が 1 つ以下 / show_store_front=false ならスキップ
+ *   - 'staff':  hasUserStaff=false / 当該 store_id に紐づく担当者が 1 人以下 / show_staff_front=false ならスキップ
  *   - その他:   スキップしない
  *
  * 真に戻れる step が 1 つでも存在すれば true。
@@ -170,11 +196,14 @@ export function canGoBack( state ) {
 	const showStaffFront = state.settings
 		? state.settings.show_staff_front !== false
 		: true;
+	const hasUserStores = state.hasUserStores !== false;
+	const hasUserStaff = state.hasUserStaff !== false;
 
 	for ( let i = idx - 1; i >= 0; i-- ) {
 		const s = order[ i ];
 		if ( s === 'store' ) {
 			if (
+				! hasUserStores ||
 				state.fixedStoreId > 0 ||
 				( state.stores || [] ).length <= 1 ||
 				! showStoreFront
@@ -184,7 +213,7 @@ export function canGoBack( state ) {
 			return true;
 		}
 		if ( s === 'staff' ) {
-			if ( ! showStaffFront ) {
+			if ( ! hasUserStaff || ! showStaffFront ) {
 				continue;
 			}
 			const staffForStore = ( state.staff || [] ).filter(
@@ -213,26 +242,20 @@ export function reducer( state, action ) {
 			return { ...state, loading: true, error: null, step: 'loading' };
 
 		case 'INIT_SUCCESS': {
-			const { settings, stores, staff, customFields, fixedStoreId } =
-				action.payload;
+			const {
+				settings,
+				stores,
+				staff,
+				customFields,
+				fixedStoreId,
+				hasUserStores = true,
+				hasUserStaff = true,
+			} = action.payload;
 			const activeStores = stores;
 			const activeStaff = staff;
 
-			// 予約可能な店舗が 0 件（ショートコード指定店舗が無効な場合含む）。
-			if ( activeStores.length === 0 ) {
-				return {
-					...state,
-					loading: false,
-					error: '現在、予約可能な店舗がありません。',
-					step: 'error',
-					settings,
-					stores: activeStores,
-					staff: activeStaff,
-					customFields,
-					fixedStoreId,
-				};
-			}
-
+			// ショートコードで店舗が固定されているのに、API から該当店舗が返ってこない場合のみエラー扱い。
+			// ユーザー店舗が無い (hasUserStores=false) 場合はシステム店舗で運用するためエラーにしない。
 			if (
 				fixedStoreId > 0 &&
 				! activeStores.some( ( s ) => s.id === fixedStoreId )
@@ -247,14 +270,22 @@ export function reducer( state, action ) {
 					staff: activeStaff,
 					customFields,
 					fixedStoreId,
+					hasUserStores,
+					hasUserStaff,
 				};
 			}
 
+			// resolvedStoreId は staff のフィルタリング用（実際の予約には使わない）。
+			// ユーザー店舗が無い場合は activeStores が空なので、resolvedStoreId は 0（= 全担当者対象）。
 			const resolvedStoreId =
-				fixedStoreId > 0 ? fixedStoreId : activeStores[ 0 ].id;
-			const staffForResolved = activeStaff.filter(
-				( s ) => s.store_id === resolvedStoreId
-			);
+				fixedStoreId > 0
+					? fixedStoreId
+					: activeStores.length > 0
+						? activeStores[ 0 ].id
+						: 0;
+			const staffForResolved = resolvedStoreId
+				? activeStaff.filter( ( s ) => s.store_id === resolvedStoreId )
+				: activeStaff;
 			const staffCountForResolved = staffForResolved.length;
 
 			// settings.show_store_front / show_staff_front は bool で来る（未定義時はデフォルト ON 扱い）。
@@ -272,6 +303,8 @@ export function reducer( state, action ) {
 				staff: staffForResolved,
 				showStoreFront,
 				showStaffFront,
+				hasUserStores,
+				hasUserStaff,
 			} );
 
 			return {
@@ -286,6 +319,8 @@ export function reducer( state, action ) {
 				staff: activeStaff,
 				customFields,
 				fixedStoreId,
+				hasUserStores,
+				hasUserStaff,
 			};
 		}
 
@@ -305,6 +340,18 @@ export function reducer( state, action ) {
 			const showStaffFront = state.settings
 				? state.settings.show_staff_front !== false
 				: true;
+			const hasUserStaff = state.hasUserStaff !== false;
+			// ユーザー担当者が無い → システム担当者運用。担当者ステップ完全スキップ。
+			if ( ! hasUserStaff ) {
+				const order = getStepOrder( state.settings.flow_order );
+				const idx = order.indexOf( 'staff' );
+				return {
+					...state,
+					storeId,
+					staffId: 0,
+					step: order[ idx + 1 ] || 'date',
+				};
+			}
 			// 担当者が 1 人なら staff をスキップ。
 			if ( staffForStore.length === 1 ) {
 				const order = getStepOrder( state.settings.flow_order );
@@ -530,6 +577,8 @@ export function reducer( state, action ) {
 			const showStaffFront = state.settings
 				? state.settings.show_staff_front !== false
 				: true;
+			const hasUserStores = state.hasUserStores !== false;
+			const hasUserStaff = state.hasUserStaff !== false;
 
 			// idx より前で、スキップされない最初の step を探す。
 			let target = idx - 1;
@@ -541,6 +590,7 @@ export function reducer( state, action ) {
 				}
 				if ( candidate === 'store' ) {
 					if (
+						! hasUserStores ||
 						state.fixedStoreId > 0 ||
 						state.stores.length <= 1 ||
 						! showStoreFront
@@ -550,7 +600,7 @@ export function reducer( state, action ) {
 					}
 				}
 				if ( candidate === 'staff' ) {
-					if ( ! showStaffFront ) {
+					if ( ! hasUserStaff || ! showStaffFront ) {
 						target -= 1;
 						continue;
 					}

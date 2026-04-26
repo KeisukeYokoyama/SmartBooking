@@ -44,6 +44,12 @@ export default function ScheduleList({ schedules, storesById, staffById, onEdit,
 							const slots = [...g.slots].sort((a, b) =>
 								(a.start_time || '').localeCompare(b.start_time || '')
 							);
+							// storesById / staffById に存在しないものはシステムエンティティ（is_system=1）。
+							// ユーザーには内部 ID を見せず、両方システムなら「スケジュール」、片方だけ
+							// システムならその側を非表示にする。
+							const isSystemStore = !store;
+							const isSystemStaff = !staff;
+							const storeLabel = isSystemStore ? 'スケジュール' : store.name;
 							return (
 								<div key={`${g.store_id}:${g.staff_id}`} className="smb-schedule-list__group">
 									<div
@@ -53,10 +59,12 @@ export default function ScheduleList({ schedules, storesById, staffById, onEdit,
 									/>
 									<div className="smb-schedule-list__meta">
 										<div>
-											<strong>{store?.name || `店舗ID ${g.store_id}`}</strong>
-											<span className="smb-schedule-list__staff">
-												/ {staff?.name || `担当者ID ${g.staff_id}`}
-											</span>
+											<strong>{storeLabel}</strong>
+											{!isSystemStaff && (
+												<span className="smb-schedule-list__staff">
+													/ {staff.name}
+												</span>
+											)}
 										</div>
 										<div className="smb-schedule-list__actions">
 											<button

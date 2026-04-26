@@ -32,6 +32,8 @@ import TimeSlotEditor from './TimeSlotEditor';
 
 const EMPTY_VALUES = {
 	schedule_date: '',
+	// store_id / staff_id は文字列で保持（Select の value は文字列）。
+	// 空文字 '' = 未指定。サーバ側でシステムエンティティ（is_system=1）を自動補完する。
 	store_id: '',
 	staff_id: '',
 	slotDuration: 60,
@@ -105,11 +107,18 @@ export default function ScheduleAddModal({
 
 	const update = (patch) => setValues((prev) => ({ ...prev, ...patch }));
 
+	// システムエンティティ方式: ユーザー作成の店舗・担当者が無い場合はドロップダウンを出さず、
+	// store_id / staff_id を未指定のまま POST する（サーバ側で is_system=1 のエンティティを自動補完）。
+	const showStoreSelect = stores.filter((s) => s.is_active).length > 0;
+	const showStaffSelect = staffOptions.length > 0;
+
 	const validate = () => {
 		const next = { slots: [] };
 		if (!values.schedule_date) next.schedule_date = '日付を選択してください。';
-		if (!values.store_id) next.store_id = '店舗を選択してください。';
-		if (!values.staff_id) next.staff_id = '担当者を選択してください。';
+		// 店舗ドロップダウンが表示されるのに未選択の場合のみエラー。
+		if (showStoreSelect && !values.store_id) next.store_id = '店舗を選択してください。';
+		// 担当者も同様。ユーザー店舗があるが担当者は無い、というケースでは showStaffSelect=false。
+		if (showStaffSelect && !values.staff_id) next.staff_id = '担当者を選択してください。';
 
 		if (!Array.isArray(values.slots) || values.slots.length === 0) {
 			next.slotsGeneral = '時間枠を1件以上追加してください。';
@@ -155,12 +164,13 @@ export default function ScheduleAddModal({
 		e.preventDefault();
 		if (!validate()) return;
 		// items 配列として送信.
+		// store_id / staff_id は未指定なら 0 を送る → サーバ側でシステムエンティティへ自動補完される。
 		const items = values.slots.map((s) => {
 			const startMin = timeToMinutes(s.start_time);
 			const endMin = Math.min(24 * 60 - 1, (startMin ?? 0) + values.slotDuration);
 			return {
-				store_id: Number(values.store_id),
-				staff_id: Number(values.staff_id),
+				store_id: values.store_id ? Number(values.store_id) : 0,
+				staff_id: values.staff_id ? Number(values.staff_id) : 0,
 				schedule_date: values.schedule_date,
 				start_time: s.start_time,
 				end_time: minutesToTime(endMin),
@@ -215,25 +225,37 @@ export default function ScheduleAddModal({
 					/>
 				</Field>
 
-				<div className="smb-field-group smb-field-group--contact">
-					<Select
-						label="店舗"
-						required
-						error={errors.store_id}
-						value={values.store_id}
-						onChange={(e) => update({ store_id: e.target.value, staff_id: '' })}
-						options={storeOptions}
-					/>
-					<Select
-						label="担当者"
-						required
-						error={errors.staff_id}
-						value={values.staff_id}
-						onChange={(e) => update({ staff_id: e.target.value })}
-						options={staffSelectOptions}
-						help={!values.store_id ? '先に店舗を選択してください。' : undefined}
-					/>
-				</div>
+				{(showStoreSelect || showStaffSelect) && (
+					<div className="smb-field-group smb-field-group--contact">
+						{showStoreSelect && (
+							<Select
+								label="店舗"
+								required
+								error={errors.store_id}
+								value={values.store_id}
+								onChange={(e) =>
+									update({ store_id: e.target.value, staff_id: '' })
+								}
+								options={storeOptions}
+							/>
+						)}
+						{showStaffSelect && (
+							<Select
+								label="担当者"
+								required
+								error={errors.staff_id}
+								value={values.staff_id}
+								onChange={(e) => update({ staff_id: e.target.value })}
+								options={staffSelectOptions}
+								help={
+									showStoreSelect && !values.store_id
+										? '先に店舗を選択してください。'
+										: undefined
+								}
+							/>
+						)}
+					</div>
+				)}
 
 				<TimeSlotEditor
 					slots={values.slots}

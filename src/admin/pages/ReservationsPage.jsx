@@ -314,7 +314,7 @@ export default function ReservationsPage() {
 					<Button
 						variant="primary"
 						onClick={() => setManualOpen(true)}
-						disabled={basicsLoading || stores.length === 0}
+						disabled={basicsLoading}
 						icon="＋"
 					>
 						予約を手動で作成
@@ -369,7 +369,6 @@ export default function ReservationsPage() {
 								<Button
 									variant="primary"
 									onClick={() => setManualOpen(true)}
-									disabled={stores.length === 0}
 								>
 									予約を手動で作成
 								</Button>

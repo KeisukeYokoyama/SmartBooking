@@ -24,7 +24,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API } from '../api';
 import Button from '../components/Button';
 import ConfirmDialog from '../components/ConfirmDialog';
-import EmptyState from '../components/EmptyState';
 import ErrorMessage from '../components/ErrorMessage';
 import Spinner from '../components/Spinner';
 import { useToast } from '../components/ToastContainer';
@@ -183,14 +182,15 @@ export default function SchedulePage() {
 		if (!ymd) return;
 		const store = storesById.get(group.store_id);
 		const s = staffById.get(group.staff_id);
+		// storesById / staffById に無いものはシステムエンティティ。ユーザーには内部 ID を見せず「—」表記。
 		setEditModal({
 			open: true,
 			group: {
 				date: ymd,
 				store_id: group.store_id,
 				staff_id: group.staff_id,
-				storeName: store?.name || `店舗ID ${group.store_id}`,
-				staffName: s?.name || `担当者ID ${group.staff_id}`,
+				storeName: store?.name || '—',
+				staffName: s?.name || '—',
 				slots: [...group.slots].sort((a, b) =>
 					(a.start_time || '').localeCompare(b.start_time || '')
 				),
@@ -269,12 +269,13 @@ export default function SchedulePage() {
 		if (!ymd) return;
 		const store = storesById.get(group.store_id);
 		const s = staffById.get(group.staff_id);
+		// システムエンティティは「—」で表示。
 		setDeleteTarget({
 			date: ymd,
 			store_id: group.store_id,
 			staff_id: group.staff_id,
-			storeName: store?.name || `店舗ID ${group.store_id}`,
-			staffName: s?.name || `担当者ID ${group.staff_id}`,
+			storeName: store?.name || '—',
+			staffName: s?.name || '—',
 			slots: group.slots,
 		});
 	};
@@ -332,8 +333,10 @@ export default function SchedulePage() {
 		);
 	}
 
-	const activeStores = stores.filter((s) => s.is_active);
-	const activeStaff = staff.filter((s) => s.is_active);
+	// システムエンティティ方式:
+	//   API は is_system=0 のレコードのみ返す。stores=[]/staff=[] の場合でも、
+	//   バックエンドにはシステム店舗・担当者が存在しスケジュール POST 時に自動補完される。
+	//   よってユーザーに「店舗を登録してください」と要求せず、ドロップダウンだけ非表示にする。
 	const storeFilterOptions = [
 		{ value: '', label: 'すべての店舗' },
 		...stores.map((s) => ({ value: String(s.id), label: s.name })),
@@ -342,30 +345,9 @@ export default function SchedulePage() {
 		{ value: '', label: 'すべての担当者' },
 		...staffFilterOptions.map((s) => ({ value: String(s.id), label: s.name })),
 	];
-
-	if (activeStores.length === 0 || activeStaff.length === 0) {
-		return (
-			<div className="smb-page smb-page--schedule">
-				<div className="smb-page__header">
-					<div>
-						<h1 className="smb-page__title">スケジュール管理</h1>
-						<p className="smb-page__lead">店舗と担当者を1つ以上登録してからスケジュールを作成できます。</p>
-					</div>
-				</div>
-				<div className="smb-page__content">
-					<EmptyState
-						icon="📅"
-						title={activeStores.length === 0 ? '有効な店舗がありません' : '有効な担当者がいません'}
-						description={
-							activeStores.length === 0
-								? 'スケジュールを作成するには、まず店舗を1つ以上登録してください。「店舗・担当者」メニューから追加できます。'
-								: 'スケジュールを作成するには、各店舗に担当者を1人以上登録してください。「店舗・担当者」メニューから追加できます。'
-						}
-					/>
-				</div>
-			</div>
-		);
-	}
+	// ユーザー作成の店舗・担当者があるかどうか（>=1 件あればフィルタを表示する）。
+	const showStoreFilter = stores.length > 0;
+	const showStaffFilter = staff.length > 0;
 
 	return (
 		<div className="smb-page smb-page--schedule">
@@ -436,37 +418,41 @@ export default function SchedulePage() {
 					<h2 className="smb-schedule-toolbar__month">{formatYearMonth(currentMonth)}</h2>
 				</div>
 				<div className="smb-schedule-toolbar__filters">
-					<label className="smb-inline-field">
-						<span className="smb-inline-field__label">店舗</span>
-						<select
-							className="smb-select"
-							value={selectedStoreId}
-							onChange={(e) => {
-								setSelectedStoreId(e.target.value);
-								setSelectedStaffId('');
-							}}
-						>
-							{storeFilterOptions.map((o) => (
-								<option key={o.value} value={o.value}>
-									{o.label}
-								</option>
-							))}
-						</select>
-					</label>
-					<label className="smb-inline-field">
-						<span className="smb-inline-field__label">担当者</span>
-						<select
-							className="smb-select"
-							value={selectedStaffId}
-							onChange={(e) => setSelectedStaffId(e.target.value)}
-						>
-							{staffFilterSelect.map((o) => (
-								<option key={o.value} value={o.value}>
-									{o.label}
-								</option>
-							))}
-						</select>
-					</label>
+					{showStoreFilter && (
+						<label className="smb-inline-field">
+							<span className="smb-inline-field__label">店舗</span>
+							<select
+								className="smb-select"
+								value={selectedStoreId}
+								onChange={(e) => {
+									setSelectedStoreId(e.target.value);
+									setSelectedStaffId('');
+								}}
+							>
+								{storeFilterOptions.map((o) => (
+									<option key={o.value} value={o.value}>
+										{o.label}
+									</option>
+								))}
+							</select>
+						</label>
+					)}
+					{showStaffFilter && (
+						<label className="smb-inline-field">
+							<span className="smb-inline-field__label">担当者</span>
+							<select
+								className="smb-select"
+								value={selectedStaffId}
+								onChange={(e) => setSelectedStaffId(e.target.value)}
+							>
+								{staffFilterSelect.map((o) => (
+									<option key={o.value} value={o.value}>
+										{o.label}
+									</option>
+								))}
+							</select>
+						</label>
+					)}
 				</div>
 			</div>
 

@@ -109,8 +109,14 @@ export default function ReservationTable({
 				</thead>
 				<tbody>
 					{items.map((r) => {
-						const storeName = storeMap.get(r.store_id)?.name || '—';
-						const staffName = staffMap.get(r.staff_id)?.name || '—';
+						// システムエンティティ（is_system=1）はユーザーに見せない（DB の NOT NULL を満たすための内部用）。
+						// API レスポンスの store_is_system / staff_is_system が true なら名前カラムを「—」表記にする。
+						const storeName = r.store_is_system
+							? '—'
+							: storeMap.get(r.store_id)?.name || '—';
+						const staffName = r.staff_is_system
+							? '—'
+							: staffMap.get(r.staff_id)?.name || '—';
 						const pending = pendingRowIds.has(r.id);
 						return (
 							<tr

@@ -108,8 +108,17 @@ export default function ReservationDetailModal({
 		onAskDelete(data);
 	};
 
-	const storeName = data ? storeMap.get(data.store_id)?.name || '—' : '—';
-	const staffName = data ? staffMap.get(data.staff_id)?.name || '—' : '—';
+	// システムエンティティ（is_system=1）は内部参照用なので「—」で隠す。
+	const storeName = data
+		? data.store_is_system
+			? '—'
+			: storeMap.get(data.store_id)?.name || '—'
+		: '—';
+	const staffName = data
+		? data.staff_is_system
+			? '—'
+			: staffMap.get(data.staff_id)?.name || '—'
+		: '—';
 
 	// カスタムフィールドを表示用に整形（ core 3 フィールドは除外）.
 	const displayFields = useMemo(
