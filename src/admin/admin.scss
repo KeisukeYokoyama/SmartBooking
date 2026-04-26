@@ -717,19 +717,24 @@
 		opacity: 0.62;
 	}
 
-	/* Swatch（カレンダー色バー）を持たないカード（担当者など）用. */
-	&--no-swatch {
-		grid-template-columns: 80px 1fr auto;
-		padding-left: 16px;
-
-		@media (max-width: 640px) {
-			grid-template-columns: 64px 1fr;
-		}
-	}
-
 	@media (max-width: 640px) {
 		grid-template-columns: 4px 64px 1fr;
 		gap: 12px;
+	}
+}
+
+/*
+ * Swatch（カレンダー色バー）を持たないカード（担当者など）用.
+ * `.smb-card.smb-card--no-swatch` の二重クラス指定でベース .smb-card より
+ * 詳細度を上げ、特に <=640px のメディアクエリ内で .smb-card のレスポンシブ
+ * 上書きに負けないようにする。
+ */
+.smb-card.smb-card--no-swatch {
+	grid-template-columns: 80px 1fr auto;
+	padding-left: 16px;
+
+	@media (max-width: 640px) {
+		grid-template-columns: 64px 1fr;
 	}
 }
 

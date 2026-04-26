@@ -3,8 +3,60 @@
  *
  * wp.media() を呼び出し、attachment の id / url を取得する。
  * class-admin.php で wp_enqueue_media() が呼ばれていることを前提にする。
+ *
+ * 「ファイルをアップロード」タブを毎回初期表示にする方針:
+ *   WordPress の Library state は既定で `contentUserSetting: true` となっており、
+ *   ユーザーが最後に開いていたタブ（library/upload）を user setting Cookie から
+ *   読み戻して contentMode を復元する。そのため2回目以降「メディアライブラリ」
+ *   タブが開いてしまう。これを避けるため、自前で Library コントローラを生成し
+ *     - contentMode: 'upload'        — 初期タブをアップロードに固定
+ *     - contentUserSetting: false   — 直近タブの記憶／保存を無効化
+ *   を渡す。これにより毎回 wp.media() を新規生成すれば常にアップロードタブで
+ *   開く。なおユーザーがタブを「メディアライブラリ」に手動切替するのは妨げない
+ *   （次回開いた時にまたアップロードに戻るだけ）。
  */
 import Button from './Button';
+
+function buildMediaFrame() {
+	const wp = window.wp;
+	const Library = wp && wp.media && wp.media.controller && wp.media.controller.Library;
+	const baseOptions = {
+		title: '画像を選択',
+		button: { text: 'この画像を使用' },
+		multiple: false,
+		library: { type: 'image' },
+	};
+
+	if (Library && typeof wp.media.query === 'function') {
+		return wp.media({
+			...baseOptions,
+			states: [
+				new Library({
+					id: 'library',
+					title: '画像を選択',
+					library: wp.media.query({ type: 'image' }),
+					multiple: false,
+					contentMode: 'upload',
+					contentUserSetting: false,
+				}),
+			],
+		});
+	}
+
+	// フォールバック: Library コントローラが取得できない環境では従来方式
+	// （フレーム生成 → open 時に content.mode('upload') 強制）に戻す.
+	const frame = wp.media(baseOptions);
+	frame.on('open', () => {
+		const state = typeof frame.state === 'function' ? frame.state() : null;
+		if (state && typeof state.set === 'function') {
+			state.set('contentMode', 'upload');
+		}
+		if (frame.content && typeof frame.content.mode === 'function') {
+			frame.content.mode('upload');
+		}
+	});
+	return frame;
+}
 
 export default function MediaPicker({ imageId, imageUrl, onChange, buttonLabel = '画像を選択' }) {
 	const openMedia = () => {
@@ -13,32 +65,21 @@ export default function MediaPicker({ imageId, imageUrl, onChange, buttonLabel =
 			alert('メディアライブラリを開けませんでした。ページを再読み込みしてください。');
 			return;
 		}
-		const frame = window.wp.media({
-			title: '画像を選択',
-			button: { text: 'この画像を使用' },
-			multiple: false,
-			library: { type: 'image' },
-		});
-		// 毎回「ファイルをアップロード」タブを初期表示にする.
-		// wp.media は内部でフレーム状態（直近の表示モード）を保持するため、
-		// 開くたびに upload モードへ強制し、ユーザーが迷わずアップロードできるようにする.
-		frame.on('open', () => {
-			if (frame.content && typeof frame.content.mode === 'function') {
-				frame.content.mode('upload');
-			}
-			if (frame.uploader && typeof frame.uploader.refresh === 'function') {
-				frame.uploader.refresh();
-			}
-		});
+		const frame = buildMediaFrame();
+
 		frame.on('select', () => {
 			const attachment = frame.state().get('selection').first().toJSON();
 			if (attachment && attachment.id) {
 				onChange({
 					id: attachment.id,
-					url: attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url,
+					url:
+						attachment.sizes && attachment.sizes.medium
+							? attachment.sizes.medium.url
+							: attachment.url,
 				});
 			}
 		});
+
 		frame.open();
 	};
 

@@ -47,7 +47,9 @@
       "Bash(python3 -c ' *)",
       "Bash(ps -p 80373 -o etime=)",
       "Bash(npx wp-scripts *)",
-      "Bash(xargs -I{} php -l \"{}\")"
+      "Bash(xargs -I{} php -l \"{}\")",
+      "Bash(awk 'BEGIN{RS=\"@media\";} /smb-card/' build/admin.css)",
+      "Bash(awk 'BEGIN{RS=\"@media\";} /smb-card[^_]/' build/admin.css)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",
