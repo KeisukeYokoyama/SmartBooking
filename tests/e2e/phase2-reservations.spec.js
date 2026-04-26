@@ -16,6 +16,8 @@ const {
 	restCall,
 	restoreSnapshot,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase2-helpers' );
 
 test.describe.configure( { mode: 'serial' } );
@@ -27,8 +29,8 @@ async function seedReservations( page, n = 3, dateOffset = 2 ) {
 	const schedRes = await restCall( page, 'POST', 'schedules', {
 		items: [
 			{
-				store_id: 1,
-				staff_id: 1,
+				store_id: USER_STORE_ID,
+				staff_id: USER_STAFF_ID,
 				schedule_date: d,
 				start_time: '10:00',
 				end_time: '11:00',
@@ -159,8 +161,8 @@ test.describe( 'Phase 2: 予約一覧 拡張', () => {
 		const schedRes = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: d,
 					start_time: '12:00',
 					end_time: '13:00',
@@ -277,8 +279,8 @@ test.describe( 'Phase 2: 予約一覧 拡張', () => {
 		const schedRes = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: d,
 					start_time: '09:00',
 					end_time: '10:00',
@@ -323,8 +325,8 @@ test.describe( 'Phase 2: 予約一覧 拡張', () => {
 		const schedRes = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: d,
 					start_time: '16:00',
 					end_time: '17:00',

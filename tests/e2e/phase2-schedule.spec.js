@@ -15,9 +15,38 @@ const {
 	restCall,
 	restoreSnapshot,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase2-helpers' );
 
 test.describe.configure( { mode: 'default' } );
+
+/**
+ * 指定オフセット日後の日付を返す。ただし、結果が翌月以降になる場合は当月末日に丸める。
+ * カレンダーの「is-other-month」セルは disabled なので、当月内のセルしかクリックできない。
+ * @param {number} offsetDays
+ * @return {string} YYYY-MM-DD
+ */
+function ymdInCurrentMonth( offsetDays ) {
+	const now = new Date();
+	const target = new Date( now );
+	target.setDate( target.getDate() + offsetDays );
+	// 月をまたいだ場合は当月末日に丸める.
+	if (
+		target.getFullYear() !== now.getFullYear() ||
+		target.getMonth() !== now.getMonth()
+	) {
+		// 当月末日.
+		target.setFullYear( now.getFullYear(), now.getMonth() + 1, 0 );
+	}
+	return (
+		target.getFullYear() +
+		'-' +
+		String( target.getMonth() + 1 ).padStart( 2, '0' ) +
+		'-' +
+		String( target.getDate() ).padStart( 2, '0' )
+	);
+}
 
 test.describe( 'Phase 2: スケジュール管理', () => {
 	test.afterAll( () => {
@@ -179,12 +208,13 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		page,
 	} ) => {
 		// 準備: スケジュールを1件 API 経由で作成.
-		const target = ymd( 5 );
+		// 月をまたぐと is-other-month で disabled になるため、当月内日付に固定する.
+		const target = ymdInCurrentMonth( 5 );
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: target,
 					start_time: '10:00',
 					end_time: '11:00',
@@ -230,8 +260,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: target,
 					start_time: '15:00',
 					end_time: '16:00',
@@ -267,8 +297,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: target,
 					start_time: '17:00',
 					end_time: '18:00',
@@ -314,8 +344,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: source,
 					start_time: '09:00',
 					end_time: '10:00',
@@ -323,8 +353,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 					is_active: 1,
 				},
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: source,
 					start_time: '10:00',
 					end_time: '11:00',
@@ -393,8 +423,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: source,
 					start_time: '14:00',
 					end_time: '15:00',
@@ -453,8 +483,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: source,
 					start_time: '09:00',
 					end_time: '10:00',
@@ -462,8 +492,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 					is_active: 1,
 				},
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: existing,
 					start_time: '09:00',
 					end_time: '10:00',
@@ -476,8 +506,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		// 直接 API で copy, overwrite=false.
 		const copyRes = await restCall( page, 'POST', 'schedules/copy', {
 			source_date: source,
-			store_id: 1,
-			staff_id: 1,
+			store_id: USER_STORE_ID,
+			staff_id: USER_STAFF_ID,
 			target_dates: [ existing ],
 			overwrite: false,
 		} );
@@ -494,8 +524,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: source,
 					start_time: '09:00',
 					end_time: '10:00',
@@ -503,8 +533,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 					is_active: 1,
 				},
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: existing,
 					start_time: '09:00',
 					end_time: '10:00',
@@ -516,8 +546,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		expect( res.ok ).toBe( true );
 		const copyRes = await restCall( page, 'POST', 'schedules/copy', {
 			source_date: source,
-			store_id: 1,
-			staff_id: 1,
+			store_id: USER_STORE_ID,
+			staff_id: USER_STAFF_ID,
 			target_dates: [ existing ],
 			overwrite: true,
 		} );
@@ -562,8 +592,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: targetA,
 					start_time: '10:00',
 					end_time: '11:00',
@@ -694,8 +724,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: target,
 					start_time: '13:00',
 					end_time: '14:00',
@@ -748,8 +778,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		const res = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: source,
 					start_time: '11:00',
 					end_time: '12:00',
@@ -761,8 +791,8 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		expect( res.ok ).toBe( true );
 		const copyRes = await restCall( page, 'POST', 'schedules/copy', {
 			source_date: source,
-			store_id: 1,
-			staff_id: 1,
+			store_id: USER_STORE_ID,
+			staff_id: USER_STAFF_ID,
 			target_dates: [ past ],
 			overwrite: false,
 		} );

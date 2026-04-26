@@ -164,8 +164,8 @@ test.describe( 'Phase 2: 予約一覧 - スモーク', () => {
 					body: JSON.stringify( {
 						items: [
 							{
-								store_id: 1,
-								staff_id: 1,
+								store_id: 2,
+								staff_id: 2,
 								schedule_date: ymd,
 								start_time: '10:00',
 								end_time: '11:00',

@@ -15,6 +15,8 @@ const {
 	restCall,
 	restoreSnapshot,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase2-helpers' );
 
 test.describe.configure( { mode: 'default' } );
@@ -24,8 +26,8 @@ async function seedSchedule( page, dateOffset = 3, capacity = 50 ) {
 	const r = await restCall( page, 'POST', 'schedules', {
 		items: [
 			{
-				store_id: 1,
-				staff_id: 1,
+				store_id: USER_STORE_ID,
+				staff_id: USER_STAFF_ID,
 				schedule_date: d,
 				start_time: '14:00',
 				end_time: '15:00',

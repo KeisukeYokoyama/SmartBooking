@@ -17,6 +17,8 @@ const {
 	insertStaffDirectly,
 	countTable,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase2-helpers' );
 
 // 各テストは独立（beforeEach で restoreSnapshot）。
@@ -233,13 +235,13 @@ test.describe( 'Phase 2: 店舗・担当者 管理', () => {
 	test( '予約が紐づいている店舗は削除できず警告が表示される（409）', async ( {
 		page,
 	} ) => {
-		// 明日のスケジュールと予約を事前に用意する.
+		// 明日のスケジュールと予約を事前に用意する（ユーザー店舗・担当者に紐づける）.
 		const tomorrow = ymd( 1 );
 		const schedRes = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
-					staff_id: 1,
+					store_id: USER_STORE_ID,
+					staff_id: USER_STAFF_ID,
 					schedule_date: tomorrow,
 					start_time: '14:00',
 					end_time: '15:00',
@@ -353,7 +355,7 @@ test.describe( 'Phase 2: 店舗・担当者 管理', () => {
 	} ) => {
 		// BUG-2: staff create_item も stores と同じバグで 404 を返すため DB 直接 INSERT.
 		const newStaffId = insertStaffDirectly( {
-			store_id: 1,
+			store_id: USER_STORE_ID,
 			name: '紐付け担当者',
 			sort_order: 20,
 		} );
@@ -364,7 +366,7 @@ test.describe( 'Phase 2: 店舗・担当者 管理', () => {
 		const schedRes = await restCall( page, 'POST', 'schedules', {
 			items: [
 				{
-					store_id: 1,
+					store_id: USER_STORE_ID,
 					staff_id: newStaffId,
 					schedule_date: d,
 					start_time: '09:00',
