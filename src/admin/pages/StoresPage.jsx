@@ -187,7 +187,6 @@ export default function StoresPage() {
 		if (stores.length === 0) {
 			return (
 				<EmptyState
-					icon="🏬"
 					title="店舗がまだ登録されていません"
 					description="予約を受け付けるには、まず1つ目の店舗を追加してください。"
 					action={
@@ -221,7 +220,6 @@ export default function StoresPage() {
 		if (stores.length === 0) {
 			return (
 				<EmptyState
-					icon="👤"
 					title="担当者を追加する前に店舗を作成してください"
 					description="担当者は必ず店舗に所属します。先に店舗タブから店舗を登録してください。"
 					action={
@@ -235,7 +233,6 @@ export default function StoresPage() {
 		if (staff.length === 0) {
 			return (
 				<EmptyState
-					icon="👤"
 					title="担当者がまだ登録されていません"
 					description="予約フォームで選べる担当者を追加しましょう。担当者が1人だけの場合、予約者には担当者選択ステップが表示されません。"
 					action={

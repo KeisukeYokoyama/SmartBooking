@@ -17,7 +17,6 @@ export default function CustomFieldList({ fields, onEdit, onDelete, onMove }) {
 	if (!fields || fields.length === 0) {
 		return (
 			<EmptyState
-				icon="📝"
 				title="フィールドがまだ登録されていません"
 				description="上のカードから追加するフィールドタイプを選んでください。"
 			/>

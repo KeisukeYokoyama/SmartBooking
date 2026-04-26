@@ -717,6 +717,16 @@
 		opacity: 0.62;
 	}
 
+	/* Swatch（カレンダー色バー）を持たないカード（担当者など）用. */
+	&--no-swatch {
+		grid-template-columns: 80px 1fr auto;
+		padding-left: 16px;
+
+		@media (max-width: 640px) {
+			grid-template-columns: 64px 1fr;
+		}
+	}
+
 	@media (max-width: 640px) {
 		grid-template-columns: 4px 64px 1fr;
 		gap: 12px;
@@ -782,6 +792,15 @@
 	font-size: 15px;
 	font-weight: 600;
 	color: var(--smb-color-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.smb-card__subtitle {
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
+	margin: 0;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1043,16 +1062,12 @@
 	color: var(--smb-color-text-muted);
 }
 
-.smb-empty__icon {
-	font-size: 32px;
-	margin-bottom: 8px;
-}
-
 .smb-empty__title {
 	font-size: 16px;
 	font-weight: 600;
 	color: var(--smb-color-text);
-	margin-bottom: 6px;
+	margin: 0 0 6px;
+	text-align: center;
 }
 
 .smb-empty__description {

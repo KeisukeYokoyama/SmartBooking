@@ -357,7 +357,6 @@ export default function ReservationsPage() {
 
 				{!loading && !listError && showEmpty && (
 					<EmptyState
-						icon="📋"
 						title={emptyTitle}
 						description={emptyDesc}
 						action={

@@ -19,6 +19,17 @@ export default function MediaPicker({ imageId, imageUrl, onChange, buttonLabel =
 			multiple: false,
 			library: { type: 'image' },
 		});
+		// 毎回「ファイルをアップロード」タブを初期表示にする.
+		// wp.media は内部でフレーム状態（直近の表示モード）を保持するため、
+		// 開くたびに upload モードへ強制し、ユーザーが迷わずアップロードできるようにする.
+		frame.on('open', () => {
+			if (frame.content && typeof frame.content.mode === 'function') {
+				frame.content.mode('upload');
+			}
+			if (frame.uploader && typeof frame.uploader.refresh === 'function') {
+				frame.uploader.refresh();
+			}
+		});
 		frame.on('select', () => {
 			const attachment = frame.state().get('selection').first().toJSON();
 			if (attachment && attachment.id) {

@@ -16,7 +16,7 @@ export default function StaffCard({
 }) {
 	return (
 		<article
-			className={`smb-card ${staff.is_active ? '' : 'is-inactive'}`}
+			className={`smb-card smb-card--no-swatch ${staff.is_active ? '' : 'is-inactive'}`}
 			aria-label={`担当者 ${staff.name}`}
 		>
 			<div className="smb-card__media">
@@ -30,26 +30,23 @@ export default function StaffCard({
 			</div>
 			<div className="smb-card__body">
 				<h3 className="smb-card__title">{staff.name}</h3>
-				<dl className="smb-card__meta">
-					{storeName && (
-						<>
-							<dt className="smb-sr-only">所属</dt>
-							<dd className="smb-chip">{storeName}</dd>
-						</>
-					)}
-					{staff.email && (
-						<>
-							<dt className="smb-sr-only">メール</dt>
-							<dd>{staff.email}</dd>
-						</>
-					)}
-					{staff.phone && (
-						<>
-							<dt className="smb-sr-only">電話</dt>
-							<dd>{staff.phone}</dd>
-						</>
-					)}
-				</dl>
+				{storeName && <p className="smb-card__subtitle">{storeName}</p>}
+				{(staff.email || staff.phone) && (
+					<dl className="smb-card__meta">
+						{staff.email && (
+							<>
+								<dt className="smb-sr-only">メール</dt>
+								<dd>{staff.email}</dd>
+							</>
+						)}
+						{staff.phone && (
+							<>
+								<dt className="smb-sr-only">電話</dt>
+								<dd>{staff.phone}</dd>
+							</>
+						)}
+					</dl>
+				)}
 			</div>
 			<div className="smb-card__side">
 				<Switch
