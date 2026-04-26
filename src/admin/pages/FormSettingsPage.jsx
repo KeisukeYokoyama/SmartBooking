@@ -142,22 +142,26 @@ export default function FormSettingsPage() {
 				)}
 			</div>
 
-			<div className="smb-page__content">
-				{loading && (
+			{loading && (
+				<div className="smb-section-card">
 					<div className="smb-loading">
 						<Spinner label="読み込み中" />
 						<span>読み込み中…</span>
 					</div>
-				)}
-				{loadError && !loading && (
+				</div>
+			)}
+			{loadError && !loading && (
+				<div className="smb-section-card">
 					<ErrorMessage
 						message={loadError}
 						onRetry={loadFields}
 						onDismiss={() => setLoadError(null)}
 					/>
-				)}
-				{!loading && !loadError && (
-					<div className="smb-form-settings">
+				</div>
+			)}
+			{!loading && !loadError && (
+				<>
+					<div className="smb-section-card">
 						<section className="smb-section">
 							<div className="smb-section__header">
 								<h2 className="smb-section__title">フィールドタイプから追加</h2>
@@ -167,7 +171,9 @@ export default function FormSettingsPage() {
 							</div>
 							<FieldTypeCards onSelect={(type) => openAdd(type)} />
 						</section>
+					</div>
 
+					<div className="smb-section-card">
 						<section className="smb-section">
 							<div className="smb-section__header">
 								<h2 className="smb-section__title">現在のフィールド一覧</h2>
@@ -183,8 +189,8 @@ export default function FormSettingsPage() {
 							/>
 						</section>
 					</div>
-				)}
-			</div>
+				</>
+			)}
 
 			<CustomFieldModal
 				open={modal.open}

@@ -374,7 +374,7 @@ export default function StoresPage() {
 				</button>
 			</div>
 
-			<div className="smb-page__content">
+			<div className="smb-section-card">
 				{loading && (
 					<div className="smb-loading">
 						<Spinner label="読み込み中" />

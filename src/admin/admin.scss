@@ -755,6 +755,44 @@
 	}
 }
 
+/*
+ * `.smb-section-card` 内に配置された `.smb-card` は、
+ * 親の白カード装飾と二重になるためベース装飾（背景・ボーダー・角丸・影）を打ち消し、
+ * 行間ボーダー区切りのリスト行に変える。
+ * 既存テストが `.smb-card-list article.smb-card` セレクタを参照しているため、
+ * クラス名は維持し CSS のみで上書きする。
+ */
+.smb-section-card .smb-card-list {
+	display: block;
+	gap: 0;
+}
+
+.smb-section-card .smb-card-list .smb-card {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	padding-top: 16px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--smb-color-divider);
+
+	&:hover {
+		background: var(--smb-color-bg);
+		border-color: transparent;
+		border-bottom-color: var(--smb-color-divider);
+		box-shadow: none;
+	}
+
+	&:last-child {
+		border-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	&:first-child {
+		padding-top: 0;
+	}
+}
+
 .smb-card__swatch {
 	width: 6px;
 	height: 100%;
@@ -3386,6 +3424,12 @@
 	& + .smb-section {
 		border-top: 1px solid var(--smb-color-divider);
 		margin-top: 8px;
+	}
+
+	/* 親が `.smb-section-card`（白カード）の場合は外側でパディング済みなので
+	   内側の `.smb-section` の上下パディングを打ち消し、二重マージンを防ぐ。 */
+	.smb-section-card > & {
+		padding: 0;
 	}
 
 	&__header {
