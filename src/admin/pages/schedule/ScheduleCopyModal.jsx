@@ -50,13 +50,12 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 	const [overwrite, setOverwrite] = useState(false);
 	const [error, setError] = useState(null);
 
-	// モーダルを開くたびに初期化.
 	useEffect(() => {
 		if (!open || !source) return;
 		setMode('individual');
 		setIndividualDates([]);
 		const base = fromYmd(source.date) || new Date();
-		setPickerDate(toYmd(addDays(base, 1)));
+		setPickerDate('');
 		setWeekdays(new Set());
 		setRangeFrom(toYmd(addDays(base, 1)));
 		setRangeTo(toYmd(addDays(base, 7)));
@@ -69,17 +68,18 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 		return expandPattern(rangeFrom, rangeTo, weekdays, source?.date);
 	}, [mode, rangeFrom, rangeTo, weekdays, source]);
 
-	const handleAddIndividual = () => {
-		if (!pickerDate) return;
-		if (source && pickerDate === source.date) {
+	const handlePickerChange = (value) => {
+		setPickerDate(value);
+		if (!value) return;
+		if (source && value === source.date) {
 			setError('コピー元と同じ日付は追加できません。');
 			return;
 		}
-		if (individualDates.includes(pickerDate)) {
-			setError('すでに追加済みの日付です。');
+		if (individualDates.includes(value)) {
+			setError(null);
 			return;
 		}
-		setIndividualDates([...individualDates, pickerDate].sort());
+		setIndividualDates([...individualDates, value].sort());
 		setError(null);
 	};
 
@@ -202,17 +202,13 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 								type="date"
 								className="smb-input"
 								value={pickerDate}
-								onChange={(e) => setPickerDate(e.target.value)}
+								onChange={(e) => handlePickerChange(e.target.value)}
 								aria-label="コピー先の日付"
 							/>
-							<button
-								type="button"
-								className="smb-btn smb-btn--secondary"
-								onClick={handleAddIndividual}
-							>
-								日付を追加
-							</button>
 						</div>
+						<p className="smb-field__help">
+							日付ピッカーで日付を選ぶと、自動的に下のリストへ追加されます。
+						</p>
 						{individualDates.length > 0 ? (
 							<ul className="smb-chip-list" role="list">
 								{individualDates.map((d) => {
@@ -234,7 +230,7 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 							</ul>
 						) : (
 							<p className="smb-copy-individual__empty">
-								日付を追加すると、ここにリストとして表示されます。
+								日付ピッカーで日付を選ぶと、ここにリストとして表示されます。
 							</p>
 						)}
 					</div>
@@ -256,7 +252,7 @@ export default function ScheduleCopyModal({ open, onClose, onSubmit, submitting,
 								))}
 							</div>
 						</Field>
-						<div className="smb-field-group smb-field-group--contact">
+						<div className="smb-field-group smb-field-group--contact smb-copy-pattern__range">
 							<Field label="期間（開始）" htmlFor="smb-range-from">
 								<input
 									id="smb-range-from"

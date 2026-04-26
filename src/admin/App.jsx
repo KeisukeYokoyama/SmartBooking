@@ -21,15 +21,23 @@ const PAGE_COMPONENTS = {
 
 export default function App({ page }) {
 	const Component = PAGE_COMPONENTS[page] || SchedulePage;
-	const version = (typeof window !== 'undefined' && window.smartBookingAdmin?.version) || '';
+	const adminCtx = (typeof window !== 'undefined' && window.smartBookingAdmin) || {};
+	const version = adminCtx.version || '';
+	const pluginUrl = adminCtx.pluginUrl || '';
+	const logoSrc = pluginUrl ? `${pluginUrl}docs/images/SmartBookingLogo.svg` : '';
 
 	return (
 		<ToastProvider>
 			<div className="smb-app">
 				<header className="smb-app__header">
-					<div className="smb-app__brand">
-						<span className="smb-app__brand-mark" aria-hidden="true" />
-						<span className="smb-app__brand-name">Smart Booking</span>
+					<div className="smb-app__brand" aria-label="Smart Booking">
+						{logoSrc && (
+							<img
+								src={logoSrc}
+								alt="Smart Booking"
+								className="smb-app__brand-logo"
+							/>
+						)}
 					</div>
 					{version && (
 						<span className="smb-app__version" aria-label="プラグインバージョン">

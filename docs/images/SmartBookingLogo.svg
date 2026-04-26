@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="574" height="709" viewBox="0 0 574 709">
+  <defs>
+    <linearGradient id="linear-gradient" x1="0.928" y1="0.057" x2="0.177" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#b4fa7e"/>
+      <stop offset="1" stop-color="#eeff81"/>
+    </linearGradient>
+  </defs>
+  <g id="グループ_1" data-name="グループ 1" transform="translate(-731 -100)">
+    <rect id="長方形_1" data-name="長方形 1" width="574" height="574" transform="translate(731 170)" fill="url(#linear-gradient)"/>
+    <text id="S" transform="translate(852 663)" fill="#3c4257" font-size="537" font-family="Roboto-Bold, Roboto" font-weight="700"><tspan x="0" y="0">S</tspan></text>
+  </g>
+</svg>

@@ -31,7 +31,7 @@
 	--smb-color-text-muted: #50575e;
 	--smb-color-text-subtle: #787c82;
 
-	--smb-color-bg: #f6f7f7;
+	--smb-color-bg: #f0f0f1;
 	--smb-color-bg-elev: #ffffff;
 	--smb-color-border: #dcdcde;
 	--smb-color-border-strong: #8c8f94;
@@ -95,11 +95,20 @@
 
 /* ---------- App レイアウト ---------- */
 
+/* WordPress 既定の .wrap マージンを打ち消し、#wpadminbar 直下に貼り付ける */
+.wrap:has(#smart-booking-admin-app),
+#smart-booking-admin-app {
+	margin: 0;
+	padding: 0;
+}
+
 .smb-app {
 	background: var(--smb-color-bg);
 	min-height: calc(100vh - 32px);
-	margin: 0 -20px 0 -22px; /* WP admin の余白を吸収してフルブリード感を出す */
+	margin: 0 -20px 0 -22px;
 	padding: 0;
+	margin-top: 0;
+	padding-top: 0;
 
 	@media (max-width: 782px) {
 		margin: 0 -10px;
@@ -123,12 +132,10 @@
 	font-size: 16px;
 }
 
-.smb-app__brand-mark {
-	width: 28px;
-	height: 28px;
-	border-radius: var(--smb-radius);
-	background: linear-gradient(135deg, var(--smb-color-primary), #3858e9);
-	box-shadow: var(--smb-shadow-sm);
+.smb-app__brand-logo {
+	display: block;
+	height: 32px;
+	width: auto;
 }
 
 .smb-app__version {
@@ -1149,22 +1156,18 @@
 	padding: 10px 12px 10px 16px;
 	min-width: 260px;
 	max-width: 400px;
-	background: #1f2937;
-	color: #fff;
+	background: #EEFF81;
+	color: #1d2327;
+	border: none;
 	border-radius: var(--smb-radius);
-	box-shadow: var(--smb-shadow-lg);
+	box-shadow: var(--smb-shadow-sm);
 	animation: smb-toast-in 180ms var(--smb-ease);
 
-	&--success {
-		background: #0f7b3b;
-	}
-
-	&--error {
-		background: #b32d2e;
-	}
-
+	&--success,
+	&--error,
 	&--info {
-		background: #1f2937;
+		background: #EEFF81;
+		color: #1d2327;
 	}
 }
 
@@ -2101,6 +2104,10 @@
 		color: var(--smb-color-primary);
 		font-weight: 600;
 	}
+}
+
+.smb-copy-pattern__range {
+	margin: 16px 0;
 }
 
 .smb-copy-pattern__preview {

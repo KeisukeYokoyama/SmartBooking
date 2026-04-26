@@ -11,18 +11,16 @@
  *   - スケジュール追加（ScheduleAddModal）
  *   - スケジュール編集（ScheduleEditModal、差分同期で POST/PUT/DELETE）
  *   - スケジュール削除（店舗×担当者×日付のグループ単位）
- *   - スケジュールコピー（ScheduleCopyModal）
- *   - 表示期間 / 予約締切の設定（ScheduleSettingsModal）
+ *   - スケジュールコピー（ScheduleCopyModal、各スケジュール行のコピー操作から起動）
  *
  * 状態:
  *   - currentMonth, selectedYmd, selectedStoreId, selectedStaffId
- *   - schedules, stores, staff, settings
+ *   - schedules, stores, staff
  *
  * フィルター変更・月移動のたびに /schedules を再取得する。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API } from '../api';
-import Button from '../components/Button';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ErrorMessage from '../components/ErrorMessage';
 import Spinner from '../components/Spinner';
@@ -33,8 +31,8 @@ import ScheduleCopyModal from './schedule/ScheduleCopyModal';
 import ScheduleDetailPane from './schedule/ScheduleDetailPane';
 import ScheduleEditModal from './schedule/ScheduleEditModal';
 import ScheduleList from './schedule/ScheduleList';
-import ScheduleSettingsModal from './schedule/ScheduleSettingsModal';
 import { addMonths, endOfMonth, formatYearMonth, startOfMonth, toYmd } from './schedule/dateUtils';
+import Button from '../components/Button';
 
 export default function SchedulePage() {
 	const [currentMonth, setCurrentMonth] = useState(() => new Date());
@@ -45,7 +43,6 @@ export default function SchedulePage() {
 	const [stores, setStores] = useState([]);
 	const [staff, setStaff] = useState([]);
 	const [schedules, setSchedules] = useState([]);
-	const [settings, setSettings] = useState({});
 
 	const [loading, setLoading] = useState(true);
 	const [scheduleLoading, setScheduleLoading] = useState(false);
@@ -54,7 +51,6 @@ export default function SchedulePage() {
 	const [addModal, setAddModal] = useState({ open: false, defaultDate: null });
 	const [editModal, setEditModal] = useState({ open: false, group: null });
 	const [copyModal, setCopyModal] = useState({ open: false, source: null });
-	const [settingsModal, setSettingsModal] = useState(false);
 
 	const [submitting, setSubmitting] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
@@ -68,14 +64,12 @@ export default function SchedulePage() {
 		setLoading(true);
 		setLoadError(null);
 		try {
-			const [storesRes, staffRes, settingsRes] = await Promise.all([
+			const [storesRes, staffRes] = await Promise.all([
 				API.stores.list(),
 				API.staff.list(),
-				API.settings.get().catch(() => ({ settings: {} })),
 			]);
 			setStores(Array.isArray(storesRes) ? storesRes : []);
 			setStaff(Array.isArray(staffRes) ? staffRes : []);
-			setSettings(settingsRes?.settings || {});
 		} catch (err) {
 			setLoadError(err.message || '初期データの読み込みに失敗しました。');
 		} finally {
@@ -298,20 +292,6 @@ export default function SchedulePage() {
 		}
 	};
 
-	const submitSettings = async (values) => {
-		setSubmitting(true);
-		try {
-			await API.settings.update(values);
-			setSettings((prev) => ({ ...prev, ...values }));
-			showToast('設定を保存しました', 'success');
-			setSettingsModal(false);
-		} catch (err) {
-			showToast(err.message || '設定の保存に失敗しました。', 'error', 6000);
-		} finally {
-			setSubmitting(false);
-		}
-	};
-
 	/* --------- 描画 --------- */
 
 	if (loading) {
@@ -359,35 +339,6 @@ export default function SchedulePage() {
 					</p>
 				</div>
 				<div className="smb-page__actions">
-					<Button variant="secondary" onClick={() => setSettingsModal(true)}>
-						<span aria-hidden="true">⚙</span>
-						表示期間 / 締切
-					</Button>
-					<Button
-						variant="secondary"
-						onClick={() => {
-							// 選択中の日に、最初の店舗×担当者グループがあればそれをコピー元に。
-							// なければ今月最初のスケジュールをコピー元に。
-							const source =
-								(selectedYmd &&
-									schedulesByDate.get(selectedYmd) &&
-									schedulesByDate.get(selectedYmd).length > 0 &&
-									pickFirstGroup(schedulesByDate.get(selectedYmd))) ||
-								pickFirstGroup(schedules);
-							if (!source) {
-								showToast(
-									'コピー元となるスケジュールがまだありません。先にスケジュールを追加してください。',
-									'info',
-									4000
-								);
-								return;
-							}
-							openCopy(source.group, source.date);
-						}}
-					>
-						<span aria-hidden="true">📋</span>
-						スケジュールをコピー
-					</Button>
 					<Button variant="primary" icon="＋" onClick={() => openAdd()}>
 						スケジュールを追加
 					</Button>
@@ -528,14 +479,6 @@ export default function SchedulePage() {
 				source={copyModal.source}
 			/>
 
-			<ScheduleSettingsModal
-				open={settingsModal}
-				onClose={() => setSettingsModal(false)}
-				onSubmit={submitSettings}
-				submitting={submitting}
-				initialValues={settings}
-			/>
-
 			<ConfirmDialog
 				open={!!deleteTarget}
 				title="スケジュールを削除"
@@ -552,27 +495,4 @@ export default function SchedulePage() {
 			/>
 		</div>
 	);
-}
-
-/**
- * スケジュール配列または day schedule 配列から最初のグループを抽出する。
- *
- * @param {object[]} schedules
- * @returns {{group:{store_id:number,staff_id:number,slots:object[]},date:string}|null}
- */
-function pickFirstGroup(schedules) {
-	if (!schedules || schedules.length === 0) return null;
-	const [first] = schedules;
-	const date = first.schedule_date;
-	const group = {
-		store_id: first.store_id,
-		staff_id: first.staff_id,
-		slots: schedules.filter(
-			(s) =>
-				s.schedule_date === date &&
-				s.store_id === first.store_id &&
-				s.staff_id === first.staff_id
-		),
-	};
-	return { group, date };
 }

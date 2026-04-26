@@ -18,7 +18,7 @@
 import { buildMonthGrid, isSameDay, toYmd, WEEKDAY_LABELS } from './dateUtils';
 
 function classifyDay(schedules) {
-	if (!schedules || schedules.length === 0) return { label: null, tone: null };
+	if (!schedules || schedules.length === 0) return { remaining: 0, tone: null };
 	let totalCap = 0;
 	let totalBooked = 0;
 	let anyActive = false;
@@ -27,12 +27,13 @@ function classifyDay(schedules) {
 		totalBooked += Number(s.booked_count) || 0;
 		if (s.is_active) anyActive = true;
 	});
-	if (!anyActive) return { label: '停止中', tone: 'inactive' };
-	if (totalCap === 0) return { label: null, tone: null };
-	if (totalBooked >= totalCap) return { label: '満席', tone: 'full' };
+	const remaining = Math.max(totalCap - totalBooked, 0);
+	if (!anyActive) return { remaining, tone: 'inactive' };
+	if (totalCap === 0) return { remaining: 0, tone: null };
+	if (totalBooked >= totalCap) return { remaining: 0, tone: 'full' };
 	if (totalBooked >= Math.floor(totalCap * 0.8))
-		return { label: '残りわずか', tone: 'warn' };
-	return { label: null, tone: 'ok' };
+		return { remaining, tone: 'warn' };
+	return { remaining, tone: 'ok' };
 }
 
 export default function CalendarGrid({
@@ -75,7 +76,7 @@ export default function CalendarGrid({
 							});
 						}
 					});
-					const { label, tone } = classifyDay(daySchedules);
+					const { remaining, tone } = classifyDay(daySchedules);
 					const isToday = isSameDay(cell.date, today);
 					const isSelected = selectedYmd === cell.ymd;
 					const dow = cell.date.getDay();
@@ -125,8 +126,17 @@ export default function CalendarGrid({
 							)}
 							{daySchedules.length > 0 && (
 								<span className="smb-calendar__summary">
-									<span>{daySchedules.length}枠</span>
-									{label && <span className={`smb-calendar__tag is-${tone}`}>{label}</span>}
+									{tone === 'full' && (
+										<span className={`smb-calendar__tag is-${tone}`}>満席</span>
+									)}
+									{tone === 'inactive' && (
+										<span className={`smb-calendar__tag is-${tone}`}>停止中</span>
+									)}
+									{tone !== 'full' && tone !== 'inactive' && (
+										<span className={`smb-calendar__tag is-${tone}`}>
+											残り{remaining}
+										</span>
+									)}
 								</span>
 							)}
 						</button>
