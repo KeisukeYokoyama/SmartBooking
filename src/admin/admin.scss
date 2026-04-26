@@ -183,14 +183,6 @@
 	gap: 8px;
 }
 
-.smb-page__content {
-	background: var(--smb-color-bg-elev);
-	border: 1px solid var(--smb-color-divider);
-	border-radius: var(--smb-radius-lg);
-	padding: 20px;
-	box-shadow: var(--smb-shadow-sm);
-}
-
 /* 共通セクションカード（管理画面の各セクションを白カードで囲むためのユーティリティ） */
 .smb-section-card {
 	background: #fff;
@@ -1280,15 +1272,6 @@
 }
 
 /* ---------- Schedule page ---------- */
-
-.smb-page--schedule {
-	.smb-page__content {
-		background: transparent;
-		border: 0;
-		padding: 0;
-		box-shadow: none;
-	}
-}
 
 .smb-section-title {
 	font-size: 16px;

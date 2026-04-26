@@ -181,7 +181,7 @@ export default function SettingsPage() {
 				dirtyKeys={dirtyKeys}
 			/>
 
-			<div className="smb-page__content">{renderActiveTab()}</div>
+			<div className="smb-section-card">{renderActiveTab()}</div>
 
 			<ConfirmDialog
 				open={!!pendingTab}
