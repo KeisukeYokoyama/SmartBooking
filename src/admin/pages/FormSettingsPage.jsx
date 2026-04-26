@@ -1,10 +1,10 @@
 /**
  * フォーム設定ページ。
  *
- * - フィールド設定タブ: カスタムフィールドの CRUD + 並び替え
- * - テーマ設定タブ: カラー設定 + リアルタイムプレビュー
+ * カスタムフィールドの CRUD + 並び替え。
+ * カラー設定（テーマ）は「設定 → デザイン」タブに集約済みなので、ここでは扱わない。
  *
- * 参考: docs/reference-ui/screenshot-4.png, admin-form-fields.png, admin-form-theme.png
+ * 参考: docs/reference-ui/screenshot-4.png, admin-form-fields.png
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API } from '../api';
@@ -16,11 +16,8 @@ import { useToast } from '../components/ToastContainer';
 import CustomFieldList from './formsettings/CustomFieldList';
 import CustomFieldModal from './formsettings/CustomFieldModal';
 import FieldTypeCards from './formsettings/FieldTypeCards';
-import ThemeColorPicker from './formsettings/ThemeColorPicker';
 
 export default function FormSettingsPage() {
-	const [tab, setTab] = useState('fields');
-
 	// フィールド一覧
 	const [fields, setFields] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -32,22 +29,14 @@ export default function FormSettingsPage() {
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleting, setDeleting] = useState(false);
 
-	// テーマ設定
-	const [settings, setSettings] = useState({});
-	const [themeSaving, setThemeSaving] = useState(false);
-
 	const { showToast } = useToast();
 
 	const loadFields = useCallback(async () => {
 		setLoading(true);
 		setLoadError(null);
 		try {
-			const [fieldsRes, settingsRes] = await Promise.all([
-				API.customFields.list(),
-				API.settings.get(),
-			]);
+			const fieldsRes = await API.customFields.list();
 			setFields(Array.isArray(fieldsRes) ? fieldsRes : []);
-			setSettings(settingsRes && settingsRes.settings ? settingsRes.settings : {});
 		} catch (err) {
 			setLoadError(err.message || '読み込みに失敗しました。');
 		} finally {
@@ -133,57 +122,7 @@ export default function FormSettingsPage() {
 		}
 	};
 
-	// --- テーマ設定保存 ---
-
-	const saveTheme = async (patch) => {
-		setThemeSaving(true);
-		try {
-			const res = await API.settings.update(patch);
-			setSettings((prev) => ({ ...prev, ...(res?.settings || patch) }));
-			showToast('テーマ設定を保存しました', 'success');
-		} catch (err) {
-			showToast(err.message || '保存に失敗しました。', 'error', 6000);
-		} finally {
-			setThemeSaving(false);
-		}
-	};
-
 	// --- 描画 ---
-
-	const renderFieldsTab = () => {
-		return (
-			<div className="smb-form-settings">
-				<section className="smb-section">
-					<div className="smb-section__header">
-						<h2 className="smb-section__title">フィールドタイプから追加</h2>
-						<p className="smb-section__lead">
-							追加したい入力項目のタイプを選んでください。後から編集・並び替えもできます。
-						</p>
-					</div>
-					<FieldTypeCards onSelect={(type) => openAdd(type)} />
-				</section>
-
-				<section className="smb-section">
-					<div className="smb-section__header">
-						<h2 className="smb-section__title">現在のフィールド一覧</h2>
-						<p className="smb-section__lead">
-							↑↓ ボタンで並び替えできます。氏名・メール・電話は予約システムの基本項目のため削除できません。
-						</p>
-					</div>
-					<CustomFieldList
-						fields={fields}
-						onEdit={openEdit}
-						onDelete={askDelete}
-						onMove={moveField}
-					/>
-				</section>
-			</div>
-		);
-	};
-
-	const renderThemeTab = () => (
-		<ThemeColorPicker settings={settings} onSave={saveTheme} saving={themeSaving} />
-	);
 
 	return (
 		<div className="smb-page smb-page--form-settings">
@@ -191,40 +130,16 @@ export default function FormSettingsPage() {
 				<div>
 					<h1 className="smb-page__title">フォーム設定</h1>
 					<p className="smb-page__lead">
-						予約フォームで入力してもらう項目と、フォームの見た目を設定します。
+						予約フォームで入力してもらう項目を設定します。フォームの色は「設定 → デザイン」から変更できます。
 					</p>
 				</div>
-				{tab === 'fields' && !loading && !loadError && (
+				{!loading && !loadError && (
 					<div className="smb-page__actions">
 						<Button variant="primary" onClick={() => openAdd('text')} icon="＋">
 							フィールドを追加
 						</Button>
 					</div>
 				)}
-			</div>
-
-			<div className="smb-tabs" role="tablist">
-				<button
-					role="tab"
-					type="button"
-					aria-selected={tab === 'fields'}
-					className={`smb-tab ${tab === 'fields' ? 'is-active' : ''}`}
-					onClick={() => setTab('fields')}
-				>
-					フィールド設定
-					<span className="smb-tab__count" aria-hidden="true">
-						{fields.length}
-					</span>
-				</button>
-				<button
-					role="tab"
-					type="button"
-					aria-selected={tab === 'theme'}
-					className={`smb-tab ${tab === 'theme' ? 'is-active' : ''}`}
-					onClick={() => setTab('theme')}
-				>
-					テーマ設定
-				</button>
 			</div>
 
 			<div className="smb-page__content">
@@ -241,7 +156,34 @@ export default function FormSettingsPage() {
 						onDismiss={() => setLoadError(null)}
 					/>
 				)}
-				{!loading && !loadError && (tab === 'fields' ? renderFieldsTab() : renderThemeTab())}
+				{!loading && !loadError && (
+					<div className="smb-form-settings">
+						<section className="smb-section">
+							<div className="smb-section__header">
+								<h2 className="smb-section__title">フィールドタイプから追加</h2>
+								<p className="smb-section__lead">
+									追加したい入力項目のタイプを選んでください。後から編集・並び替えもできます。
+								</p>
+							</div>
+							<FieldTypeCards onSelect={(type) => openAdd(type)} />
+						</section>
+
+						<section className="smb-section">
+							<div className="smb-section__header">
+								<h2 className="smb-section__title">現在のフィールド一覧</h2>
+								<p className="smb-section__lead">
+									↑↓ ボタンで並び替えできます。氏名・メール・電話は予約システムの基本項目のため削除できません。
+								</p>
+							</div>
+							<CustomFieldList
+								fields={fields}
+								onEdit={openEdit}
+								onDelete={askDelete}
+								onMove={moveField}
+							/>
+						</section>
+					</div>
+				)}
 			</div>
 
 			<CustomFieldModal

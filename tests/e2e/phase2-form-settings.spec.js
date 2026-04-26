@@ -286,38 +286,6 @@ test.describe( 'Phase 2: フォーム設定（フィールド）', () => {
 		expect( Number( after.data.is_required ) ).toBe( 1 );
 	} );
 
-	test( 'テーマタブ: ボタン色を変更して保存できる', async ( { page } ) => {
-		await page.locator( '.smb-tab', { hasText: 'テーマ設定' } ).click();
-		await expect( page.locator( '.smb-theme-settings' ) ).toBeVisible();
-		// HEX テキスト入力を書き換え.
-		// 前回のテスト実行で残った値と一致しないように、ランダムなHEXカラーを生成.
-		const rand = Math.floor( Math.random() * 0xffffff )
-			.toString( 16 )
-			.padStart( 6, '0' );
-		const newColor = `#${ rand }`;
-		const hexInputs = page.locator( 'input[aria-label*="カラーコード"]' );
-		await hexInputs.first().fill( newColor );
-		// 入力値が React state に反映されるまで待つ（保存ボタンが enabled に変わる）.
-		await expect(
-			page.getByRole( 'button', { name: 'テーマ設定を保存' } )
-		).toBeEnabled( {
-			timeout: 3000,
-		} );
-		await page.getByRole( 'button', { name: 'テーマ設定を保存' } ).click();
-		await expect(
-			page.locator( '.smb-toast--success' ).last()
-		).toContainText( '保存', { timeout: 6000 } );
-	} );
-
-	test( 'テーマタブ: 不正な HEX 値でバリデーションエラー', async ( {
-		page,
-	} ) => {
-		await page.locator( '.smb-tab', { hasText: 'テーマ設定' } ).click();
-		const hexInputs = page.locator( 'input[aria-label*="カラーコード"]' );
-		await hexInputs.first().fill( 'zzzzzz' );
-		await page.getByRole( 'button', { name: 'テーマ設定を保存' } ).click();
-		await expect(
-			page.locator( '.smb-field__error, .smb-toast--error' ).first()
-		).toBeVisible();
-	} );
+	// テーマ設定（カラーカスタマイズ）はフォーム設定タブから「設定 → デザイン」へ集約済み。
+	// 該当テストは phase2-settings.spec.js の「デザイン: ...」に存在するためここでは扱わない。
 } );
