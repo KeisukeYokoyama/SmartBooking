@@ -97,6 +97,7 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 			'image_id'    => (int) $row['image_id'],
 			'image_url'   => $image_url,
 			'is_active'   => (int) $row['is_active'] ? 1 : 0,
+			'is_system'   => isset( $row['is_system'] ) && (int) $row['is_system'] ? 1 : 0,
 			'sort_order'  => (int) $row['sort_order'],
 			'created_at'  => $row['created_at'],
 			'updated_at'  => $row['updated_at'],
@@ -113,7 +114,8 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$table = $this->table();
 
-		$where  = array( '1=1' );
+		// 一覧では is_system=1（システムエンティティ）を常に除外する。
+		$where  = array( 'is_system = 0' );
 		$params = array();
 
 		if ( null !== $request->get_param( 'is_active' ) ) {
@@ -278,9 +280,12 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 		$reservations = $wpdb->prefix . 'smb_reservations';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE id = %d", $id ) );
-		if ( 0 === $exists ) {
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		if ( ! $row ) {
 			return $this->error( 'smb_staff_not_found', '指定された担当者が見つかりません。', 404 );
+		}
+		if ( ! empty( $row['is_system'] ) ) {
+			return $this->error( 'smb_staff_is_system', 'このエンティティは削除できません。', 400 );
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared

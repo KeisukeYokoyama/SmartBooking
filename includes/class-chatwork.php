@@ -53,7 +53,7 @@ class Smart_Booking_Chatwork {
 			return;
 		}
 
-		$body = $this->build_message( $context['formatted'] );
+		$body = $this->build_message( $context['formatted'], $context );
 		if ( '' === $body ) {
 			return;
 		}
@@ -87,10 +87,13 @@ class Smart_Booking_Chatwork {
 	/**
 	 * 通知メッセージ本文を構築する（プレーンテキスト固定フォーマット）。
 	 *
-	 * @param array $f Smart_Booking_Reservation_Context::build()['formatted'].
+	 * システムエンティティ（is_system=1）に紐づく予約では、店舗・担当者の行を含めない。
+	 *
+	 * @param array $f       Smart_Booking_Reservation_Context::build()['formatted'].
+	 * @param array $context Smart_Booking_Reservation_Context::build() 戻り値（is_system 判定用）.
 	 * @return string
 	 */
-	private function build_message( $f ) {
+	private function build_message( $f, $context = array() ) {
 		$reservation_id = isset( $f['reservation_id'] ) ? (int) $f['reservation_id'] : 0;
 		$customer_name  = isset( $f['customer_name'] ) ? (string) $f['customer_name'] : '';
 		$customer_email = isset( $f['customer_email'] ) ? (string) $f['customer_email'] : '';
@@ -99,6 +102,9 @@ class Smart_Booking_Chatwork {
 		$schedule_time  = isset( $f['schedule_time'] ) ? (string) $f['schedule_time'] : '';
 		$store_name     = isset( $f['store_name'] ) ? (string) $f['store_name'] : '';
 		$staff_name     = isset( $f['staff_name'] ) ? (string) $f['staff_name'] : '';
+
+		$store_is_system = ( is_array( $context ) && ! empty( $context['store'] ) && is_array( $context['store'] ) && ! empty( $context['store']['is_system'] ) ) ? 1 : 0;
+		$staff_is_system = ( is_array( $context ) && ! empty( $context['staff'] ) && is_array( $context['staff'] ) && ! empty( $context['staff']['is_system'] ) ) ? 1 : 0;
 
 		$datetime = trim( $schedule_date . ' ' . $schedule_time );
 
@@ -110,8 +116,12 @@ class Smart_Booking_Chatwork {
 		$lines[] = 'メール: ' . $customer_email;
 		$lines[] = '電話: ' . $customer_phone;
 		$lines[] = '日時: ' . $datetime;
-		$lines[] = '店舗: ' . $store_name;
-		$lines[] = '担当: ' . $staff_name;
+		if ( 0 === $store_is_system ) {
+			$lines[] = '店舗: ' . $store_name;
+		}
+		if ( 0 === $staff_is_system ) {
+			$lines[] = '担当: ' . $staff_name;
+		}
 
 		return implode( "\n", $lines );
 	}

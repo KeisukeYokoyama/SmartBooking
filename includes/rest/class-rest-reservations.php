@@ -96,23 +96,42 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 	 * @return array
 	 */
 	private function format_row( $row, $with_meta = false ) {
+		global $wpdb;
+		$stores_table = $wpdb->prefix . 'smb_stores';
+		$staff_table  = $wpdb->prefix . 'smb_staff';
+
+		// 関連エンティティの is_system フラグを取得（管理画面 React で表示制御に利用）。
+		$store_is_system = 0;
+		if ( ! empty( $row['store_id'] ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$flag            = $wpdb->get_var( $wpdb->prepare( "SELECT is_system FROM {$stores_table} WHERE id = %d", (int) $row['store_id'] ) );
+			$store_is_system = ( null !== $flag && (int) $flag ) ? 1 : 0;
+		}
+		$staff_is_system = 0;
+		if ( ! empty( $row['staff_id'] ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$flag            = $wpdb->get_var( $wpdb->prepare( "SELECT is_system FROM {$staff_table} WHERE id = %d", (int) $row['staff_id'] ) );
+			$staff_is_system = ( null !== $flag && (int) $flag ) ? 1 : 0;
+		}
+
 		$data = array(
-			'id'             => (int) $row['id'],
-			'store_id'       => (int) $row['store_id'],
-			'staff_id'       => (int) $row['staff_id'],
-			'schedule_id'    => (int) $row['schedule_id'],
-			'schedule_date'  => $row['schedule_date'],
-			'schedule_time'  => $row['schedule_time'],
-			'customer_name'  => $row['customer_name'],
-			'customer_email' => $row['customer_email'],
-			'customer_phone' => $row['customer_phone'],
-			'status'         => $row['status'],
-			'admin_memo'     => $row['admin_memo'],
-			'created_at'     => $row['created_at'],
-			'updated_at'     => $row['updated_at'],
+			'id'              => (int) $row['id'],
+			'store_id'        => (int) $row['store_id'],
+			'staff_id'        => (int) $row['staff_id'],
+			'store_is_system' => $store_is_system,
+			'staff_is_system' => $staff_is_system,
+			'schedule_id'     => (int) $row['schedule_id'],
+			'schedule_date'   => $row['schedule_date'],
+			'schedule_time'   => $row['schedule_time'],
+			'customer_name'   => $row['customer_name'],
+			'customer_email'  => $row['customer_email'],
+			'customer_phone'  => $row['customer_phone'],
+			'status'          => $row['status'],
+			'admin_memo'      => $row['admin_memo'],
+			'created_at'      => $row['created_at'],
+			'updated_at'      => $row['updated_at'],
 		);
 		if ( $with_meta ) {
-			global $wpdb;
 			$meta_table = $wpdb->prefix . 'smb_reservation_meta';
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$meta_rows = $wpdb->get_results(
@@ -550,9 +569,9 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		$fields_table = $wpdb->prefix . 'smb_custom_fields';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$stores = $wpdb->get_results( "SELECT id, name FROM {$stores_table}", OBJECT_K );
+		$stores = $wpdb->get_results( "SELECT id, name, is_system FROM {$stores_table}", OBJECT_K );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$staff = $wpdb->get_results( "SELECT id, name FROM {$staff_table}", OBJECT_K );
+		$staff = $wpdb->get_results( "SELECT id, name, is_system FROM {$staff_table}", OBJECT_K );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$fields = $wpdb->get_results( "SELECT field_key, field_label FROM {$fields_table} ORDER BY sort_order ASC", ARRAY_A );
 
@@ -596,8 +615,17 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 				$meta_map[ $m['meta_key'] ] = $m['meta_value'];
 			}
 
-			$store_name = isset( $stores[ (int) $r['store_id'] ] ) ? $stores[ (int) $r['store_id'] ]->name : '';
-			$staff_name = isset( $staff[ (int) $r['staff_id'] ] ) ? $staff[ (int) $r['staff_id'] ]->name : '';
+			// is_system=1 のエンティティはユーザーには見えないため CSV でも「-」で出力する。
+			$store_obj  = isset( $stores[ (int) $r['store_id'] ] ) ? $stores[ (int) $r['store_id'] ] : null;
+			$store_name = '';
+			if ( $store_obj ) {
+				$store_name = ! empty( $store_obj->is_system ) ? '-' : (string) $store_obj->name;
+			}
+			$staff_obj  = isset( $staff[ (int) $r['staff_id'] ] ) ? $staff[ (int) $r['staff_id'] ] : null;
+			$staff_name = '';
+			if ( $staff_obj ) {
+				$staff_name = ! empty( $staff_obj->is_system ) ? '-' : (string) $staff_obj->name;
+			}
 			$status     = isset( $status_labels[ $r['status'] ] ) ? $status_labels[ $r['status'] ] : $r['status'];
 
 			$row_values = array(

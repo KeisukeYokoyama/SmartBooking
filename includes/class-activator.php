@@ -29,7 +29,65 @@ class Smart_Booking_Activator {
 		self::create_tables();
 		self::seed_default_data();
 		self::seed_default_options();
+		self::run_migrations();
 		update_option( 'smb_db_version', SMART_BOOKING_VERSION );
+	}
+
+	/**
+	 * バージョン間マイグレーション。
+	 *
+	 * - 0.2.0: smb_stores / smb_staff に is_system カラムを追加し、既存のデフォルト
+	 *   エントリ（最も若い id のもの）に is_system=1 を設定する。
+	 *
+	 * dbDelta が ALTER TABLE を担うため、ここでは値の埋め直しのみを行う。
+	 *
+	 * @return void
+	 */
+	private static function run_migrations() {
+		global $wpdb;
+
+		$current = (string) get_option( 'smb_db_version', '0.0.0' );
+
+		// 0.2.0: is_system 導入。
+		if ( version_compare( $current, '0.2.0', '<' ) ) {
+			$stores_table = $wpdb->prefix . 'smb_stores';
+			$staff_table  = $wpdb->prefix . 'smb_staff';
+
+			// 既存の is_system=1 エントリが既にある場合は no-op（新規環境/再マイグレーションでも安全）。
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$has_system_store = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$stores_table} WHERE is_system = 1" );
+			if ( 0 === $has_system_store ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$first_store_id = (int) $wpdb->get_var( "SELECT id FROM {$stores_table} ORDER BY id ASC LIMIT 1" );
+				if ( $first_store_id > 0 ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$wpdb->update(
+						$stores_table,
+						array( 'is_system' => 1 ),
+						array( 'id' => $first_store_id ),
+						array( '%d' ),
+						array( '%d' )
+					);
+				}
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$has_system_staff = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$staff_table} WHERE is_system = 1" );
+			if ( 0 === $has_system_staff ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$first_staff_id = (int) $wpdb->get_var( "SELECT id FROM {$staff_table} ORDER BY id ASC LIMIT 1" );
+				if ( $first_staff_id > 0 ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+					$wpdb->update(
+						$staff_table,
+						array( 'is_system' => 1 ),
+						array( 'id' => $first_staff_id ),
+						array( '%d' ),
+						array( '%d' )
+					);
+				}
+			}
+		}
 	}
 
 	/**
@@ -112,11 +170,13 @@ class Smart_Booking_Activator {
 			image_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			calendar_color varchar(7) NOT NULL DEFAULT '#3B82F6',
 			is_active tinyint(1) NOT NULL DEFAULT 1,
+			is_system tinyint(1) NOT NULL DEFAULT 0,
 			sort_order int(11) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			KEY idx_is_active (is_active),
+			KEY idx_is_system (is_system),
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
@@ -130,12 +190,14 @@ class Smart_Booking_Activator {
 			description text NULL,
 			image_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			is_active tinyint(1) NOT NULL DEFAULT 1,
+			is_system tinyint(1) NOT NULL DEFAULT 0,
 			sort_order int(11) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			KEY idx_store_id (store_id),
 			KEY idx_is_active (is_active),
+			KEY idx_is_system (is_system),
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
@@ -238,7 +300,7 @@ class Smart_Booking_Activator {
 			$wpdb->insert(
 				$stores_table,
 				array(
-					'name'           => '店舗1',
+					'name'           => 'デフォルト',
 					'phone'          => '',
 					'email'          => get_option( 'admin_email', '' ),
 					'prefecture'     => '',
@@ -248,11 +310,12 @@ class Smart_Booking_Activator {
 					'image_id'       => 0,
 					'calendar_color' => '#3B82F6',
 					'is_active'      => 1,
+					'is_system'      => 1,
 					'sort_order'     => 0,
 					'created_at'     => current_time( 'mysql' ),
 					'updated_at'     => current_time( 'mysql' ),
 				),
-				array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s', '%s' )
+				array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%d', '%s', '%s' )
 			);
 			$store_id = (int) $wpdb->insert_id;
 		} else {
@@ -269,17 +332,18 @@ class Smart_Booking_Activator {
 				$staff_table,
 				array(
 					'store_id'    => $store_id,
-					'name'        => '担当者1',
+					'name'        => 'デフォルト',
 					'email'       => '',
 					'phone'       => '',
 					'description' => '',
 					'image_id'    => 0,
 					'is_active'   => 1,
+					'is_system'   => 1,
 					'sort_order'  => 0,
 					'created_at'  => current_time( 'mysql' ),
 					'updated_at'  => current_time( 'mysql' ),
 				),
-				array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
+				array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s' )
 			);
 		}
 

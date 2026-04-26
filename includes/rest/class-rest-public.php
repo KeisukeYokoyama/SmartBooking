@@ -225,11 +225,12 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$table = $wpdb->prefix . 'smb_stores';
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
+		// is_system=1（システムエンティティ）はユーザーには見えないため公開 API でも返さない。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, name, description, image_id, calendar_color, prefecture, city, address_line, phone, sort_order
 			FROM {$table}
-			WHERE is_active = 1
+			WHERE is_active = 1 AND is_system = 0
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
@@ -277,13 +278,14 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		$store_id = absint( $request->get_param( 'store_id' ) );
 
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
+		// is_system=1（システムエンティティ）はユーザーには見えないため公開 API でも返さない。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( $store_id > 0 ) {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT id, store_id, name, description, image_id, sort_order
 					FROM {$table}
-					WHERE is_active = 1 AND store_id = %d
+					WHERE is_active = 1 AND is_system = 0 AND store_id = %d
 					ORDER BY sort_order ASC, id ASC",
 					$store_id
 				),
@@ -293,7 +295,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$rows = $wpdb->get_results(
 				"SELECT id, store_id, name, description, image_id, sort_order
 				FROM {$table}
-				WHERE is_active = 1
+				WHERE is_active = 1 AND is_system = 0
 				ORDER BY sort_order ASC, id ASC",
 				ARRAY_A
 			);
@@ -958,15 +960,26 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		// 店舗名・担当者名を引いて返す（完了画面で利用）. 採用された booked_schedule を参照する。
+		// システムエンティティ（is_system=1）はユーザーに見えないため空文字で返す。
 		$stores_table = $wpdb->prefix . 'smb_stores';
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$store_name = (string) $wpdb->get_var(
-			$wpdb->prepare( "SELECT name FROM {$stores_table} WHERE id = %d", (int) $booked_schedule['store_id'] )
+		$store_row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT name, is_system FROM {$stores_table} WHERE id = %d", (int) $booked_schedule['store_id'] ),
+			ARRAY_A
 		);
-		$staff_name = (string) $wpdb->get_var(
-			$wpdb->prepare( "SELECT name FROM {$staff_table} WHERE id = %d", (int) $booked_schedule['staff_id'] )
+		$staff_row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT name, is_system FROM {$staff_table} WHERE id = %d", (int) $booked_schedule['staff_id'] ),
+			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$store_name = '';
+		if ( is_array( $store_row ) ) {
+			$store_name = ! empty( $store_row['is_system'] ) ? '' : (string) $store_row['name'];
+		}
+		$staff_name = '';
+		if ( is_array( $staff_row ) ) {
+			$staff_name = ! empty( $staff_row['is_system'] ) ? '' : (string) $staff_row['name'];
+		}
 
 		/**
 		 * 予約受付時のフック。

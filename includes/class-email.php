@@ -112,14 +112,19 @@ class Smart_Booking_Email {
 		}
 		$show_store = ( (int) get_option( 'smb_show_store_front', 1 ) ) ? 1 : 0;
 		$show_staff = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
-		if ( 1 === $show_store && 1 === $show_staff ) {
+
+		// システムエンティティ（is_system=1）に紐づく場合はユーザー宛では名前を出さない。
+		$store_is_system = ( ! empty( $context['store'] ) && is_array( $context['store'] ) && ! empty( $context['store']['is_system'] ) ) ? 1 : 0;
+		$staff_is_system = ( ! empty( $context['staff'] ) && is_array( $context['staff'] ) && ! empty( $context['staff']['is_system'] ) ) ? 1 : 0;
+
+		if ( 1 === $show_store && 1 === $show_staff && 0 === $store_is_system && 0 === $staff_is_system ) {
 			return $context;
 		}
 		$copy = $context;
-		if ( 0 === $show_store ) {
+		if ( 0 === $show_store || 1 === $store_is_system ) {
 			$copy['formatted']['store_name'] = '';
 		}
-		if ( 0 === $show_staff ) {
+		if ( 0 === $show_staff || 1 === $staff_is_system ) {
 			$copy['formatted']['staff_name'] = '';
 		}
 		return $copy;

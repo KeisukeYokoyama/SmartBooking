@@ -100,6 +100,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 			'image_url'      => $image_url,
 			'calendar_color' => $row['calendar_color'],
 			'is_active'      => (int) $row['is_active'] ? 1 : 0,
+			'is_system'      => isset( $row['is_system'] ) && (int) $row['is_system'] ? 1 : 0,
 			'sort_order'     => (int) $row['sort_order'],
 			'created_at'     => $row['created_at'],
 			'updated_at'     => $row['updated_at'],
@@ -116,7 +117,8 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		global $wpdb;
 		$table = $this->table();
 
-		$where  = '1=1';
+		// 一覧では is_system=1（システムエンティティ）を常に除外する。
+		$where  = 'is_system = 0';
 		$params = array();
 		if ( null !== $request->get_param( 'is_active' ) ) {
 			$where   .= ' AND is_active = %d';
@@ -282,9 +284,12 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		$reservations = $wpdb->prefix . 'smb_reservations';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE id = %d", $id ) );
-		if ( 0 === $exists ) {
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		if ( ! $row ) {
 			return $this->error( 'smb_store_not_found', '指定された店舗が見つかりません。', 404 );
+		}
+		if ( ! empty( $row['is_system'] ) ) {
+			return $this->error( 'smb_store_is_system', 'このエンティティは削除できません。', 400 );
 		}
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared

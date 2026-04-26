@@ -58,14 +58,32 @@ class Smart_Booking_Google_Calendar {
 			return;
 		}
 
-		$f       = $context['formatted'];
-		$summary = trim( (string) $f['store_name'] . ' / ' . (string) $f['customer_name'] );
+		$f = $context['formatted'];
+
+		// システムエンティティ（is_system=1）の場合は店舗名・担当者名を含めない。
+		$store_is_system = ( ! empty( $context['store'] ) && is_array( $context['store'] ) && ! empty( $context['store']['is_system'] ) ) ? 1 : 0;
+		$staff_is_system = ( ! empty( $context['staff'] ) && is_array( $context['staff'] ) && ! empty( $context['staff']['is_system'] ) ) ? 1 : 0;
+		$store_name      = ( 1 === $store_is_system ) ? '' : (string) $f['store_name'];
+		$staff_name      = ( 1 === $staff_is_system ) ? '' : (string) $f['staff_name'];
+
+		if ( '' !== $store_name ) {
+			$summary = trim( $store_name . ' / ' . (string) $f['customer_name'] );
+		} else {
+			$summary = trim( '予約: ' . (string) $f['customer_name'] );
+		}
 		if ( '' === $summary ) {
 			$summary = '予約 #' . (string) $f['reservation_id'];
 		}
-		$body     = array(
+		$description_lines   = array();
+		$description_lines[] = '予約者: ' . (string) $f['customer_name'];
+		$description_lines[] = '電話: ' . (string) $f['customer_phone'];
+		if ( '' !== $staff_name ) {
+			$description_lines[] = '担当: ' . $staff_name;
+		}
+		$description_lines[] = '予約番号: ' . (string) $f['reservation_id'];
+		$body                = array(
 			'summary'     => $summary,
-			'description' => "予約者: {$f['customer_name']}\n電話: {$f['customer_phone']}\n担当: {$f['staff_name']}\n予約番号: {$f['reservation_id']}",
+			'description' => implode( "\n", $description_lines ),
 			'start'       => array(
 				'dateTime' => $times['start'],
 				'timeZone' => $times['timezone'],

@@ -171,6 +171,48 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * is_system=1 の最も若い店舗 id を返す。なければ 0。
+	 *
+	 * @return int
+	 */
+	private function get_system_store_id() {
+		global $wpdb;
+		$stores_table = $wpdb->prefix . 'smb_stores';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$id = (int) $wpdb->get_var( "SELECT id FROM {$stores_table} WHERE is_system = 1 ORDER BY id ASC LIMIT 1" );
+		return $id;
+	}
+
+	/**
+	 * is_system=1 の担当者 id を返す。
+	 * 指定された $store_id 配下の is_system=1 担当者を優先、なければグローバルな is_system=1 担当者。
+	 *
+	 * @param int $store_id 店舗 ID（任意）.
+	 * @return int
+	 */
+	private function get_system_staff_id( $store_id = 0 ) {
+		global $wpdb;
+		$staff_table = $wpdb->prefix . 'smb_staff';
+		$store_id    = (int) $store_id;
+
+		if ( $store_id > 0 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$id = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT id FROM {$staff_table} WHERE is_system = 1 AND store_id = %d ORDER BY id ASC LIMIT 1",
+					$store_id
+				)
+			);
+			if ( $id > 0 ) {
+				return $id;
+			}
+		}
+		// フォールバック: 店舗を問わずグローバルなシステム担当者。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->get_var( "SELECT id FROM {$staff_table} WHERE is_system = 1 ORDER BY id ASC LIMIT 1" );
+	}
+
+	/**
 	 * スケジュール1件のサニタイズ。
 	 *
 	 * @param array $input 入力配列.
@@ -186,6 +228,15 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 		$start    = $this->sanitize_time_string( isset( $input['start_time'] ) ? (string) $input['start_time'] : '' );
 		$end      = $this->sanitize_time_string( isset( $input['end_time'] ) ? (string) $input['end_time'] : '' );
 		$capacity = isset( $input['capacity'] ) ? (int) $input['capacity'] : 1;
+
+		// 店舗未指定の場合: システム店舗（is_system=1）で自動補完。
+		if ( $store_id <= 0 ) {
+			$store_id = $this->get_system_store_id();
+		}
+		// 担当者未指定の場合: 該当店舗のシステム担当者を優先、なければグローバルなシステム担当者で自動補完。
+		if ( $staff_id <= 0 ) {
+			$staff_id = $this->get_system_staff_id( $store_id );
+		}
 
 		if ( $store_id <= 0 ) {
 			return $this->error( 'smb_schedule_store_required', '店舗を選択してください。', 400 );
