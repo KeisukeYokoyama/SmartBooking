@@ -191,6 +191,23 @@
 	box-shadow: var(--smb-shadow-sm);
 }
 
+/* 共通セクションカード（管理画面の各セクションを白カードで囲むためのユーティリティ） */
+.smb-section-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 24px;
+	margin-bottom: 16px;
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	@media (max-width: 600px) {
+		padding: 16px;
+	}
+}
+
 .smb-stub {
 	padding: 40px;
 	color: var(--smb-color-text-muted);
@@ -1344,7 +1361,7 @@
 }
 
 .smb-schedule-layout__list {
-	margin-top: 24px;
+	/* margin-top は親 .smb-section-card が margin-bottom で間隔を持つため不要 */
 }
 
 /* Calendar Grid */
@@ -2372,7 +2389,14 @@
    予約一覧ページ
    ========================================================================== */
 
-.smb-page--reservations .smb-page__content--reservations {
+.smb-section-card--reservations {
+	padding: 0;
+	overflow: hidden;
+}
+
+/* フィルター用カード: 中の ReservationFilters が独自の header/body を持つため、
+   外側の padding を 0 にして二重 padding を避ける。 */
+.smb-section-card--filters {
 	padding: 0;
 	overflow: hidden;
 }
@@ -2424,12 +2448,8 @@
 /* ---------- フィルター ---------- */
 
 .smb-reservation-filters {
-	background: var(--smb-color-bg-elev);
-	border: 1px solid var(--smb-color-divider);
-	border-radius: var(--smb-radius-lg);
-	box-shadow: var(--smb-shadow-sm);
-	margin-bottom: 16px;
-	overflow: hidden;
+	/* 外側の `.smb-section-card--filters` が背景・ボーダー・角丸・影・マージンを担当する。
+	   ここではコンポーネント内部のレイアウト（header/body）のみを定義する。 */
 
 	&__header {
 		display: flex;

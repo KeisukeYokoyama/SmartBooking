@@ -464,48 +464,52 @@ export default function SchedulePage() {
 				</div>
 			</div>
 
-			<div className="smb-schedule-layout">
-				<div className="smb-schedule-layout__calendar">
-					<CalendarGrid
-						month={currentMonth}
-						selectedYmd={selectedYmd}
-						onSelect={handleSelectDate}
-						schedulesByDate={schedulesByDate}
-						storesById={storesById}
-					/>
-					{scheduleLoading && (
-						<div className="smb-schedule-layout__loading" aria-live="polite">
-							<Spinner size="sm" label="更新中" />
-							<span>更新中…</span>
-						</div>
-					)}
-				</div>
-				<div className="smb-schedule-layout__pane">
-					<ScheduleDetailPane
-						selectedYmd={selectedYmd}
-						daySchedules={daySchedules}
-						storesById={storesById}
-						staffById={staffById}
-						onAdd={(ymd) => openAdd(ymd)}
-						onEdit={(group) => openEdit(group)}
-						onCopy={(group) => openCopy(group)}
-						onDelete={(group) => askDelete(group)}
-					/>
+			<div className="smb-section-card">
+				<div className="smb-schedule-layout">
+					<div className="smb-schedule-layout__calendar">
+						<CalendarGrid
+							month={currentMonth}
+							selectedYmd={selectedYmd}
+							onSelect={handleSelectDate}
+							schedulesByDate={schedulesByDate}
+							storesById={storesById}
+						/>
+						{scheduleLoading && (
+							<div className="smb-schedule-layout__loading" aria-live="polite">
+								<Spinner size="sm" label="更新中" />
+								<span>更新中…</span>
+							</div>
+						)}
+					</div>
+					<div className="smb-schedule-layout__pane">
+						<ScheduleDetailPane
+							selectedYmd={selectedYmd}
+							daySchedules={daySchedules}
+							storesById={storesById}
+							staffById={staffById}
+							onAdd={(ymd) => openAdd(ymd)}
+							onEdit={(group) => openEdit(group)}
+							onCopy={(group) => openCopy(group)}
+							onDelete={(group) => askDelete(group)}
+						/>
+					</div>
 				</div>
 			</div>
 
-			<div className="smb-schedule-layout__list">
-				<h2 className="smb-section-title">
-					{formatYearMonth(currentMonth)}のスケジュール一覧
-				</h2>
-				<ScheduleList
-					schedules={schedulesInCurrentMonth}
-					storesById={storesById}
-					staffById={staffById}
-					onEdit={openEdit}
-					onCopy={openCopy}
-					onDelete={askDelete}
-				/>
+			<div className="smb-section-card">
+				<div className="smb-schedule-layout__list">
+					<h2 className="smb-section-title">
+						{formatYearMonth(currentMonth)}のスケジュール一覧
+					</h2>
+					<ScheduleList
+						schedules={schedulesInCurrentMonth}
+						storesById={storesById}
+						staffById={staffById}
+						onEdit={openEdit}
+						onCopy={openCopy}
+						onDelete={askDelete}
+					/>
+				</div>
 			</div>
 
 			<ScheduleAddModal

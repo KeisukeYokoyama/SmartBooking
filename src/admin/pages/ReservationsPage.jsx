@@ -330,16 +330,18 @@ export default function ReservationsPage() {
 				/>
 			)}
 
-			<ReservationFilters
-				filters={filters}
-				onChange={handleFiltersChange}
-				onReset={handleReset}
-				stores={stores}
-				staff={staff}
-				activeCount={activeFilterCount}
-			/>
+			<div className="smb-section-card smb-section-card--filters">
+				<ReservationFilters
+					filters={filters}
+					onChange={handleFiltersChange}
+					onReset={handleReset}
+					stores={stores}
+					staff={staff}
+					activeCount={activeFilterCount}
+				/>
+			</div>
 
-			<div className="smb-page__content smb-page__content--reservations">
+			<div className="smb-section-card smb-section-card--reservations">
 				{listError && !loading && (
 					<ErrorMessage
 						message={listError}
