@@ -356,24 +356,24 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		expect( res.ok ).toBe( true );
 		await page.reload();
 		await page.waitForSelector( '.smb-page--schedule', { timeout: 15000 } );
-		// 元日付セルをクリック → コピー.
+		// 元日付セルをクリック → DetailPane のグループコピーボタン.
 		await page
 			.locator( `.smb-calendar__cell[aria-label="${ source } を選択"]` )
 			.click();
 		await page
-			.getByRole( 'button', { name: /スケジュールをコピー/ } )
+			.locator( '.smb-schedule-group__actions' )
+			.first()
+			.getByRole( 'button', { name: 'コピー' } )
 			.click();
 		await expect(
 			page.locator( '.smb-modal__title', {
 				hasText: 'スケジュールをコピー',
 			} )
 		).toBeVisible();
-		// 個別モードが初期選択.
-		// 日付ピッカーに targetDate を入れて「日付を追加」.
+		// 個別モードが初期選択。日付ピッカーに値を入れると自動でリストに追加される.
 		await page
 			.locator( 'input[aria-label="コピー先の日付"]' )
 			.fill( targetDate );
-		await page.getByRole( 'button', { name: '日付を追加' } ).click();
 		// チップは「M月D日」形式.
 		const m = /(\d{4})-(\d{2})-(\d{2})/.exec( targetDate );
 		const mm = m[ 2 ];
@@ -431,7 +431,9 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 			.locator( `.smb-calendar__cell[aria-label="${ source } を選択"]` )
 			.click();
 		await page
-			.getByRole( 'button', { name: /スケジュールをコピー/ } )
+			.locator( '.smb-schedule-group__actions' )
+			.first()
+			.getByRole( 'button', { name: 'コピー' } )
 			.click();
 		await expect(
 			page.locator( '.smb-modal__title', {
@@ -548,17 +550,24 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		).toBeGreaterThan( 0 );
 	} );
 
-	test( '表示期間/締切設定モーダルから設定を保存できる', async ( {
+	test( '表示期間/締切設定は SettingsPage > 基本設定 から保存できる', async ( {
 		page,
 	} ) => {
-		await page.getByRole( 'button', { name: /表示期間/ } ).click();
-		await expect( page.locator( '.smb-modal__title' ) ).toContainText(
-			/表示期間|締切/
-		);
-		await page
-			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '保存' } )
-			.click();
+		// 設定ページに遷移（Gen-A でスケジュール管理から表示期間/締切モーダルを削除済み）.
+		await page.goto( '/wp-admin/admin.php?page=smart-booking-settings' );
+		await page.waitForSelector( '.smb-page--settings', { timeout: 15000 } );
+		// 基本設定タブが初期選択。表示期間 / 予約締切 のセクションが見える.
+		await expect( page.getByLabel( '表示期間' ) ).toBeVisible();
+		await expect(
+			page.locator( '.smb-settings-section__title', { hasText: '予約締切' } )
+		).toBeVisible();
+		// 保存ボタンを有効化するため、表示期間を別の値に変更（dirty 状態にする）.
+		const select = page.getByLabel( '表示期間' );
+		const current = await select.inputValue();
+		const next = current === '60' ? '30' : '60';
+		await select.selectOption( next );
+		// 「基本設定を保存」ボタンを押下.
+		await page.getByRole( 'button', { name: /基本設定を保存/ } ).click();
 		await expect(
 			page.locator( '.smb-toast--success' ).last()
 		).toContainText( '保存', { timeout: 6000 } );

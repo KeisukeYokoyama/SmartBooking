@@ -182,8 +182,15 @@ export default function SchedulePage() {
 			if (created > 0) parts.push(`${created}件追加`);
 			if (updated > 0) parts.push(`${updated}件更新`);
 			if (skipped > 0) parts.push(`${skipped}件スキップ（予約あり）`);
-			const message = parts.length > 0 ? `スケジュールを追加: ${parts.join(' / ')}` : 'スケジュールを追加しました';
-			showToast(message, 'success');
+			let message;
+			if (created + updated > 0) {
+				message = `スケジュールを追加: ${parts.join(' / ')}`;
+			} else if (skipped > 0) {
+				message = `変更はありません（${skipped}件は予約ありのためスキップ）`;
+			} else {
+				message = 'スケジュールを追加しました';
+			}
+			showToast(message, created + updated > 0 ? 'success' : 'info');
 			closeAdd();
 			if (items[0]) setSelectedYmd(items[0].schedule_date);
 			await loadSchedules();
