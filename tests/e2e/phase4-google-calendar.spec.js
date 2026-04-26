@@ -23,6 +23,8 @@ const {
 	publicRest,
 	gotoFrontForm,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 const { wpCli, loginAsAdmin } = require( './helpers' );
 
@@ -353,8 +355,8 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 
 		// schedule + 予約.
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -448,8 +450,8 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 		} );
 
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '12:00:00',
 			end: '13:00:00',

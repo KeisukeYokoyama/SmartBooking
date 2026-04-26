@@ -39,6 +39,8 @@ const {
 	publicRest,
 	fillCoreFormAndGoConfirm,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 
 // DB seed/restore があるため serial 実行.
@@ -114,8 +116,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -173,8 +175,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -231,8 +233,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -283,8 +285,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -318,8 +320,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -370,8 +372,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		setOption( 'smb_calendar_view_mode', 'day_only' );
 		const d = ymd( 1 );
 		const fullSchedId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -380,8 +382,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		setBookedCount( fullSchedId, 1 );
 		// 同じ日に空き枠も用意してタイル自体は選択可能にしておく.
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '14:00:00',
 			end: '15:00:00',
@@ -415,8 +417,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	} ) => {
 		const d = ymd( 1 );
 		const fullSchedId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -453,8 +455,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		setOption( 'smb_booking_deadline_days', 10 );
 		const d = ymd( 1 );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -481,8 +483,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		setOption( 'smb_booking_deadline_days', 10 );
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -517,8 +519,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -587,8 +589,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -619,8 +621,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -721,8 +723,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -753,8 +755,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -824,8 +826,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -889,8 +891,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		// 当日の早朝枠（00:30）を作成. テスト実行時刻 > 00:30 と仮定.
 		const today = ymd( 0 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: today,
 			start: '00:30:00',
 			end: '01:30:00',

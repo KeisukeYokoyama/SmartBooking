@@ -20,6 +20,8 @@ const {
 	insertSchedule,
 	publicRest,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 const { execSync } = require( 'node:child_process' );
 const path = require( 'node:path' );
@@ -56,8 +58,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -68,7 +70,12 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
-			query: { store_id: 1, staff_id: 1, date_from: d, date_to: d },
+			query: {
+				store_id: USER_STORE_ID,
+				staff_id: USER_STAFF_ID,
+				date_from: d,
+				date_to: d,
+			},
 		} );
 		expect( res.ok ).toBe( true );
 		const slot = ( res.data.schedules || [] ).find( ( s ) => s.id === sid );
@@ -81,8 +88,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -93,7 +100,12 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
-			query: { store_id: 1, staff_id: 1, date_from: d, date_to: d },
+			query: {
+				store_id: USER_STORE_ID,
+				staff_id: USER_STAFF_ID,
+				date_from: d,
+				date_to: d,
+			},
 		} );
 		expect( res.ok ).toBe( true );
 		const slot = ( res.data.schedules || [] ).find( ( s ) => s.id === sid );
@@ -106,8 +118,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -118,7 +130,12 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
-			query: { store_id: 1, staff_id: 1, date_from: d, date_to: d },
+			query: {
+				store_id: USER_STORE_ID,
+				staff_id: USER_STAFF_ID,
+				date_from: d,
+				date_to: d,
+			},
 		} );
 		expect( res.ok ).toBe( true );
 		const slot = ( res.data.schedules || [] ).find( ( s ) => s.id === sid );
@@ -131,8 +148,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	} ) => {
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -143,7 +160,12 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
-			query: { store_id: 1, staff_id: 1, date_from: d, date_to: d },
+			query: {
+				store_id: USER_STORE_ID,
+				staff_id: USER_STAFF_ID,
+				date_from: d,
+				date_to: d,
+			},
 		} );
 		expect( res.ok ).toBe( true );
 		const slot = ( res.data.schedules || [] ).find( ( s ) => s.id === sid );
@@ -159,8 +181,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'toggle' );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -189,16 +211,16 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 		// time slot は未選択状態 (state.time / scheduleId が GO_TO_STEP リセットで消える) 。
 		const d = ymd( 1 );
 		const schedId10 = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '10:00:00',
 			end: '11:00:00',
 			capacity: 1,
 		} );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '14:00:00',
 			end: '15:00:00',
@@ -285,8 +307,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 		page,
 	} ) => {
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '10:00:00',
 			end: '11:00:00',
@@ -326,8 +348,8 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	} ) => {
 		const d = ymd( 1 );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d,
 			start: '14:00:00',
 			end: '15:00:00',

@@ -22,6 +22,8 @@ const {
 	publicRest,
 	gotoFrontForm,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 const { wpCli, loginAsAdmin } = require( './helpers' );
 
@@ -200,14 +202,14 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		page,
 	} ) => {
 		// 店舗 / 担当者にメールを設定。
-		setStoreEmail( 1, 'store-a@example.com' );
-		setStaffEmail( 1, 'staff-a@example.com' );
+		setStoreEmail( USER_STORE_ID, 'store-a@example.com' );
+		setStaffEmail( USER_STAFF_ID, 'staff-a@example.com' );
 
 		// 明日の 14:00-15:00 のスケジュール.
 		const dateStr = ymd( 1 );
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: dateStr,
 			start: '14:00:00',
 			end: '15:00:00',
@@ -286,12 +288,12 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	test( '担当者メール空: 管理者宛から Cc ヘッダが消える', async ( {
 		page,
 	} ) => {
-		setStoreEmail( 1, 'store-a@example.com' );
-		setStaffEmail( 1, '' );
+		setStoreEmail( USER_STORE_ID, 'store-a@example.com' );
+		setStaffEmail( USER_STAFF_ID, '' );
 
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '11:00:00',
 			end: '12:00:00',
@@ -323,12 +325,12 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	test( '承認時: ユーザー宛 1 通 (件名は smb_mail_approval_user_subject)', async ( {
 		page,
 	} ) => {
-		setStoreEmail( 1, 'store-a@example.com' );
-		setStaffEmail( 1, 'staff-a@example.com' );
+		setStoreEmail( USER_STORE_ID, 'store-a@example.com' );
+		setStaffEmail( USER_STAFF_ID, 'staff-a@example.com' );
 
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '15:00:00',
 			end: '16:00:00',
@@ -409,12 +411,12 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	test( '店舗メール空: 管理者宛はスキップ、ユーザー宛 1 通のみ', async ( {
 		page,
 	} ) => {
-		setStoreEmail( 1, '' );
-		setStaffEmail( 1, 'staff-a@example.com' );
+		setStoreEmail( USER_STORE_ID, '' );
+		setStaffEmail( USER_STAFF_ID, 'staff-a@example.com' );
 
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '13:00:00',
 			end: '14:00:00',
@@ -439,14 +441,14 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	test( 'smb_mail_from_name / smb_mail_from_email が空でも送信は成功する', async ( {
 		page,
 	} ) => {
-		setStoreEmail( 1, 'store-a@example.com' );
-		setStaffEmail( 1, '' );
+		setStoreEmail( USER_STORE_ID, 'store-a@example.com' );
+		setStaffEmail( USER_STAFF_ID, '' );
 		setOptionSql( 'smb_mail_from_name', "''" );
 		setOptionSql( 'smb_mail_from_email', "''" );
 
 		const scheduleId = insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: ymd( 1 ),
 			start: '16:00:00',
 			end: '17:00:00',

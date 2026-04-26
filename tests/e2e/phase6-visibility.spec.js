@@ -23,6 +23,8 @@ const {
 	getLatestReservation,
 	fillCoreFormAndGoConfirm,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 const { wpCli } = require( './helpers' );
 
@@ -101,7 +103,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		// 店舗 2 件、担当者は店舗1 に 1 名（baseline）→ 担当者ステップもスキップ。
 		const store2 = insertStore( '渋谷店', { sort_order: 30 } );
 		// 店舗1 のみにスケジュールを入れる（sort_order 最小の店舗が選ばれる前提を検証）。
-		seedWeekSchedules( 1, 1, 3 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
 		// store2 にも担当者を作る（フロントの自動割り当て先候補として 1 名）。
 		insertStaff( store2, '渋谷担当', { sort_order: 20 } );
 
@@ -166,15 +168,17 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 	test( 'B: show_staff_front=OFF + 担当者2 → 担当者ステップなし・capacity 合算・自動割当', async ( {
 		page,
 	} ) => {
-		// 店舗1 に担当者を 2 名（既存の id=1 + 新規 1 名）。
-		const staffA = 1; // 担当者1（baseline、sort_order=20 と仮定）
-		const staffB = insertStaff( 1, '担当者B', { sort_order: 30 } );
+		// 店舗1 (id=USER_STORE_ID) に担当者を 2 名（既存の '担当者1' + 新規 1 名）。
+		const staffA = USER_STAFF_ID; // 担当者1（baseline）
+		const staffB = insertStaff( USER_STORE_ID, '担当者B', {
+			sort_order: 30,
+		} );
 
 		// 同じ日時に staffA / staffB それぞれが capacity=1 のスケジュールを持つ。
 		const d = ymd( 1 );
 		insertSchedulesBulk( [
 			{
-				storeId: 1,
+				storeId: USER_STORE_ID,
 				staffId: staffA,
 				date: d,
 				start: '10:00:00',
@@ -182,7 +186,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 				capacity: 1,
 			},
 			{
-				storeId: 1,
+				storeId: USER_STORE_ID,
 				staffId: staffB,
 				date: d,
 				start: '10:00:00',
@@ -310,7 +314,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 
 		// 3 件目: capacity=2 / booked=2 になっているはず → DB レベルで満席を確認。
 		const aggregateAvail = wpCli(
-			`db query "SELECT SUM(capacity), SUM(booked_count) FROM wp_smb_schedules WHERE store_id = 1 AND schedule_date = '${ d }' AND start_time = '10:00:00';" --skip-column-names`
+			`db query "SELECT SUM(capacity), SUM(booked_count) FROM wp_smb_schedules WHERE store_id = ${ USER_STORE_ID } AND schedule_date = '${ d }' AND start_time = '10:00:00';" --skip-column-names`
 		);
 		const numbers = aggregateAvail
 			.split( /\s+/ )
@@ -331,7 +335,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		// 店舗 2、各店舗に担当者 1 ずつ。
 		const store2 = insertStore( '梅田店', { sort_order: 30 } );
 		insertStaff( store2, '梅田担当', { sort_order: 30 } );
-		seedWeekSchedules( 1, 1, 3 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
 
 		setOption( 'smb_show_store_front', 0 );
 		setOption( 'smb_show_staff_front', 0 );
@@ -397,9 +401,9 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		page,
 	} ) => {
 		const store2 = insertStore( '札幌店', { sort_order: 30 } );
-		insertStaff( 1, '担当者B', { sort_order: 30 } ); // 店舗1 に 2 人目
+		insertStaff( USER_STORE_ID, '担当者B', { sort_order: 30 } ); // 店舗1 に 2 人目
 		insertStaff( store2, '札幌担当', { sort_order: 20 } );
-		seedWeekSchedules( 1, 1, 3 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
 
 		// option はデフォルト（未設定 = ON）。明示的にも ON にしておく。
 		setOption( 'smb_show_store_front', 1 );

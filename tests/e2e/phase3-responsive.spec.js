@@ -35,6 +35,8 @@ const {
 	insertSchedulesBulk,
 	fillCoreFormAndGoConfirm,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 
 // DB seed / restore があるため serial 実行.
@@ -153,7 +155,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await expect(
@@ -199,7 +201,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'month_only' );
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await expect(
@@ -226,7 +228,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -259,7 +261,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -298,7 +300,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 
 	test( '375px: primary ボタンが全幅・最低高さ 44px', async ( { page } ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -326,7 +328,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -370,7 +372,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -422,7 +424,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		setOption( 'smb_color_button', '#ff0066' );
 		setOption( 'smb_color_focus', '#00aabb' );
 		await page.setViewportSize( { width: 375, height: 667 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		// CSS 変数が適用されているか.
@@ -495,7 +497,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 768, height: 1024 } );
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -552,7 +554,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: キーボードのみで日付選択 → 時間枠 → フォーム入力 → 確認画面まで遷移できる', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		// 日付選択ステップ. 最初に有効な日付タイルにフォーカスを置く.
@@ -610,7 +612,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: focus-visible でフォーカスリングが視覚的に表示される（outline-width 2px）', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -675,15 +677,17 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		const { execSync } = require( 'node:child_process' );
 		const path = require( 'node:path' );
 		execSync(
-			`npx wp-env run cli wp db query "INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('銀座店', '', '', '', '', '', '', 0, '#10b981', 1, 20, NOW(), NOW());"`,
+			`npx wp-env run cli wp db query "INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('銀座店', '', '', '', '', '', '', 0, '#10b981', 1, 0, 20, NOW(), NOW());"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
 				stdio: [ 'ignore', 'pipe', 'pipe' ],
 			}
 		);
+		// 「佐藤 美咲」をユーザー店舗 (USER_STORE_ID) に紐づけ。
+		// system エンティティ (id=1) に紐づけてもフロントには出ない。
 		execSync(
-			`npx wp-env run cli wp db query "INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, created_at, updated_at) VALUES (1, '佐藤 美咲', '', '', '', 0, 20, 1, NOW(), NOW());"`,
+			`npx wp-env run cli wp db query "INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STORE_ID }, '佐藤 美咲', '', '', '', 0, 20, 1, 0, NOW(), NOW());"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -691,7 +695,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 			}
 		);
 
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		// 店舗カード.
@@ -737,7 +741,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: フォームエラーが role="alert" で読み上げられる', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -779,7 +783,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: 必須フィールドに aria-required="true" が付与されている', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -814,7 +818,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: ハニーポットフィールドが aria-hidden + tabindex=-1 でアクセス不可', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -850,7 +854,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: 見出し階層 h2/h3 が論理的（StepHeader=h2, 確認画面のグループタイトル=h3）', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		// 日付選択ステップ.
@@ -907,7 +911,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		const page = await context.newPage();
 
 		try {
-			seedWeekSchedules( 1, 1 );
+			seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 			await gotoFrontForm( page );
 
 			await page.waitForSelector(
@@ -940,7 +944,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'print: @media print でアクションボタンが非表示', async ( {
 		page,
 	} ) => {
-		seedWeekSchedules( 1, 1 );
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {

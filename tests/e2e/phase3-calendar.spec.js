@@ -26,6 +26,8 @@ const {
 	insertSchedule,
 	insertSchedulesBulk,
 	ymd,
+	USER_STORE_ID,
+	USER_STAFF_ID,
 } = require( './phase3-helpers' );
 
 // DB seed/restore があるため serial 実行.
@@ -69,7 +71,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		page,
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'day_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await expect(
@@ -92,7 +94,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		page,
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'month_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await expect(
@@ -111,7 +113,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		page,
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'toggle' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
 		await expect(
@@ -152,7 +154,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'day_only' );
 		setOption( 'smb_display_days', 7 );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
@@ -173,7 +175,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'day_only' );
 		setOption( 'smb_display_days', 10 );
-		seedDailySlots( 1, 1, 9 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID, 9 );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
@@ -194,16 +196,16 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		const fewDate = ymd( 1 );
 		const fullDate = ymd( 2 );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: fewDate,
 			start: '10:00:00',
 			end: '11:00:00',
 			capacity: 10,
 		} );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: fullDate,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -276,7 +278,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'month_only' );
 		setOption( 'smb_display_days', 7 );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
 
@@ -312,7 +314,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'month_only' );
 		setOption( 'smb_display_days', 7 );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
 
@@ -326,7 +328,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		page,
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'month_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
 
@@ -344,7 +346,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 
 	test( '月表示: 当日セルに is-today クラスが付く', async ( { page } ) => {
 		setOption( 'smb_calendar_view_mode', 'month_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
 
@@ -364,16 +366,16 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		const d = ymd( 1 );
 		insertSchedulesBulk( [
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d,
 				start: '10:00:00',
 				end: '11:00:00',
 				capacity: 3,
 			},
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d,
 				start: '14:00:00',
 				end: '15:00:00',
@@ -417,16 +419,16 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		const d2 = ymd( 2 );
 		insertSchedulesBulk( [
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d1,
 				start: '10:00:00',
 				end: '11:00:00',
 				capacity: 3,
 			},
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d2,
 				start: '15:00:00',
 				end: '16:00:00',
@@ -458,7 +460,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		page,
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'day_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
 			timeout: 10_000,
@@ -490,8 +492,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		insertSchedulesBulk( [
 			// available: capacity=10 / booked=0.
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d,
 				start: '09:00:00',
 				end: '10:00:00',
@@ -499,8 +501,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 			},
 			// few_left: capacity=10 / booked=7 (>= ceil(10*0.7)=7).
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d,
 				start: '10:00:00',
 				end: '11:00:00',
@@ -508,8 +510,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 			},
 			// full: capacity=2 / booked=2.
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d,
 				start: '11:00:00',
 				end: '12:00:00',
@@ -591,16 +593,16 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		const d2 = ymd( 2 ); // 2日後 → 締切超過 (now >= slot - 3*DAY).
 		insertSchedulesBulk( [
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d4,
 				start: '10:00:00',
 				end: '11:00:00',
 				capacity: 3,
 			},
 			{
-				storeId: 1,
-				staffId: 1,
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
 				date: d2,
 				start: '10:00:00',
 				end: '11:00:00',
@@ -646,8 +648,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		// テスト実行時刻 > 00:30 + (slot-2H) と仮定 (CI が 00:00-00:30 の極狭時間にあたるリスクは無視).
 		const today = ymd( 0 );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: today,
 			start: '00:30:00',
 			end: '01:30:00',
@@ -680,8 +682,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		// 2時間前デッドラインだけなら問題なくOKだが、両方設定では min が採用される.
 		const d3 = ymd( 3 );
 		insertSchedule( {
-			storeId: 1,
-			staffId: 1,
+			storeId: USER_STORE_ID,
+			staffId: USER_STAFF_ID,
 			date: d3,
 			start: '10:00:00',
 			end: '11:00:00',
@@ -715,7 +717,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'day_only' );
 		setOption( 'smb_display_days', 14 );
-		seedDailySlots( 1, 1, 13 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID, 13 );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
@@ -728,7 +730,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_calendar_view_mode', 'day_only' );
 		setOption( 'smb_display_days', 3 );
-		seedDailySlots( 1, 1, 5 ); // DB には 5 日分入れる.
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID, 5 ); // DB には 5 日分入れる.
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
@@ -746,7 +748,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_color_date_selected', '#ff00ff' );
 		setOption( 'smb_calendar_view_mode', 'day_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
@@ -765,7 +767,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} ) => {
 		setOption( 'smb_color_time_selected', '#00ff00' );
 		setOption( 'smb_calendar_view_mode', 'day_only' );
-		seedDailySlots( 1, 1 );
+		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
