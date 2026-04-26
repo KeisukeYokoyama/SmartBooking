@@ -2512,18 +2512,37 @@
 
 	&__grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 12px 16px;
+		/* 1200px以上: 4カラム / 768〜1199px: 3カラム / 481〜767px: 2カラム / 〜480px: 1カラム */
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 16px;
+
+		@media (max-width: 1199px) {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+
+		@media (max-width: 767px) {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		@media (max-width: 480px) {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	&__date-range {
 		display: flex;
 		align-items: flex-end;
 		gap: 8px;
-		min-width: 260px;
+		/* 開始/終了は常にセットで同じ行に。グリッド上で2列幅を占有させる。 */
+		grid-column: span 2;
 
 		.smb-field {
 			flex: 1;
+			min-width: 0;
+		}
+
+		@media (max-width: 480px) {
+			grid-column: auto;
 		}
 	}
 
@@ -3318,14 +3337,8 @@
 /* ---------- レスポンシブ ---------- */
 
 @media (max-width: 780px) {
-	.smb-reservation-filters__grid {
-		grid-template-columns: 1fr;
-	}
-
-	.smb-reservation-filters__date-range {
-		min-width: 0;
-	}
-
+	/* フィルタグリッドのレスポンシブは &__grid 側でブレイクポイントを定義済み。
+	   ここでは予約一覧ヘッダーのアクションボタンのみ調整する。 */
 	.smb-page--reservations .smb-page__actions {
 		width: 100%;
 
