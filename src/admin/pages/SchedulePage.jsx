@@ -167,35 +167,62 @@ export default function SchedulePage() {
 	};
 	const closeAdd = () => setAddModal({ open: false, defaultDate: null });
 
-	const submitAdd = async (items) => {
+	const submitAdd = async ({ schedule_date: scheduleDate, deletions, updates, creates }) => {
+		const totalChanges =
+			(deletions?.length || 0) + (updates?.length || 0) + (creates?.length || 0);
+		if (totalChanges === 0) {
+			showToast('変更はありません。', 'info');
+			closeAdd();
+			return;
+		}
 		setSubmitting(true);
 		try {
-			if (!items || items.length === 0) {
-				showToast('追加できる時間枠がありません（全て既に登録済みです）。', 'info');
-				return;
+			// 削除 → 更新 → 作成 の順で実行（編集モーダルと同じフロー）.
+			// 予約紐付き行の DELETE はサーバ側で 409 などのエラーになるため、その場合は
+			// 全体を失敗とせず通知に集約する。
+			let deletedCount = 0;
+			let blockedCount = 0;
+			for (const del of deletions || []) {
+				try {
+					// eslint-disable-next-line no-await-in-loop
+					await API.schedules.remove(del.id);
+					deletedCount += 1;
+				} catch (err) {
+					blockedCount += 1;
+				}
 			}
-			const res = await API.schedules.create({ items });
-			const created = Number(res?.created || 0);
-			const updated = Number(res?.updated || 0);
-			const skipped = Number(res?.skipped || 0);
+			for (const u of updates || []) {
+				// eslint-disable-next-line no-await-in-loop
+				await API.schedules.update(u.id, u.payload);
+			}
+			let createdCount = 0;
+			let updatedFromCreate = 0;
+			let skippedFromCreate = 0;
+			if (creates && creates.length > 0) {
+				const res = await API.schedules.create({ items: creates });
+				createdCount = Number(res?.created || 0);
+				updatedFromCreate = Number(res?.updated || 0);
+				skippedFromCreate = Number(res?.skipped || 0);
+			}
+
 			const parts = [];
-			if (created > 0) parts.push(`${created}件追加`);
-			if (updated > 0) parts.push(`${updated}件更新`);
-			if (skipped > 0) parts.push(`${skipped}件スキップ（予約あり）`);
-			let message;
-			if (created + updated > 0) {
-				message = `スケジュールを追加: ${parts.join(' / ')}`;
-			} else if (skipped > 0) {
-				message = `変更はありません（${skipped}件は予約ありのためスキップ）`;
-			} else {
-				message = 'スケジュールを追加しました';
-			}
-			showToast(message, created + updated > 0 ? 'success' : 'info');
+			if (createdCount > 0) parts.push(`${createdCount}件追加`);
+			const totalUpdated = (updates?.length || 0) + updatedFromCreate;
+			if (totalUpdated > 0) parts.push(`${totalUpdated}件更新`);
+			if (deletedCount > 0) parts.push(`${deletedCount}件削除`);
+			if (blockedCount > 0) parts.push(`${blockedCount}件削除不可（予約あり）`);
+			if (skippedFromCreate > 0) parts.push(`${skippedFromCreate}件スキップ`);
+
+			const succeeded = createdCount + totalUpdated + deletedCount > 0;
+			const message = parts.length
+				? `スケジュールを保存: ${parts.join(' / ')}`
+				: '変更はありません。';
+			showToast(message, succeeded ? 'success' : 'info');
 			closeAdd();
-			if (items[0]) setSelectedYmd(items[0].schedule_date);
+			if (scheduleDate) setSelectedYmd(scheduleDate);
 			await loadSchedules();
 		} catch (err) {
-			showToast(err.message || 'スケジュールの追加に失敗しました。', 'error', 6000);
+			showToast(err.message || 'スケジュールの保存に失敗しました。', 'error', 6000);
 		} finally {
 			setSubmitting(false);
 		}

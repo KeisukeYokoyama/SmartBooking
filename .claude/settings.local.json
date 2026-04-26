@@ -36,7 +36,18 @@
       "Bash(pkill -f playwright)",
       "Bash(./vendor/bin/phpcs --standard=phpcs.xml.dist includes/)",
       "Bash(./vendor/bin/phpcbf --standard=phpcs.xml.dist includes/)",
-      "Bash(npx prettier *)"
+      "Bash(npx prettier *)",
+      "Bash(unzip -p /Users/keisukeyokoyama/dev/smart-booking/test-results/phase3-flow-Phase-3-Eval-1-12141-・担当者2-→-全ステップ通過して予約番号が表示される-mobile/trace.zip resources/3a6c61d2d9d8782a4b9505bd9433940dfe1d3976.json)",
+      "Bash(python3 -m json.tool)",
+      "Bash(unzip -p /Users/keisukeyokoyama/dev/smart-booking/test-results/phase3-flow-Phase-3-Eval-1-12141-・担当者2-→-全ステップ通過して予約番号が表示される-mobile/trace.zip 0-trace.network)",
+      "Bash(unzip -p /Users/keisukeyokoyama/dev/smart-booking/test-results/phase3-flow-Phase-3-Eval-1-12141-・担当者2-→-全ステップ通過して予約番号が表示される-mobile/trace.zip 0-trace.trace)",
+      "Bash(mkdir -p /tmp/trace_mobile)",
+      "Bash(unzip -o /Users/keisukeyokoyama/dev/smart-booking/test-results/phase3-flow-Phase-3-Eval-1-12141-・担当者2-→-全ステップ通過して予約番号が表示される-mobile/trace.zip)",
+      "Bash(python3 -c \"import sys, json; [print\\(json.dumps\\(json.loads\\(l\\), ensure_ascii=False\\)\\) for l in sys.stdin if l.strip\\(\\)]\")",
+      "Bash(python3 -c ' *)",
+      "Bash(ps -p 80373 -o etime=)",
+      "Bash(npx wp-scripts *)",
+      "Bash(xargs -I{} php -l \"{}\")"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",

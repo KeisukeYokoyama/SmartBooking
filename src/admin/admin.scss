@@ -1933,7 +1933,8 @@
 		width: 96px;
 	}
 	.smb-col-actions {
-		width: 156px;
+		width: 200px;
+		white-space: nowrap;
 	}
 }
 
@@ -1963,8 +1964,14 @@
 
 .smb-schedule-row__actions {
 	display: inline-flex;
-	gap: 8px;
-	flex-wrap: wrap;
+	gap: 4px;
+	flex-wrap: nowrap;
+	white-space: nowrap;
+
+	.smb-link-btn {
+		padding: 4px 8px;
+		white-space: nowrap;
+	}
 }
 
 @media (max-width: 782px) {
@@ -2007,6 +2014,17 @@
 .smb-schedule-form__value {
 	font-weight: 600;
 	color: var(--smb-color-text);
+}
+
+.smb-schedule-form__notice {
+	margin: 0;
+	padding: 10px 14px;
+	background: var(--smb-color-primary-bg);
+	border-left: 3px solid var(--smb-color-primary);
+	border-radius: var(--smb-radius);
+	font-size: 13px;
+	color: var(--smb-color-text);
+	line-height: 1.6;
 }
 
 /* Time slot editor */

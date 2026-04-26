@@ -1,8 +1,13 @@
 /**
- * スケジュール追加モーダル。
+ * スケジュール追加・編集モーダル（統合）。
  *
  * 仕様（smart-booking-spec.md 4.2 スケジュール追加）+ 参考スクショ
  * (docs/reference-ui/admin-schedule-add-modal.png) を踏まえた実装。
+ *
+ * 「追加」と「編集」を1つの操作に統合する。
+ *   - 日付 + 店舗 + 担当者 を選択した時点で、その組み合わせの既存スケジュールを
+ *     検索し、ヒットすれば既存時間枠をフォームにプリセット（編集モード）。
+ *   - 組み合わせを切り替えると、その組み合わせの状態を再ロードする。
  *
  * 入力:
  *   - 日付（必須）
@@ -12,14 +17,9 @@
  *   - 時間枠リスト（開始時間 + 予約可能数。最低1件）
  *   - 利用可能スイッチ
  *
- * バリデーション:
- *   - 必須項目チェック
- *   - 時間枠が1件以上
- *   - 時間の重複チェック（単位幅で衝突しないか）
- *   - capacity >= 1
- *
  * 送信:
- *   同一の日付・店舗・担当者に対し複数時間枠を items: [] として一括 POST。
+ *   親に { schedule_date, deletions, updates, creates } を渡す。
+ *   親側で DELETE → PUT → POST を順に呼んで差分同期する。
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '../../components/Button';
@@ -30,6 +30,48 @@ import { Field } from '../../components/Input';
 import { minutesToTime, timeToMinutes, toYmd } from './dateUtils';
 import TimeSlotEditor from './TimeSlotEditor';
 
+function buildSlotsFromExisting(matching) {
+	return matching.map((s) => ({
+		id: s.id,
+		start_time: (s.start_time || '').slice(0, 5),
+		end_time: (s.end_time || '').slice(0, 5),
+		capacity: s.capacity,
+		is_active: s.is_active,
+		booked_count: s.booked_count,
+		_originalCapacity: s.capacity,
+		_originalStart: (s.start_time || '').slice(0, 5),
+		_originalEnd: (s.end_time || '').slice(0, 5),
+		_originalActive: s.is_active,
+	}));
+}
+
+function defaultEmptySlots() {
+	return [{ id: null, start_time: '10:00', capacity: 1, is_active: 1, booked_count: 0 }];
+}
+
+function findMatchingSchedules(schedulesByDate, date, storeId, staffId) {
+	if (!date || !schedulesByDate) return [];
+	const list = schedulesByDate.get(date) || [];
+	const wantStoreId = storeId ? Number(storeId) : null;
+	const wantStaffId = staffId ? Number(staffId) : null;
+	return list
+		.filter((s) => {
+			if (wantStoreId !== null && Number(s.store_id) !== wantStoreId) return false;
+			if (wantStaffId !== null && Number(s.staff_id) !== wantStaffId) return false;
+			return true;
+		})
+		.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+}
+
+function inferSlotDuration(matching) {
+	if (!matching || matching.length === 0) return 60;
+	const first = matching[0];
+	const sM = timeToMinutes(first.start_time);
+	const eM = timeToMinutes(first.end_time);
+	if (sM !== null && eM !== null && eM - sM > 0) return eM - sM;
+	return 60;
+}
+
 const EMPTY_VALUES = {
 	schedule_date: '',
 	// store_id / staff_id は文字列で保持（Select の value は文字列）。
@@ -38,7 +80,7 @@ const EMPTY_VALUES = {
 	staff_id: '',
 	slotDuration: 60,
 	is_active: 1,
-	slots: [{ id: null, start_time: '10:00', capacity: 1, is_active: 1, booked_count: 0 }],
+	slots: defaultEmptySlots(),
 };
 
 export default function ScheduleAddModal({
@@ -56,6 +98,12 @@ export default function ScheduleAddModal({
 	const [values, setValues] = useState(EMPTY_VALUES);
 	const [errors, setErrors] = useState({});
 	const initialRef = useRef(EMPTY_VALUES);
+	// 現在フォームに読み込まれている (date|store|staff) コンボキー.
+	// このキーが変化したときだけ既存データを再ロードする（無限ループ防止）.
+	const loadedComboRef = useRef('');
+	// 編集モード時の元レコード（API から取得したそのままの形）。
+	// 保存時の差分計算（削除対象の特定）に使う。
+	const originalSchedulesRef = useRef([]);
 
 	// モーダルを開くたびに初期化.
 	useEffect(() => {
@@ -77,16 +125,83 @@ export default function ScheduleAddModal({
 				: staffForStore.length === 1
 					? staffForStore[0].id
 					: '';
+
+		const initialDate = defaultDate || toYmd(new Date());
+		const matching = findMatchingSchedules(
+			schedulesByDate,
+			initialDate,
+			pickedStoreId,
+			pickedStaffId
+		);
+
+		let slots, slotDuration, isActive;
+		if (matching.length > 0) {
+			slots = buildSlotsFromExisting(matching);
+			slotDuration = inferSlotDuration(matching);
+			isActive = matching.some((s) => s.is_active) ? 1 : 0;
+		} else {
+			slots = defaultEmptySlots();
+			slotDuration = 60;
+			isActive = 1;
+		}
+
 		const init = {
-			...EMPTY_VALUES,
-			schedule_date: defaultDate || toYmd(new Date()),
+			schedule_date: initialDate,
 			store_id: pickedStoreId || '',
 			staff_id: pickedStaffId || '',
-			slots: [{ id: null, start_time: '10:00', capacity: 1, is_active: 1, booked_count: 0 }],
+			slotDuration,
+			is_active: isActive,
+			slots,
 		};
 		initialRef.current = init;
+		originalSchedulesRef.current = matching;
+		loadedComboRef.current = `${initialDate}|${pickedStoreId || ''}|${pickedStaffId || ''}`;
 		setValues(init);
-	}, [open, defaultDate, defaultStoreId, defaultStaffId, stores, staff]);
+	}, [open, defaultDate, defaultStoreId, defaultStaffId, stores, staff, schedulesByDate]);
+
+	// コンボ（日付・店舗・担当者）が変わったら、その組み合わせの既存スケジュールを再ロード.
+	useEffect(() => {
+		if (!open) return;
+		const comboKey = `${values.schedule_date}|${values.store_id}|${values.staff_id}`;
+		if (comboKey === loadedComboRef.current) return;
+		if (!values.schedule_date) return;
+
+		const matching = findMatchingSchedules(
+			schedulesByDate,
+			values.schedule_date,
+			values.store_id,
+			values.staff_id
+		);
+
+		let slots, slotDuration, isActive;
+		if (matching.length > 0) {
+			slots = buildSlotsFromExisting(matching);
+			slotDuration = inferSlotDuration(matching);
+			isActive = matching.some((s) => s.is_active) ? 1 : 0;
+		} else {
+			slots = defaultEmptySlots();
+			slotDuration = 60;
+			isActive = 1;
+		}
+
+		setValues((prev) => ({
+			...prev,
+			slots,
+			slotDuration,
+			is_active: isActive,
+		}));
+		initialRef.current = {
+			schedule_date: values.schedule_date,
+			store_id: values.store_id,
+			staff_id: values.staff_id,
+			slotDuration,
+			is_active: isActive,
+			slots,
+		};
+		originalSchedulesRef.current = matching;
+		loadedComboRef.current = comboKey;
+		setErrors({});
+	}, [open, values.schedule_date, values.store_id, values.staff_id, schedulesByDate]);
 
 	// 店舗変更時に担当者を自動絞り込み.
 	const staffOptions = useMemo(() => {
@@ -119,60 +234,33 @@ export default function ScheduleAddModal({
 	const showStoreSelect = stores.filter((s) => s.is_active).length > 0;
 	const showStaffSelect = staffOptions.length > 0;
 
-	// 重複登録防止: 同一 (日付, 店舗, 担当者) で既に登録されている start_time の集合と、
-	// その時間枠に予約が紐づいているか（true なら絶対に削除/上書き不可）を Map で持つ。
-	// 店舗/担当者が未選択の場合は、サーバ側でシステムエンティティ（is_system=1）に補完されるので、
-	// そのケースでも store_id=null/staff_id=null として既存判定する。
-	const existingByStart = useMemo(() => {
-		const map = new Map();
-		if (!values.schedule_date || !schedulesByDate) return map;
-		const list = schedulesByDate.get(values.schedule_date) || [];
-		const wantStoreId = values.store_id ? Number(values.store_id) : null;
-		const wantStaffId = values.staff_id ? Number(values.staff_id) : null;
-		list.forEach((s) => {
-			// 店舗/担当者が指定されているならそれだけ。未指定の場合は全件対象（ユーザーが
-			// どのシステムエンティティに対して追加するか判別しにくいため、表示上は出す）。
-			if (wantStoreId !== null && Number(s.store_id) !== wantStoreId) return;
-			if (wantStaffId !== null && Number(s.staff_id) !== wantStaffId) return;
-			const start = (s.start_time || '').slice(0, 5);
-			if (!start) return;
-			const prev = map.get(start);
-			map.set(start, {
-				start,
-				booked: Math.max(prev?.booked || 0, Number(s.booked_count) || 0),
-			});
-		});
-		return map;
-	}, [schedulesByDate, values.schedule_date, values.store_id, values.staff_id]);
+	const isEditMode = originalSchedulesRef.current.length > 0;
 
 	const validate = () => {
 		const next = { slots: [] };
 		if (!values.schedule_date) next.schedule_date = '日付を選択してください。';
-		// 店舗ドロップダウンが表示されるのに未選択の場合のみエラー。
 		if (showStoreSelect && !values.store_id) next.store_id = '店舗を選択してください。';
-		// 担当者も同様。ユーザー店舗があるが担当者は無い、というケースでは showStaffSelect=false。
 		if (showStaffSelect && !values.staff_id) next.staff_id = '担当者を選択してください。';
 
 		if (!Array.isArray(values.slots) || values.slots.length === 0) {
 			next.slotsGeneral = '時間枠を1件以上追加してください。';
 		} else {
-			// 既に登録済み（フロントで非送信扱いとなる）行はバリデーション/重複チェックの対象外.
 			const normalized = values.slots.map((s, i) => ({
 				...s,
 				index: i,
 				startMin: timeToMinutes(s.start_time),
-				existing: existingByStart.has((s.start_time || '').slice(0, 5)),
 			}));
 			normalized.forEach((s, i) => {
-				if (s.existing) return;
 				if (s.startMin === null) {
 					next.slots[i] = '開始時間の形式が正しくありません。';
 				} else if (Number(s.capacity) < 1) {
 					next.slots[i] = '予約可能数は1以上で入力してください。';
+				} else if (s.id && Number(s.capacity) < Number(s.booked_count)) {
+					next.slots[i] = `既存予約（${s.booked_count}件）より少ない定員には変更できません。`;
 				}
 			});
 			const sorted = [...normalized]
-				.filter((s) => !s.existing && s.startMin !== null)
+				.filter((s) => s.startMin !== null)
 				.sort((a, b) => a.startMin - b.startMin);
 			for (let i = 1; i < sorted.length; i += 1) {
 				const prev = sorted[i - 1];
@@ -181,11 +269,6 @@ export default function ScheduleAddModal({
 					next.slots[cur.index] =
 						`前の時間枠（${prev.start_time}）と重なっています。時間枠単位（${values.slotDuration}分）以上の間隔を空けてください。`;
 				}
-			}
-			// 全て「登録済み」だけだった場合は実質追加対象なしなので案内.
-			const sendable = normalized.filter((s) => !s.existing);
-			if (sendable.length === 0) {
-				next.slotsGeneral = '追加できる時間枠がありません（全て既に登録済みです）。';
 			}
 		}
 
@@ -203,23 +286,63 @@ export default function ScheduleAddModal({
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (!validate()) return;
-		// 既存登録済みの時間枠は除外して送信（バックエンド側でも防御済み）.
-		const items = values.slots
-			.filter((s) => !existingByStart.has((s.start_time || '').slice(0, 5)))
-			.map((s) => {
-				const startMin = timeToMinutes(s.start_time);
-				const endMin = Math.min(24 * 60 - 1, (startMin ?? 0) + values.slotDuration);
-				return {
+
+		// 差分同期: 元レコード(originalSchedulesRef) と現在のスロットを比較し、
+		//   削除（元にあって現在に無い id）/ 更新（id あり & 値変更あり）/ 追加（id 無し）に分類.
+		const original = originalSchedulesRef.current;
+		const currentIds = new Set(
+			values.slots.filter((s) => s.id != null).map((s) => s.id)
+		);
+		const deletions = original.filter((orig) => !currentIds.has(orig.id));
+
+		const updates = [];
+		const creates = [];
+
+		values.slots.forEach((s) => {
+			const startMin = timeToMinutes(s.start_time);
+			const endMin =
+				startMin !== null
+					? Math.min(24 * 60 - 1, startMin + values.slotDuration)
+					: null;
+			const start = s.start_time;
+			const end = endMin !== null ? minutesToTime(endMin) : s.end_time;
+
+			if (s.id == null) {
+				creates.push({
 					store_id: values.store_id ? Number(values.store_id) : 0,
 					staff_id: values.staff_id ? Number(values.staff_id) : 0,
 					schedule_date: values.schedule_date,
-					start_time: s.start_time,
-					end_time: minutesToTime(endMin),
+					start_time: start,
+					end_time: end,
 					capacity: Number(s.capacity),
 					is_active: values.is_active ? 1 : 0,
-				};
-			});
-		onSubmit(items);
+				});
+			} else {
+				const changed =
+					s._originalStart !== start ||
+					s._originalEnd !== end ||
+					Number(s._originalCapacity) !== Number(s.capacity) ||
+					Number(s._originalActive) !== (values.is_active ? 1 : 0);
+				if (changed) {
+					updates.push({
+						id: s.id,
+						payload: {
+							start_time: start,
+							end_time: end,
+							capacity: Number(s.capacity),
+							is_active: values.is_active ? 1 : 0,
+						},
+					});
+				}
+			}
+		});
+
+		onSubmit({
+			schedule_date: values.schedule_date,
+			deletions,
+			updates,
+			creates,
+		});
 	};
 
 	const storeOptions = [
@@ -238,7 +361,7 @@ export default function ScheduleAddModal({
 			open={open}
 			onClose={onClose}
 			isDirty={isDirty}
-			title="スケジュールを追加"
+			title={isEditMode ? 'スケジュールを設定' : 'スケジュールを追加'}
 			size="lg"
 			footer={
 				<>
@@ -246,12 +369,18 @@ export default function ScheduleAddModal({
 						キャンセル
 					</Button>
 					<Button variant="primary" onClick={handleSubmit} loading={submitting}>
-						追加する
+						保存
 					</Button>
 				</>
 			}
 		>
 			<form className="smb-form smb-schedule-form" onSubmit={handleSubmit} noValidate>
+				{isEditMode && (
+					<p className="smb-schedule-form__notice">
+						この日付・店舗・担当者には既にスケジュールが登録されています。下記の時間枠は現在の登録内容です。追加・変更・削除して保存してください。
+					</p>
+				)}
+
 				<Field
 					label="日付"
 					required
@@ -305,7 +434,6 @@ export default function ScheduleAddModal({
 					onSlotsChange={(slots) => update({ slots })}
 					onDurationChange={(slotDuration) => update({ slotDuration })}
 					errors={{ slots: errors.slots, slotsGeneral: errors.slotsGeneral }}
-					existingStartTimes={existingByStart}
 				/>
 
 				<div className="smb-field">
