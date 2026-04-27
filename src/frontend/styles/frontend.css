@@ -8,28 +8,55 @@
  *   - Gen-A では店舗・担当者カードと共通スタイル。カレンダー/フォームの本格スタイルは Gen-B/D。
  */
 
-/* ---------- トークン ---------- */
+/* ---------- トークン (Gen-B) ----------
+ *
+ * spec-amendment-frontend-redesign.md 「変更2: デザイントークン」に準拠。
+ * - ブランドカラー 5 種は管理画面「デザイン」タブから上書き可能（App.jsx が setProperty）。
+ * - --smb-front-color-button-hover は CSS 内で派生（hard-coded #e11d48 既定値）。
+ *   ボタン色を変えてもホバー色を別管理しないという YAGNI 判断（option キーは増やさない）。
+ * - 既存のトークン（text / surface / muted-bg 等）は仕様の値（#333 / #fff / #f8f9fa 等）に揃え直す。
+ */
 
 #smart-booking-app {
-	--smb-front-color-button: #1f2937;
+	/* ブランドカラー（管理画面で変更可） */
+	--smb-front-color-button: #f43f5e;
+	--smb-front-color-button-hover: #e11d48;
 	--smb-front-color-button-text: #ffffff;
-	--smb-front-color-date-selected: #1f2937;
-	--smb-front-color-time-selected: #1f2937;
+	--smb-front-color-date-selected: #374151;
+	--smb-front-color-time-selected: #374151;
 	--smb-front-color-required: #ef4444;
 	/* エイリアス: 設定キー `color_required_mark` に対応する CSS 変数名も用意しておく。
 	   CSS 側では `--smb-front-color-required` を参照するが、App.jsx から両方に書き込む。*/
 	--smb-front-color-required-mark: var(--smb-front-color-required);
-	--smb-front-color-focus: #2563eb;
+	--smb-front-color-focus: #3498db;
 
-	--smb-front-text: #111827;
-	--smb-front-text-muted: #6b7280;
+	/* テキスト */
+	--smb-front-text-body: #333;
+	--smb-front-text-heading: #2c3e50;
+	--smb-front-text-sub: #666;
+	--smb-front-text-muted: #6c757d;
+	/* 既存セレクタが参照している変数名のエイリアスを残す */
+	--smb-front-text: var(--smb-front-text-body);
+
+	/* 背景・ボーダー */
 	--smb-front-bg: #ffffff;
+	--smb-front-bg-card: #ffffff;
+	--smb-front-bg-light: #f8f9fa;
 	--smb-front-surface: #ffffff;
-	--smb-front-muted-bg: #f3f4f6;
-	--smb-front-border: #e5e7eb;
+	--smb-front-muted-bg: #f8f9fa;
+	--smb-front-border-default: #e1e8ed;
+	--smb-front-border-divider: #f1f3f4;
+	--smb-front-border: #e1e8ed;
 	--smb-front-border-strong: #d1d5db;
+	--smb-front-placeholder: #d1d5db;
 
-	--smb-front-radius: 12px;
+	/* 曜日（Gen-C で使用） */
+	--smb-front-color-saturday: #0ea5e9;
+	--smb-front-color-sunday: #f43f5e;
+	--smb-front-color-disabled: #9ca3af;
+
+	/* 角丸 */
+	--smb-front-radius: 8px;
 	--smb-front-radius-sm: 8px;
 
 	--smb-front-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -38,7 +65,7 @@
 	--smb-front-font: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
 		'Noto Sans JP', Meiryo, sans-serif;
 
-	color: var(--smb-front-text);
+	color: var(--smb-front-text-body);
 	font-family: var(--smb-front-font);
 	font-size: 16px;
 	line-height: 1.6;
@@ -1322,6 +1349,269 @@
 	.smb-front-spinner__dot {
 		animation-duration: 1600ms;
 	}
+}
+
+/* ============================================================
+ * Gen-B: コンポーネントスタイル基盤
+ *
+ * spec-amendment-frontend-redesign.md「変更2: デザイントークン」「変更3: UI コンポーネント」のうち、
+ *   - 送信ボタン（プライマリ）
+ *   - テキスト入力フィールド / textarea / select
+ *   - ラジオ・チェックボックス（カード型）
+ *   - セクションヘッダー / 必須バッジ
+ *   - フォームグループ・ラベル・エラーメッセージ
+ *   - フォントとセクション余白の基盤
+ * を担当する。日付/時間ピッカーのスタイル詳細・確認/完了画面・レスポンシブ最終調整・shake/fadeIn 等のアニメは
+ * Gen-C/D の担当。既存の `.smb-front-form__*` `.smb-front-btn--primary` 等は維持しつつ、
+ * 新仕様の class（`.smb-front-input` `.smb-front-btn-primary` `.smb-front-choice-item` 等）も提供して
+ * JSX 側で段階的に置換していく。
+ * ============================================================ */
+
+/* ---------- セクションヘッダー (Gen-B) ---------- */
+
+.smb-front-section-title {
+	font-size: 22px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+	margin: 0 0 20px;
+	line-height: 1.3;
+}
+
+.smb-front-section-desc {
+	font-size: 16px;
+	color: var(--smb-front-text-sub);
+	margin: 0 0 20px;
+	line-height: 1.6;
+}
+
+.smb-front-required-badge {
+	display: inline-block;
+	background: var(--smb-front-color-required);
+	color: #fff;
+	font-size: 10px;
+	font-weight: normal;
+	padding: 2px 6px;
+	border-radius: 2px;
+	margin-left: 8px;
+	vertical-align: middle;
+	line-height: 1.4;
+}
+
+/* ---------- フォームグループ・ラベル・エラー (Gen-B) ---------- */
+
+.smb-front-form-group {
+	margin-bottom: 25px;
+}
+
+.smb-front-form-group:last-child {
+	margin-bottom: 0;
+}
+
+.smb-front-label {
+	display: block;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+	margin-bottom: 8px;
+	line-height: 1.4;
+}
+
+.smb-front-error-message {
+	color: #e74c3c;
+	font-size: 14px;
+	margin: 6px 0 0;
+	line-height: 1.5;
+}
+
+/* ---------- 送信ボタン: プライマリ (Gen-B) ----------
+ *
+ * 仕様: 高さ 60px / padding 18px 30px / 角丸 8px / 17px 600 / フル幅。
+ * ホバー: translateY(-2px) + 影 + ホバー色（--smb-front-color-button-hover）。
+ * 送信中: テキスト透過 + 中央スピナー（::after 疑似要素）。
+ *
+ * NOTE: 既存の `.smb-front-btn .smb-front-btn--primary` は別仕様（min-width 200px / 48px）で
+ * 確認画面の修正/確定ボタン等にも使われている。Gen-B では新クラス `.smb-front-btn-primary` を
+ * 別途用意し、メイン入力画面の「予約内容の確認」ボタンに段階適用する。
+ */
+
+.smb-front-btn-primary {
+	display: block;
+	width: 100%;
+	min-height: 60px;
+	padding: 18px 30px;
+	background: var(--smb-front-color-button);
+	color: #fff;
+	font-family: inherit;
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 1.2;
+	border: none;
+	border-radius: var(--smb-front-radius);
+	cursor: pointer;
+	text-align: center;
+	transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease,
+		opacity 0.2s ease;
+}
+
+.smb-front-btn-primary:hover:not(:disabled) {
+	background: var(--smb-front-color-button-hover);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+}
+
+.smb-front-btn-primary:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-btn-primary:disabled,
+.smb-front-btn-primary[aria-disabled='true'] {
+	opacity: 0.7;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+.smb-front-btn-primary.is-submitting {
+	color: transparent;
+	position: relative;
+	pointer-events: none;
+}
+
+.smb-front-btn-primary.is-submitting::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px;
+	height: 20px;
+	margin: -10px 0 0 -10px;
+	border: 2px solid #fff;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: smb-front-spin 0.8s linear infinite;
+}
+
+/* ---------- テキスト入力フィールド (Gen-B) ----------
+ *
+ * 新クラス `.smb-front-input` `.smb-front-textarea` `.smb-front-select` を提供。
+ * 既存の `.smb-front-form__input` 等とも共存させ、JSX 側で両クラス指定して段階移行。
+ * iOS Safari ズーム抑止のため font-size: 16px を維持。
+ */
+
+.smb-front-input,
+.smb-front-textarea,
+.smb-front-select {
+	display: block;
+	width: 100%;
+	padding: 16px;
+	background: #fff;
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: var(--smb-front-radius);
+	font-family: inherit;
+	font-size: 16px;
+	line-height: 1.5;
+	color: var(--smb-front-text-body);
+	box-sizing: border-box;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.smb-front-textarea {
+	resize: vertical;
+	min-height: 96px;
+	line-height: 1.6;
+}
+
+.smb-front-select {
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: linear-gradient(45deg, transparent 50%, var(--smb-front-text-muted) 50%),
+		linear-gradient(135deg, var(--smb-front-text-muted) 50%, transparent 50%);
+	background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+	background-size: 6px 6px;
+	background-repeat: no-repeat;
+	padding-right: 32px;
+}
+
+.smb-front-input::placeholder,
+.smb-front-textarea::placeholder {
+	color: var(--smb-front-placeholder);
+}
+
+.smb-front-input:focus,
+.smb-front-textarea:focus,
+.smb-front-select:focus {
+	outline: none;
+	border-color: var(--smb-front-color-focus);
+	/* color-mix 未対応ブラウザ向けフォールバックを先に */
+	box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--smb-front-color-focus) 18%, transparent);
+}
+
+.smb-front-input.is-error,
+.smb-front-textarea.is-error,
+.smb-front-select.is-error {
+	border-color: #e74c3c;
+	border-width: 2px;
+	box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+	/* shake / scale アニメは Gen-D で追加 */
+}
+
+/* ---------- ラジオ・チェックボックス: カード型 (Gen-B) ----------
+ *
+ * 仕様: 縦並びカード（gap 12px）/ ホバー & 選択時に枠色を変更 / 角丸 8px。
+ * `.smb-front-choice-list` の中に `.smb-front-choice-item` を並べる構成を想定。
+ */
+
+.smb-front-choice-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.smb-front-choice-item {
+	display: flex;
+	align-items: center;
+	padding: 12px 20px;
+	background: #fff;
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: var(--smb-front-radius);
+	cursor: pointer;
+	transition: border-color 0.2s ease, background-color 0.2s ease;
+	font-size: 16px;
+	color: var(--smb-front-text-body);
+	line-height: 1.5;
+}
+
+.smb-front-choice-item:hover {
+	border-color: var(--smb-front-color-focus);
+	background: var(--smb-front-bg-light);
+}
+
+.smb-front-choice-item.is-selected {
+	border-color: var(--smb-front-color-focus);
+	background: #ebf3fd;
+}
+
+.smb-front-choice-item input[type='radio'],
+.smb-front-choice-item input[type='checkbox'] {
+	margin-right: 12px;
+	width: 18px;
+	height: 18px;
+	accent-color: var(--smb-front-color-focus);
+	cursor: pointer;
+}
+
+/* ---------- ルートのフォント・本文色（Gen-B 上書き） ----------
+ *
+ * 既存の `.smb-front-root` は max-width / padding を指定済み。
+ * Gen-B では本文テキスト色とフォントサイズ・行高を仕様値で上書き。
+ */
+
+.smb-front-root {
+	color: var(--smb-front-text-body);
+	font-size: 16px;
+	line-height: 1.6;
 }
 
 /* ============================================================

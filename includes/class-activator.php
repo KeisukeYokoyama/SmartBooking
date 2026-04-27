@@ -124,12 +124,12 @@ class Smart_Booking_Activator {
 			'smb_chatwork_api_token'           => '',
 			'smb_chatwork_room_id'             => '',
 
-			// デザイン（WordPress admin のブランド色ベース）.
-			'smb_color_button'                 => '#2271b1',
-			'smb_color_date_selected'          => '#2271b1',
-			'smb_color_time_selected'          => '#2271b1',
-			'smb_color_required_mark'          => '#d63638',
-			'smb_color_focus'                  => '#2271b1',
+			// デザイン（フロント予約フォームのブランドカラー）.
+			'smb_color_button'                 => '#f43f5e',
+			'smb_color_date_selected'          => '#374151',
+			'smb_color_time_selected'          => '#374151',
+			'smb_color_required_mark'          => '#ef4444',
+			'smb_color_focus'                  => '#3498db',
 		);
 
 		foreach ( $defaults as $key => $value ) {

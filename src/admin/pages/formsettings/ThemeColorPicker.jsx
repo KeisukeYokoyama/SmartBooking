@@ -23,31 +23,31 @@ export const COLOR_ITEMS = [
 		key: 'smb_color_button',
 		label: 'ボタン色',
 		help: '送信ボタン・確定ボタンなど、フォームのメインボタンの色。',
-		defaultValue: '#2271b1',
+		defaultValue: '#f43f5e',
 	},
 	{
 		key: 'smb_color_date_selected',
 		label: '日付選択色',
 		help: 'カレンダーで選択中の日付を示す背景色。',
-		defaultValue: '#2271b1',
+		defaultValue: '#374151',
 	},
 	{
 		key: 'smb_color_time_selected',
 		label: '時間帯選択色',
 		help: '時間枠ボタンを選択したときの背景色。',
-		defaultValue: '#2271b1',
+		defaultValue: '#374151',
 	},
 	{
 		key: 'smb_color_required_mark',
 		label: '必須マーク色',
 		help: '「必須」バッジ・アスタリスクの色。',
-		defaultValue: '#d63638',
+		defaultValue: '#ef4444',
 	},
 	{
 		key: 'smb_color_focus',
 		label: 'フォーカス色',
 		help: '入力欄にフォーカスしたときの枠線の色。',
-		defaultValue: '#2271b1',
+		defaultValue: '#3498db',
 	},
 ];
 

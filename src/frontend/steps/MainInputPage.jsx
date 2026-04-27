@@ -174,7 +174,7 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 			<div className="smb-front-main-page__actions">
 				<button
 					type="button"
-					className="smb-front-btn smb-front-btn--primary smb-front-main-page__confirm-btn"
+					className="smb-front-btn smb-front-btn--primary smb-front-btn-primary smb-front-main-page__confirm-btn"
 					onClick={handleConfirmClick}
 					disabled={!canConfirm}
 					aria-disabled={!canConfirm}

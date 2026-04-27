@@ -151,14 +151,14 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 					const errMsg = errors[f.field_key];
 					const required = !!f.is_required;
 					const labelEl = (
-						<label htmlFor={id} className="smb-front-form__label">
+						<label htmlFor={id} className="smb-front-form__label smb-front-label">
 							{f.field_label}
 							{required && (
 								<span
-									className="smb-front-form__required"
+									className="smb-front-form__required smb-front-required-badge"
 									aria-label="必須"
 								>
-									*
+									必須
 								</span>
 							)}
 						</label>
@@ -168,13 +168,13 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 					if (f.field_type === 'select') {
 						const opts = Array.isArray(f.field_options) ? f.field_options : [];
 						return (
-							<div key={f.id} className="smb-front-form__row">
+							<div key={f.id} className="smb-front-form__row smb-front-form-group">
 								{labelEl}
 								<select
 									id={id}
 									className={
-										'smb-front-form__select' +
-										(errMsg ? ' has-error' : '')
+										'smb-front-form__select smb-front-select' +
+										(errMsg ? ' has-error is-error' : '')
 									}
 									value={val}
 									onChange={(e) => handleChange(f.field_key, e.target.value)}
@@ -207,11 +207,11 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 					if (f.field_type === 'radio') {
 						const opts = Array.isArray(f.field_options) ? f.field_options : [];
 						return (
-							<div key={f.id} className="smb-front-form__row">
+							<div key={f.id} className="smb-front-form__row smb-front-form-group">
 								{labelEl}
 								<div
 									className={
-										'smb-front-form__options' +
+										'smb-front-form__options smb-front-choice-list' +
 										(errMsg ? ' has-error' : '')
 									}
 									role="radiogroup"
@@ -221,18 +221,22 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 								>
 									{opts.map((o, i) => {
 										const optId = id + '-opt-' + i;
+										const isSelected = val === o;
 										return (
 											<label
 												key={o}
 												htmlFor={optId}
-												className="smb-front-form__option"
+												className={
+													'smb-front-form__option smb-front-choice-item' +
+													(isSelected ? ' is-selected' : '')
+												}
 											>
 												<input
 													id={optId}
 													type="radio"
 													name={f.field_key}
 													value={o}
-													checked={val === o}
+													checked={isSelected}
 													onChange={() =>
 														handleChange(f.field_key, o)
 													}
@@ -260,11 +264,11 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 						const opts = Array.isArray(f.field_options) ? f.field_options : [];
 						const arr = Array.isArray(val) ? val : [];
 						return (
-							<div key={f.id} className="smb-front-form__row">
+							<div key={f.id} className="smb-front-form__row smb-front-form-group">
 								{labelEl}
 								<div
 									className={
-										'smb-front-form__options' +
+										'smb-front-form__options smb-front-choice-list' +
 										(errMsg ? ' has-error' : '')
 									}
 									role="group"
@@ -274,17 +278,21 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 								>
 									{opts.map((o, i) => {
 										const optId = id + '-opt-' + i;
+										const isSelected = arr.includes(o);
 										return (
 											<label
 												key={o}
 												htmlFor={optId}
-												className="smb-front-form__option"
+												className={
+													'smb-front-form__option smb-front-choice-item' +
+													(isSelected ? ' is-selected' : '')
+												}
 											>
 												<input
 													id={optId}
 													type="checkbox"
 													value={o}
-													checked={arr.includes(o)}
+													checked={isSelected}
 													onChange={() =>
 														handleCheckboxToggle(
 															f.field_key,
@@ -314,13 +322,13 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 					// textarea
 					if (f.field_type === 'textarea') {
 						return (
-							<div key={f.id} className="smb-front-form__row">
+							<div key={f.id} className="smb-front-form__row smb-front-form-group">
 								{labelEl}
 								<textarea
 									id={id}
 									className={
-										'smb-front-form__textarea' +
-										(errMsg ? ' has-error' : '')
+										'smb-front-form__textarea smb-front-textarea' +
+										(errMsg ? ' has-error is-error' : '')
 									}
 									rows={4}
 									placeholder={f.placeholder || ''}
@@ -355,14 +363,14 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 									? 'tel'
 									: 'on';
 					return (
-						<div key={f.id} className="smb-front-form__row">
+						<div key={f.id} className="smb-front-form__row smb-front-form-group">
 							{labelEl}
 							<input
 								id={id}
 								type={inputTypeForField(f.field_type)}
 								className={
-									'smb-front-form__input' +
-									(errMsg ? ' has-error' : '')
+									'smb-front-form__input smb-front-input' +
+									(errMsg ? ' has-error is-error' : '')
 								}
 								placeholder={f.placeholder || ''}
 								value={val}
