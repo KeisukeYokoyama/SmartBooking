@@ -147,51 +147,55 @@ export default function ConfirmPage({ state, dispatch }) {
 		dispatch({ type: 'GO_BACK_FROM_CONFIRM' });
 	};
 
+	// Gen-D: ヘッダー直下に「予約日時カード」を集約表示する。
+	// 店舗・担当者は日時カードのサブテキストとしても繋ぎ、空き状況の冗長表示を避ける。
+	const dateLabel = date ? formatDateLabel(date) : '';
+	const timeLabel = time ? (endTime ? `${time} 〜 ${endTime}` : time) : '';
+	const subtitleParts = [];
+	if (showStore && store && store.name) subtitleParts.push(store.name);
+	if (showStaff && staffMember && staffMember.name) subtitleParts.push(staffMember.name);
+	const summarySubtitle = subtitleParts.join(' / ');
+
 	return (
-		<div className="smb-front-step smb-front-confirm-page" ref={topRef}>
+		<div
+			className="smb-front-step smb-front-confirm-page smb-front-section-fadein"
+			ref={topRef}
+		>
 			<StepHeader
 				title="予約内容の確認"
 				subtitle="以下の内容でご予約を確定します。"
 			/>
 
-			<section className="smb-front-confirm">
-				<h3 className="smb-front-confirm__group-title">ご予約内容</h3>
-				<dl className="smb-front-confirm__list">
-					{showStore && store && (
-						<>
-							<dt>店舗</dt>
-							<dd>{store.name}</dd>
-						</>
+			{(dateLabel || timeLabel || summarySubtitle) && (
+				<div className="smb-front-confirm-summary">
+					{(dateLabel || timeLabel) && (
+						<div className="smb-front-confirm-summary__datetime">
+							{dateLabel}
+							{dateLabel && timeLabel ? ' ' : ''}
+							{timeLabel}
+						</div>
 					)}
-					{showStaff && staffMember && (
-						<>
-							<dt>担当者</dt>
-							<dd>{staffMember.name}</dd>
-						</>
+					{summarySubtitle && (
+						<div className="smb-front-confirm-summary__sub">
+							{summarySubtitle}
+						</div>
 					)}
-					{date && (
-						<>
-							<dt>日付</dt>
-							<dd>{formatDateLabel(date)}</dd>
-						</>
-					)}
-					{time && (
-						<>
-							<dt>時間</dt>
-							<dd>
-								{time}
-								{endTime ? <> 〜 {endTime}</> : null}
-							</dd>
-						</>
-					)}
-				</dl>
+				</div>
+			)}
 
-				<h3 className="smb-front-confirm__group-title">お客様情報</h3>
-				<dl className="smb-front-confirm__list">
+			<section className="smb-front-confirm smb-front-confirm-list">
+				<dl
+					className="smb-front-confirm__list smb-front-confirm-list__dl"
+				>
 					{orderedFields.map((f) => (
-						<div key={f.id} className="smb-front-confirm__pair">
-							<dt>{f.field_label}</dt>
-							<dd>{renderValue(f, formValues[f.field_key])}</dd>
+						<div
+							key={f.id}
+							className="smb-front-confirm__pair smb-front-confirm-row"
+						>
+							<dt className="smb-front-confirm-label">{f.field_label}</dt>
+							<dd className="smb-front-confirm-value">
+								{renderValue(f, formValues[f.field_key])}
+							</dd>
 						</div>
 					))}
 				</dl>
@@ -208,7 +212,7 @@ export default function ConfirmPage({ state, dispatch }) {
 						<div className="smb-front-confirm__alert-actions">
 							<button
 								type="button"
-								className="smb-front-btn smb-front-btn--secondary"
+								className="smb-front-btn smb-front-btn--secondary smb-front-btn-outline"
 								onClick={() =>
 									dispatch({ type: 'GO_TO_STEP', payload: 'date' })
 								}
@@ -220,18 +224,10 @@ export default function ConfirmPage({ state, dispatch }) {
 				</div>
 			)}
 
-			<div className="smb-front-form__actions smb-front-form__actions--confirm">
+			<div className="smb-front-form__actions smb-front-form__actions--confirm smb-front-confirm-actions">
 				<button
 					type="button"
-					className="smb-front-btn smb-front-btn--secondary"
-					onClick={handleEdit}
-					disabled={submitting}
-				>
-					入力内容を修正する
-				</button>
-				<button
-					type="button"
-					className="smb-front-btn smb-front-btn--primary"
+					className="smb-front-btn smb-front-btn--primary smb-front-btn-primary smb-front-confirm-actions__primary"
 					onClick={handleConfirm}
 					disabled={submitting}
 					aria-busy={submitting ? 'true' : 'false'}
@@ -244,6 +240,14 @@ export default function ConfirmPage({ state, dispatch }) {
 					) : (
 						<span className="smb-front-btn__label">予約を確定する</span>
 					)}
+				</button>
+				<button
+					type="button"
+					className="smb-front-btn smb-front-btn--secondary smb-front-btn-outline smb-front-confirm-actions__secondary"
+					onClick={handleEdit}
+					disabled={submitting}
+				>
+					入力内容を修正する
 				</button>
 			</div>
 		</div>

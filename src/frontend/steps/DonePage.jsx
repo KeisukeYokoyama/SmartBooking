@@ -32,13 +32,23 @@ export default function DonePage({ state }) {
 	if (!completedReservation) {
 		// 直接アクセスされた場合のフォールバック（本来は起き得ない）。
 		return (
-			<div className="smb-front-step smb-front-done-page" ref={topRef}>
+			<div
+				className="smb-front-step smb-front-done-page smb-front-section-fadein"
+				ref={topRef}
+			>
 				<div className="smb-front-done">
-					<div className="smb-front-done__check" aria-hidden="true">
-						✓
+					<div
+						className="smb-front-done__check smb-front-done-icon"
+						aria-hidden="true"
+					>
+						<span className="smb-front-done-icon__mark">✓</span>
 					</div>
-					<h2 className="smb-front-done__title">ご予約ありがとうございました</h2>
-					<p className="smb-front-done__message">予約が完了しました。</p>
+					<h2 className="smb-front-done__title smb-front-done-title">
+						ご予約ありがとうございました
+					</h2>
+					<p className="smb-front-done__lead smb-front-done-message">
+						予約が完了しました。
+					</p>
 				</div>
 			</div>
 		);
@@ -54,58 +64,68 @@ export default function DonePage({ state }) {
 	const showStaff = settings ? settings.show_staff_front !== false : true;
 
 	return (
-		<div className="smb-front-step smb-front-done-page" ref={topRef}>
+		<div
+			className="smb-front-step smb-front-done-page smb-front-section-fadein"
+			ref={topRef}
+		>
 			<div className="smb-front-done">
-				<div className="smb-front-done__check" aria-hidden="true">
-					✓
+				<div
+					className="smb-front-done__check smb-front-done-icon"
+					aria-hidden="true"
+				>
+					<span className="smb-front-done-icon__mark">✓</span>
 				</div>
-				<h2 className="smb-front-done__title">ご予約ありがとうございました</h2>
-				<p className="smb-front-done__lead">
+				<h2 className="smb-front-done__title smb-front-done-title">
+					ご予約ありがとうございました
+				</h2>
+				<p className="smb-front-done__lead smb-front-done-message">
 					予約を承りました。担当者が確認次第、ご登録のメールアドレスへご連絡いたします。
 				</p>
 
-				<div className="smb-front-done__number">
-					<span className="smb-front-done__number-label">予約番号</span>
-					<span className="smb-front-done__number-value">
-						#{completedReservation.id}
-					</span>
-				</div>
+				<div className="smb-front-done-detail-card">
+					<div className="smb-front-done__number smb-front-done-detail-card__number">
+						<span className="smb-front-done__number-label">予約番号</span>
+						<span className="smb-front-done__number-value">
+							#{completedReservation.id}
+						</span>
+					</div>
 
-				<dl className="smb-front-done__summary">
-					{showStore && completedReservation.store_name && (
-						<>
-							<dt>店舗</dt>
-							<dd>{completedReservation.store_name}</dd>
-						</>
-					)}
-					{showStaff && completedReservation.staff_name && (
-						<>
-							<dt>担当者</dt>
-							<dd>{completedReservation.staff_name}</dd>
-						</>
-					)}
-					{completedReservation.schedule_date && (
-						<>
-							<dt>日付</dt>
-							<dd>{formatDateLabel(completedReservation.schedule_date)}</dd>
-						</>
-					)}
-					{completedReservation.schedule_time && (
-						<>
-							<dt>時間</dt>
-							<dd>
-								{completedReservation.schedule_time}
-								{completedReservation.schedule_end_time
-									? <> 〜 {completedReservation.schedule_end_time}</>
-									: null}
-							</dd>
-						</>
-					)}
-				</dl>
+					<dl className="smb-front-done__summary smb-front-done-detail-card__list">
+						{showStore && completedReservation.store_name && (
+							<>
+								<dt>店舗</dt>
+								<dd>{completedReservation.store_name}</dd>
+							</>
+						)}
+						{showStaff && completedReservation.staff_name && (
+							<>
+								<dt>担当者</dt>
+								<dd>{completedReservation.staff_name}</dd>
+							</>
+						)}
+						{completedReservation.schedule_date && (
+							<>
+								<dt>日付</dt>
+								<dd>{formatDateLabel(completedReservation.schedule_date)}</dd>
+							</>
+						)}
+						{completedReservation.schedule_time && (
+							<>
+								<dt>時間</dt>
+								<dd>
+									{completedReservation.schedule_time}
+									{completedReservation.schedule_end_time
+										? <> 〜 {completedReservation.schedule_end_time}</>
+										: null}
+								</dd>
+							</>
+						)}
+					</dl>
+				</div>
 
 				{message && (
 					<div
-						className="smb-front-done__message"
+						className="smb-front-done__message smb-front-done-completion-message"
 						// settings.completion_message は REST 側で wp_kses_post 済み（HTML 許可項目）。
 						// eslint-disable-next-line react/no-danger
 						dangerouslySetInnerHTML={{ __html: message }}

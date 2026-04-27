@@ -72,7 +72,7 @@ export default function TimeSelect({ state, dispatch, embedded = true }) {
 
 	return (
 		<div
-			className="smb-front-time-slots"
+			className="smb-front-time-slots smb-front-section-fadein"
 			role="region"
 			aria-label="選択した日の時間枠"
 		>

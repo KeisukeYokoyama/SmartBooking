@@ -2269,3 +2269,485 @@
 .smb-front-time-btn__badge {
 	display: none;
 }
+
+/* ============================================================
+ * Gen-D: 確認画面 / 完了画面 の新レイアウト
+ *
+ * spec-amendment-frontend-redesign.md「変更3: UIコンポーネント仕様 — 確認画面 / 完了画面」に準拠。
+ * - Gen-A の `.smb-front-confirm-page` `.smb-front-done-page` の 450px 幅制限はそのまま使う。
+ *   ここでは絶対に max-width を再指定しない（Gen-A の制限を壊さないため）。
+ * - 既存クラス（`.smb-front-confirm` `.smb-front-confirm__list` 等）のスタイルは維持し、
+ *   新クラス（`.smb-front-confirm-summary` `.smb-front-confirm-row` 等）で見た目を上書きする。
+ * - CSS 変数は Gen-B で定義済みのものを参照のみ。再定義しない。
+ * ============================================================ */
+
+/* ---------- 確認画面: セクションタイトル / 予約日時カード (Gen-D) ---------- */
+
+.smb-front-confirm-page .smb-front-step-header__title {
+	font-size: 22px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+	line-height: 1.3;
+}
+
+.smb-front-confirm-page .smb-front-step-header__subtitle {
+	color: var(--smb-front-text-sub);
+	font-size: 14px;
+}
+
+/* 予約日時カード: 中央寄せ・薄背景 */
+.smb-front-confirm-summary {
+	background: var(--smb-front-bg-light);
+	padding: 20px;
+	border-radius: var(--smb-front-radius);
+	margin-bottom: 24px;
+	text-align: center;
+}
+
+.smb-front-confirm-summary__datetime {
+	font-size: 19px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+.smb-front-confirm-summary__sub {
+	margin-top: 6px;
+	font-size: 14px;
+	color: var(--smb-front-text-sub);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+/* ---------- 確認画面: ラベル + 値リスト (Gen-D) ----------
+ * 既存の `.smb-front-confirm` カードの内側を、行単位の flex レイアウトで再構築する。
+ * Gen-C のスタイルは残しつつ、`.smb-front-confirm-list` クラスがある場合のみ
+ * grid を解除して新しい行レイアウトに切り替える。
+ */
+
+.smb-front-confirm.smb-front-confirm-list {
+	background: #ffffff;
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: var(--smb-front-radius);
+	padding: 20px;
+	box-shadow: none;
+}
+
+.smb-front-confirm-list .smb-front-confirm-list__dl {
+	display: block;
+	margin: 0;
+	padding: 0;
+	gap: 0;
+	grid-template-columns: none;
+}
+
+.smb-front-confirm-row {
+	display: flex;
+	gap: 16px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--smb-front-border-divider);
+	align-items: flex-start;
+}
+
+.smb-front-confirm-row:last-child {
+	border-bottom: none;
+}
+
+.smb-front-confirm-label {
+	flex: 0 0 120px;
+	width: 120px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--smb-front-text-muted);
+	margin: 0;
+	line-height: 1.5;
+	padding-top: 2px;
+}
+
+.smb-front-confirm-value {
+	flex: 1 1 auto;
+	font-size: 16px;
+	color: var(--smb-front-text-body);
+	margin: 0;
+	line-height: 1.5;
+	word-break: break-all;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+
+/* ---------- 確認画面: ボタン群 (Gen-D) ----------
+ * 縦並び（gap 12px）。プライマリは Gen-B の `.smb-front-btn-primary` を流用。
+ * セカンダリ（修正する）は新クラス `.smb-front-btn-outline`。
+ */
+
+.smb-front-confirm-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 30px;
+}
+
+/* 既存の form__actions--confirm が 560px 以上で横並びになるルールを上書きして、
+ * 新仕様（縦並び・プライマリが上）に統一する。 */
+@media (min-width: 560px) {
+	.smb-front-form__actions.smb-front-form__actions--confirm.smb-front-confirm-actions {
+		flex-direction: column;
+		justify-content: stretch;
+	}
+}
+
+.smb-front-confirm-actions__primary {
+	/* プライマリは Gen-B の .smb-front-btn-primary 仕様（width:100% / 60px / 17px / 600）に揃う */
+	width: 100%;
+}
+
+.smb-front-confirm-actions__secondary {
+	/* secondary 側で .smb-front-btn--secondary の min-height:48px が効くので維持 */
+	width: 100%;
+}
+
+/* アウトラインボタン（修正する） */
+.smb-front-btn-outline {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 60px;
+	padding: 14px 24px;
+	background: transparent;
+	color: var(--smb-front-text-muted);
+	border: 2px solid var(--smb-front-text-muted);
+	border-radius: var(--smb-front-radius);
+	font-family: inherit;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.smb-front-btn-outline:hover:not(:disabled) {
+	background: var(--smb-front-text-muted);
+	color: #ffffff;
+}
+
+.smb-front-btn-outline:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-btn-outline:disabled,
+.smb-front-btn-outline[aria-disabled='true'] {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+/* ---------- 完了画面 (Gen-D) ----------
+ * 上部に大型アイコン → タイトル → 説明文 → 予約詳細カード の順に配置。
+ * 既存の `.smb-front-done` `.smb-front-done__check` 等のスタイルは残しつつ、
+ * 新クラス `.smb-front-done-icon` 等で見た目を上書きする。
+ */
+
+.smb-front-done-page .smb-front-done {
+	max-width: 100%;
+	padding: 24px 0;
+}
+
+/* 大型アイコン（成功 ✓ / エラー ✗）。背景円ではなくテキスト主体。 */
+.smb-front-done__check.smb-front-done-icon {
+	width: auto;
+	height: auto;
+	min-height: 0;
+	background: transparent;
+	box-shadow: none;
+	color: #28a745;
+	font-size: 56px;
+	font-weight: 700;
+	margin: 0 auto 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.smb-front-done-icon__mark {
+	display: inline-block;
+	font-size: 56px;
+	line-height: 1;
+}
+
+/* エラー時のアイコン色（is-error クラスを付与した場合に効く） */
+.smb-front-done-icon.is-error {
+	color: #dc3545;
+}
+
+/* 完了タイトル */
+.smb-front-done__title.smb-front-done-title {
+	font-size: 22px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+	margin: 0 0 12px;
+	line-height: 1.4;
+	text-align: center;
+}
+
+/* 完了メッセージ（リード文） */
+.smb-front-done__lead.smb-front-done-message {
+	font-size: 16px;
+	color: var(--smb-front-text-sub);
+	line-height: 1.7;
+	margin: 0 0 24px;
+	text-align: center;
+}
+
+/* 予約詳細カード: 白背景 + 枠 + 角丸 */
+.smb-front-done-detail-card {
+	background: #ffffff;
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: var(--smb-front-radius);
+	padding: 20px;
+	margin: 0 auto 16px;
+	text-align: left;
+}
+
+/* 既存の number ブロックは詳細カードの中で中央配置に */
+.smb-front-done-detail-card__number {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 12px 0 16px;
+	margin: 0 0 16px;
+	background: transparent;
+	border-radius: 0;
+	border-bottom: 1px solid var(--smb-front-border-divider);
+}
+
+.smb-front-done-detail-card__list {
+	display: grid;
+	grid-template-columns: 120px 1fr;
+	gap: 8px 16px;
+	font-size: 16px;
+	margin: 0;
+	max-width: 100%;
+}
+
+.smb-front-done-detail-card__list dt {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--smb-front-text-muted);
+	line-height: 1.5;
+	padding-top: 2px;
+}
+
+.smb-front-done-detail-card__list dd {
+	margin: 0;
+	font-size: 16px;
+	color: var(--smb-front-text-body);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+/* 完了メッセージ（管理画面で設定するカスタムメッセージ） */
+.smb-front-done-completion-message {
+	margin-top: 16px;
+	padding: 12px 16px;
+	background: var(--smb-front-bg-light);
+	border-left: 3px solid var(--smb-front-color-button);
+	border-radius: 4px;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--smb-front-text-body);
+	text-align: left;
+}
+
+/* エラー時の戻るリンク（DonePage で is-error 状態を表示する場合に使う） */
+.smb-front-done-back-link {
+	color: var(--smb-front-color-focus);
+	text-decoration: underline;
+	font-size: 14px;
+}
+
+.smb-front-done-back-link:hover {
+	text-decoration: underline;
+	opacity: 0.85;
+}
+
+/* ============================================================
+ * Gen-D: アニメーション
+ *
+ * spec-amendment-frontend-redesign.md「変更4: アニメーション」に準拠。
+ *  - fadeIn:   セクション出現時（TimeSelect / 確認画面 / 完了画面）。
+ *  - shake:    入力エラー（.smb-front-input.is-error 等）。
+ *  - spin:     送信ボタン送信中（Gen-B の `smb-front-spin` keyframes 既存）。
+ *  - toggle:   日/月トグル（Gen-C で transition 0.2s ease 既設）。
+ * `prefers-reduced-motion: reduce` 時はモーションを無効化する。
+ * ============================================================ */
+
+@keyframes smb-front-fadein {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.smb-front-section-fadein {
+	animation: smb-front-fadein 0.3s ease-out;
+}
+
+@keyframes smb-front-error-shake {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.02);
+	}
+}
+
+/* Gen-B の .is-error は既に枠色 / 影を指定済み。Gen-D で shake のみ追加する。 */
+.smb-front-input.is-error,
+.smb-front-textarea.is-error,
+.smb-front-select.is-error {
+	animation: smb-front-error-shake 0.5s ease-in-out;
+}
+
+/* アニメーション低減設定の尊重（既存 @media (prefers-reduced-motion) 追補） */
+@media (prefers-reduced-motion: reduce) {
+	.smb-front-section-fadein {
+		animation: none;
+	}
+	.smb-front-input.is-error,
+	.smb-front-textarea.is-error,
+	.smb-front-select.is-error {
+		animation: none;
+	}
+}
+
+/* ============================================================
+ * Gen-D: レスポンシブ
+ *
+ * spec-amendment-frontend-redesign.md「変更5: レスポンシブ」に準拠。
+ *  - ≤768px: タブレット幅。フォーム padding を緩め、セクション padding を 20px に、
+ *           タイトルを 20px に縮小、日付カード min-width 70px、送信ボタン高さ自動。
+ *  - ≤480px: スマホ幅。日付カード 60×60、月表示ヘッダー縦並び、時間スロット padding 縮小。
+ *  - 375px (iPhone SE 世代): 既存の `width: calc(100vw - 48px)` で破綻しないことを担保。
+ *
+ * 既存の `@media (max-width: 480px)` ブロック（Gen-C で追加済み）はそのまま残し、
+ * 重複しない範囲で追加ルールを記述する。
+ * ============================================================ */
+
+/* タブレット ≤768px */
+@media (max-width: 768px) {
+	.smb-front-root {
+		padding: 15px;
+	}
+
+	.smb-front-main-page__section {
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	.smb-front-section-title {
+		font-size: 20px;
+	}
+
+	.smb-front-confirm.smb-front-confirm-list {
+		padding: 16px;
+	}
+
+	.smb-front-confirm-summary {
+		padding: 16px;
+	}
+
+	/* 日表示カードは Gen-C で 80×80 だが、タブレットでは min-width 70px を許容して詰める */
+	.smb-front-day-tile,
+	.smb-front-date-card {
+		width: 70px;
+		min-width: 70px;
+		height: 70px;
+		min-height: 70px;
+	}
+
+	/* プライマリボタン（送信 / 確認画面の確定）は font 16px / padding 16px 24px / 高さ自動 */
+	.smb-front-btn-primary {
+		font-size: 16px;
+		padding: 16px 24px;
+		min-height: 0;
+	}
+
+	.smb-front-btn-outline {
+		font-size: 16px;
+		padding: 14px 24px;
+		min-height: 0;
+	}
+}
+
+/* スマホ ≤480px（Gen-C で追加済みブロックの追補） */
+@media (max-width: 480px) {
+	.smb-front-day-tile,
+	.smb-front-date-card {
+		width: 60px;
+		min-width: 60px;
+		height: 60px;
+		min-height: 60px;
+		padding: 10px 6px;
+	}
+
+	.smb-front-day-tile__day,
+	.smb-front-date-card__day {
+		font-size: 16px;
+	}
+
+	.smb-front-day-tile__weekday,
+	.smb-front-date-card__weekday {
+		font-size: 10px;
+	}
+
+	.smb-front-time-slot,
+	.smb-front-time-btn {
+		padding: 12px 16px;
+		font-size: 14px;
+	}
+
+	.smb-front-time-btn__time {
+		font-size: 14px;
+	}
+
+	/* 月表示ヘッダー: 縦並び + ナビボタン 36px */
+	.smb-front-month-header,
+	.smb-front-month__nav {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.smb-front-month-nav,
+	.smb-front-month__nav-btn {
+		width: 36px;
+		height: 36px;
+		min-width: 36px;
+		min-height: 36px;
+		font-size: 16px;
+	}
+
+	/* 確認画面のラベル列を狭めて値の領域を確保 */
+	.smb-front-confirm-label {
+		flex: 0 0 96px;
+		width: 96px;
+	}
+
+	.smb-front-done-detail-card__list {
+		grid-template-columns: 96px 1fr;
+		gap: 6px 12px;
+	}
+
+	.smb-front-done__check.smb-front-done-icon,
+	.smb-front-done-icon__mark {
+		font-size: 48px;
+	}
+}
