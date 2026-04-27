@@ -24,7 +24,7 @@ export default function CustomFieldList({ fields, onEdit, onDelete, onMove }) {
 	}
 
 	return (
-		<div className="smb-field-list" role="list" aria-label="カスタムフィールド一覧">
+		<div className="smb-field-list smb-data-list" role="list" aria-label="カスタムフィールド一覧">
 			<div className="smb-field-list__head" aria-hidden="true">
 				<span className="smb-field-list__col-order">並び順</span>
 				<span className="smb-field-list__col-label">ラベル / キー</span>

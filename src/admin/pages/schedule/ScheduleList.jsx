@@ -65,7 +65,7 @@ export default function ScheduleList({
 	let lastGroupKey = null;
 
 	return (
-		<div className="smb-schedule-table-wrap">
+		<div className="smb-schedule-table-wrap smb-data-list">
 			<table className="smb-schedule-table-flat widefat striped">
 				<thead>
 					<tr>

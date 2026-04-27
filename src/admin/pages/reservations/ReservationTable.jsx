@@ -87,7 +87,7 @@ export default function ReservationTable({
 	};
 
 	return (
-		<div className="smb-table-wrapper" role="region" aria-label="予約一覧">
+		<div className="smb-table-wrapper smb-data-list" role="region" aria-label="予約一覧">
 			<table className="smb-table smb-table--reservations">
 				<thead>
 					<tr>

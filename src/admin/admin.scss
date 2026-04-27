@@ -200,6 +200,17 @@
 	}
 }
 
+/* 共通データリスト（テーブル/グリッド一覧の外側ラッパー）。
+   フォーム設定の `.smb-field-list`、予約一覧の `.smb-table-wrapper`、
+   スケジュール一覧の `.smb-schedule-table-wrap` に併用して、
+   3つの一覧テーブルの見た目（外枠・角丸・背景）を統一する。 */
+.smb-data-list {
+	border: 1px solid var(--smb-color-divider);
+	border-radius: var(--smb-radius-lg);
+	overflow: hidden;
+	background: var(--smb-color-bg-elev);
+}
+
 .smb-stub {
 	padding: 40px;
 	color: var(--smb-color-text-muted);
@@ -1923,23 +1934,16 @@
 /* 月一覧テーブル（フラット形式）。 */
 
 .smb-schedule-table-wrap {
+	/* 外枠・角丸・背景は `.smb-data-list` 共通クラスで適用される。
+	   横スクロールはこちらで担当する。 */
 	overflow-x: auto;
-	border: 1px solid var(--smb-color-divider);
-	border-radius: var(--smb-radius);
-	background: var(--smb-color-bg-elev);
-}
-
-/* `.smb-section-card` 内では外側カードがボーダー・背景を担うため二重表示を避ける。 */
-.smb-section-card .smb-schedule-table-wrap {
-	border: 0;
-	border-radius: 0;
-	background: transparent;
+	-webkit-overflow-scrolling: touch;
 }
 
 .smb-schedule-table-flat {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: 13px;
+	font-size: 14px;
 	min-width: 720px;
 
 	th,
@@ -1962,7 +1966,7 @@
 
 	tbody tr {
 		&:hover {
-			background: var(--smb-color-primary-bg);
+			background: var(--smb-color-bg);
 		}
 		&.is-inactive {
 			opacity: 0.6;
@@ -2614,6 +2618,8 @@
 /* ---------- テーブル ---------- */
 
 .smb-table-wrapper {
+	/* 外枠・角丸・背景は `.smb-data-list` 共通クラスで適用される。
+	   横スクロールはこちらで担当する。 */
 	overflow-x: auto;
 	-webkit-overflow-scrolling: touch;
 }
@@ -2622,7 +2628,7 @@
 	width: 100%;
 	border-collapse: separate;
 	border-spacing: 0;
-	font-size: 13px;
+	font-size: 14px;
 }
 
 .smb-table__th {
@@ -2693,7 +2699,7 @@
 	transition: background-color var(--smb-transition);
 
 	&:hover {
-		background: var(--smb-color-primary-bg);
+		background: var(--smb-color-bg);
 	}
 
 	&.is-pending {
@@ -3493,10 +3499,7 @@
 /* ---------- フィールド一覧 ---------- */
 
 .smb-field-list {
-	border: 1px solid var(--smb-color-divider);
-	border-radius: var(--smb-radius-lg);
-	overflow: hidden;
-	background: var(--smb-color-bg-elev);
+	/* 外枠・角丸・背景は `.smb-data-list` 共通クラスで適用される。 */
 
 	&__head,
 	&__row {
