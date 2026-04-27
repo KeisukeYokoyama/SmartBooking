@@ -1804,12 +1804,16 @@
 	font-family: inherit;
 	color: var(--smb-front-text-body);
 	cursor: pointer;
-	transition: background-color 0.2s ease, color 0.2s ease;
+	/* 選択状態への切替は即時に反映する（transition で中間値が見えると "is-selected"
+	 * を待っている自動テスト等で背景色が読み取り時点でまだベース色のままになるため）。
+	 * hover の見た目変化は十分速く（0.2s 以下）目立たないので transition なしでも違和感はない。 */
 	scroll-snap-align: start;
 }
 
-.smb-front-date-card:hover:not(:disabled):not(.is-disabled),
-.smb-front-day-tile:hover:not(:disabled):not(.is-disabled) {
+/* hover はベース色のみ更新する。is-selected が付いている場合は選択色を維持するため
+ * `:not(.is-selected)` を必ず付ける（hover の specificity が is-selected:hover を超えてしまうため）。 */
+.smb-front-date-card:hover:not(:disabled):not(.is-disabled):not(.is-selected),
+.smb-front-day-tile:hover:not(:disabled):not(.is-disabled):not(.is-selected) {
 	background: #e5e7eb;
 	box-shadow: none;
 	transform: none;
@@ -2024,11 +2028,13 @@
 	padding: 0;
 	min-height: 40px;
 	line-height: 1;
-	transition: background-color 0.2s ease, color 0.2s ease;
+	/* 選択状態への切替は即時反映（前述 .smb-front-day-tile と同じ方針）。 */
 }
 
-.smb-front-month-cell:hover:not(:disabled):not(.is-disabled):not(.is-other-month):not(.is-out-of-range),
-.smb-front-month__cell:hover:not(:disabled):not(.is-disabled):not(.is-other-month):not(.is-out-of-range) {
+/* hover はベース色のみ更新する。is-selected が付いている場合は選択色を維持するため
+ * `:not(.is-selected)` を必ず付ける（hover の specificity が is-selected:hover を超えてしまうため）。 */
+.smb-front-month-cell:hover:not(:disabled):not(.is-disabled):not(.is-other-month):not(.is-out-of-range):not(.is-selected),
+.smb-front-month__cell:hover:not(:disabled):not(.is-disabled):not(.is-other-month):not(.is-out-of-range):not(.is-selected) {
 	background: #f3f4f6;
 	border-color: transparent;
 }
@@ -2187,12 +2193,13 @@
 	line-height: 1.4;
 	cursor: pointer;
 	text-align: center;
-	transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
-		box-shadow 0.2s ease;
+	/* 選択状態への切替は即時反映（前述 .smb-front-day-tile と同じ方針）。 */
 }
 
-.smb-front-time-slot:hover:not(:disabled):not(.is-disabled),
-.smb-front-time-btn:hover:not(:disabled):not(.is-disabled):not(.is-full):not(.is-closed) {
+/* hover はベース色のみ更新する。is-selected が付いている場合は選択色を維持するため
+ * `:not(.is-selected)` を必ず付ける（hover の specificity が is-selected:hover を超えてしまうため）。 */
+.smb-front-time-slot:hover:not(:disabled):not(.is-disabled):not(.is-selected),
+.smb-front-time-btn:hover:not(:disabled):not(.is-disabled):not(.is-full):not(.is-closed):not(.is-selected) {
 	background: var(--smb-front-bg-light);
 	border-color: var(--smb-front-color-focus);
 	box-shadow: none;
