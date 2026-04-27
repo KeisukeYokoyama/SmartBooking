@@ -1,11 +1,18 @@
 /**
  * 時間枠選択ステップ。
  *
- * 仕様 3.4「空き状況の表示」:
+ * 仕様 spec-amendment-frontend-redesign.md「変更3: UIコンポーネント仕様」（時間スロット）:
+ *   - 縦並びリスト / 各スロットは幅 100% / padding 15px 20px / 中央寄せ。
+ *   - 枠 1px solid var(--smb-front-border-default) / 角丸 8px / 16px 500。
+ *   - ホバー: 枠 var(--smb-front-color-focus) / 背景 var(--smb-front-bg-light)。
+ *   - 選択: 枠＆背景 var(--smb-front-color-time-selected) (#374151) / 文字 #fff。
+ *   - 無効（締切 / 満席）: 背景 var(--smb-front-bg-light) / 文字 var(--smb-front-text-muted) / 接頭に「×」赤文字。
+ *
+ * 状態 → ラベルマッピング（仕様 3.4 空き状況）:
  *   - available : 通常色、選択可
- *   - few_left  : 警告色（黄色など）+「残りわずか」ラベル、選択可
- *   - full      : グレーアウト + 「満席」ラベル、選択不可
- *   - closed    : グレーアウト + 「締切」ラベル、選択不可
+ *   - few_left  : 通常色のまま選択可、ラベルだけ「残りわずか」
+ *   - full      : 無効 + 「×」プレフィックス
+ *   - closed    : 無効 + 「×」プレフィックス
  *
  * state.date に対応する schedule のみ表示。
  * ボタン押下で SET_TIME を dispatch。reducer が次ステップへ自動遷移する。
@@ -20,7 +27,7 @@ const AVAILABILITY_LABELS = {
 	closed: '締切',
 };
 
-export default function TimeSelect({ state, dispatch }) {
+export default function TimeSelect({ state, dispatch, embedded = true }) {
 	const { date: selectedYmd, schedules, time: selectedTime } = state;
 
 	const daySchedules = useMemo(() => {
@@ -48,16 +55,28 @@ export default function TimeSelect({ state, dispatch }) {
 		});
 	};
 
+	const sectionHeader = embedded ? (
+		<div className="smb-front-time-slots__header">
+			<h3 className="smb-front-section-title">
+				時間帯選択
+				<span className="smb-front-required-badge" aria-hidden="true">必須</span>
+			</h3>
+			<span className="smb-front-time-slots__date" aria-live="polite">{headerText}</span>
+		</div>
+	) : (
+		<div className="smb-front-time-slots__header">
+			<span className="smb-front-time-slots__date" aria-live="polite">{headerText}</span>
+			<span className="smb-front-time-slots__subtitle">ご希望の時間を選んでください</span>
+		</div>
+	);
+
 	return (
 		<div
 			className="smb-front-time-slots"
 			role="region"
 			aria-label="選択した日の時間枠"
 		>
-			<div className="smb-front-time-slots__header">
-				<span className="smb-front-time-slots__date" aria-live="polite">{headerText}</span>
-				<span className="smb-front-time-slots__subtitle">ご希望の時間を選んでください</span>
-			</div>
+			{sectionHeader}
 
 			{daySchedules.length === 0 ? (
 				<p className="smb-front-empty smb-front-time-slots__empty" role="status">
@@ -86,9 +105,11 @@ export default function TimeSelect({ state, dispatch }) {
 								<button
 									type="button"
 									className={[
+										'smb-front-time-slot',
 										'smb-front-time-btn',
 										`is-${s.availability}`,
 										isSelected ? 'is-selected' : '',
+										disabled ? 'is-disabled' : '',
 									]
 										.filter(Boolean)
 										.join(' ')}
@@ -98,11 +119,19 @@ export default function TimeSelect({ state, dispatch }) {
 									aria-pressed={isSelected}
 									aria-label={ariaLabel}
 								>
+									{disabled && (
+										<span
+											className="smb-front-time-slot__prefix smb-front-time-btn__prefix"
+											aria-hidden="true"
+										>
+											×
+										</span>
+									)}
 									<span className="smb-front-time-btn__time" aria-hidden="true">
 										{s.start_time}
 										{s.end_time ? (
 											<>
-												<span> 〜 </span>
+												<span>〜</span>
 												{s.end_time}
 											</>
 										) : null}

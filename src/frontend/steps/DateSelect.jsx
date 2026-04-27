@@ -1,16 +1,21 @@
 /**
  * 日付選択ステップ（カレンダーUI）。
  *
- * 仕様 3.4「カレンダーUI」:
- *   - `settings.calendar_mode` に応じて表示モード切替:
+ * 仕様 spec-amendment-frontend-redesign.md「変更3: UIコンポーネント仕様」:
+ *   - settings.calendar_mode に応じて表示モード切替:
  *       'day_only'   : 横スクロール日表示のみ
  *       'month_only' : 月表示グリッドのみ
- *       'toggle'     : ユーザーが日/月を切替
+ *       'toggle'     : ユーザーが日/月を切替（iOS セグメントコントロール風トグル）
  *   - 表示範囲は今日 〜 今日 + settings.display_period_days - 1 日後まで。
  *   - 日付を選択すると、カレンダーの下に TimeSelect が差し込まれる（呼び出し元が担当）。
- *   - 締切過ぎた日付・全枠満席の日付は disabled。
+ *   - 締切過ぎた日付・全枠満席の日付は disabled（取消線表示）。
  *
- * 本コンポーネントは availability の取得も担当する（useEffect で取得）。
+ * Gen-C 改修ポイント:
+ *   - StepHeader を撤去し、メイン入力画面では「日付選択」セクションタイトル + 必須バッジ + 右上トグル に変更。
+ *   - 日表示カードは「4/27」「月」のみのシンプル構成（80×80 / 角丸 8px / 背景 #f3f4f6）。
+ *   - 月表示は 7 列グリッド + 円形ナビボタン（‹ / ›）+ 曜日ヘッダー。
+ *   - 土曜は smb-front-color-saturday、日曜は smb-front-color-sunday、無効は取消線。
+ *   - 月ナビ disabled 判定は startDate / endDate の範囲を超えるかで決定（settings.display_period_days と整合）。
  */
 import { useEffect, useMemo, useState } from 'react';
 import { publicAPI } from '../api';
@@ -71,6 +76,7 @@ export default function DateSelect({
 	dispatch,
 	children,
 	onBack,
+	embedded = true,
 }) {
 	const { storeId, staffId, settings, date: selectedYmd } = state;
 	const displayDays = settings && settings.display_period_days > 0 ? settings.display_period_days : 7;
@@ -143,43 +149,38 @@ export default function DateSelect({
 
 	const showDay = viewMode === 'day' || calendarMode === 'day_only';
 	const showMonth = viewMode === 'month' || calendarMode === 'month_only';
+	const showToggle = calendarMode === 'toggle';
 
-	return (
-		<div className="smb-front-step">
+	// メイン入力画面に組み込む場合（embedded=true、デフォルト）は StepHeader を出さず、
+	// セクションタイトル + トグル を一段の見出し行で並べる。
+	// embedded=false の場合は従来どおり StepHeader を出す。
+	const sectionHead = embedded ? (
+		<div className="smb-front-date-section-head">
+			<h3 className="smb-front-section-title">
+				日付選択
+				<span className="smb-front-required-badge">必須</span>
+			</h3>
+			{showToggle && <ViewToggle viewMode={viewMode} onChange={setViewMode} />}
+		</div>
+	) : (
+		<>
 			<StepHeader
 				title="日付を選択"
 				subtitle="ご希望の日付を選んでください。"
 				onBack={onBack}
 			/>
-
-			{calendarMode === 'toggle' && (
-				<div
-					className="smb-front-calendar-toggle"
-					role="tablist"
-					aria-label="カレンダー表示切替"
-				>
-					<button
-						type="button"
-						role="tab"
-						aria-selected={viewMode === 'day'}
-						aria-label="日表示に切り替え"
-						className={`smb-front-calendar-toggle__btn ${viewMode === 'day' ? 'is-active' : ''}`}
-						onClick={() => setViewMode('day')}
-					>
-						日
-					</button>
-					<button
-						type="button"
-						role="tab"
-						aria-selected={viewMode === 'month'}
-						aria-label="月表示に切り替え"
-						className={`smb-front-calendar-toggle__btn ${viewMode === 'month' ? 'is-active' : ''}`}
-						onClick={() => setViewMode('month')}
-					>
-						月
-					</button>
+			{showToggle && (
+				<div className="smb-front-date-section-head">
+					<span aria-hidden="true" />
+					<ViewToggle viewMode={viewMode} onChange={setViewMode} />
 				</div>
 			)}
+		</>
+	);
+
+	return (
+		<div className="smb-front-step">
+			{sectionHead}
 
 			{state.availabilityLoading && (
 				<div className="smb-front-calendar-loading">
@@ -222,7 +223,44 @@ export default function DateSelect({
 }
 
 /**
+ * 日/月 切替トグル（iOS セグメントコントロール風）。
+ */
+function ViewToggle({ viewMode, onChange }) {
+	return (
+		<div
+			className="smb-front-view-toggle smb-front-calendar-toggle"
+			role="tablist"
+			aria-label="カレンダー表示切替"
+		>
+			<button
+				type="button"
+				role="tab"
+				aria-selected={viewMode === 'day'}
+				aria-label="日表示に切り替え"
+				className={`smb-front-view-toggle-btn smb-front-calendar-toggle__btn ${viewMode === 'day' ? 'is-active' : ''}`}
+				onClick={() => onChange('day')}
+			>
+				日
+			</button>
+			<button
+				type="button"
+				role="tab"
+				aria-selected={viewMode === 'month'}
+				aria-label="月表示に切り替え"
+				className={`smb-front-view-toggle-btn smb-front-calendar-toggle__btn ${viewMode === 'month' ? 'is-active' : ''}`}
+				onClick={() => onChange('month')}
+			>
+				月
+			</button>
+		</div>
+	);
+}
+
+/**
  * 日表示ストリップ（横スクロール）。
+ *
+ * 各カードは「4/27」「月」だけを表示するシンプル構成。
+ * 土曜・日曜は曜日色、無効日は取消線。
  */
 function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSelect }) {
 	const days = useMemo(
@@ -233,7 +271,7 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 
 	return (
 		<div
-			className="smb-front-day-strip"
+			className="smb-front-date-list smb-front-day-strip"
 			role="list"
 			aria-label="予約可能な日付"
 		>
@@ -260,13 +298,14 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 						type="button"
 						role="listitem"
 						className={[
+							'smb-front-date-card',
 							'smb-front-day-tile',
 							isSelected ? 'is-selected' : '',
 							isToday ? 'is-today' : '',
 							cls.disabled ? 'is-disabled' : '',
 							cls.tone ? `is-tone-${cls.tone}` : '',
-							dow === 0 ? 'is-sun' : '',
-							dow === 6 ? 'is-sat' : '',
+							dow === 0 ? 'is-sunday is-sun' : '',
+							dow === 6 ? 'is-saturday is-sat' : '',
 						]
 							.filter(Boolean)
 							.join(' ')}
@@ -278,19 +317,12 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 						aria-pressed={isSelected}
 						aria-label={ariaLabel}
 					>
-						<span className="smb-front-day-tile__weekday">{d.weekdayLabel}</span>
-						<span className="smb-front-day-tile__day">{d.date.getDate()}</span>
-						<span className="smb-front-day-tile__month">
-							{d.date.getMonth() + 1}月
+						<span className="smb-front-date-card__day smb-front-day-tile__day">
+							{d.date.getMonth() + 1}/{d.date.getDate()}
 						</span>
-						{cls.label && (
-							<span
-								className={`smb-front-day-tile__badge is-${cls.tone}`}
-								aria-hidden="true"
-							>
-								{cls.label}
-							</span>
-						)}
+						<span className="smb-front-date-card__weekday smb-front-day-tile__weekday">
+							{d.weekdayLabel}
+						</span>
 					</button>
 				);
 			})}
@@ -301,6 +333,8 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 /**
  * 月カレンダーグリッド。
  * startDate/endDate の範囲外セルは disabled（隣月または範囲外）。
+ *
+ * 月ナビ前後ボタンは settings.display_period_days で決まる startDate / endDate の範囲を超える方向は disabled。
  */
 function MonthCalendar({
 	startDate,
@@ -327,25 +361,27 @@ function MonthCalendar({
 
 	return (
 		<div className="smb-front-month">
-			<div className="smb-front-month__nav">
+			<div className="smb-front-month-header smb-front-month__nav">
 				<button
 					type="button"
-					className="smb-front-month__nav-btn"
+					className="smb-front-month-nav smb-front-month__nav-btn"
 					onClick={() => canPrev && setViewMonth(prevMonth)}
 					disabled={!canPrev}
 					aria-label="前の月"
 				>
-					←
+					<span className="smb-front-month-nav__icon" aria-hidden="true">‹</span>
 				</button>
-				<div className="smb-front-month__label">{formatYearMonth(viewMonth)}</div>
+				<div className="smb-front-month-title smb-front-month__label" aria-live="polite">
+					{formatYearMonth(viewMonth)}
+				</div>
 				<button
 					type="button"
-					className="smb-front-month__nav-btn"
+					className="smb-front-month-nav smb-front-month__nav-btn"
 					onClick={() => canNext && setViewMonth(nextMonth)}
 					disabled={!canNext}
 					aria-label="次の月"
 				>
-					→
+					<span className="smb-front-month-nav__icon" aria-hidden="true">›</span>
 				</button>
 			</div>
 			<div className="smb-front-month__weekdays" role="row">
@@ -354,9 +390,10 @@ function MonthCalendar({
 						key={wd}
 						role="columnheader"
 						className={[
+							'smb-front-month-day',
 							'smb-front-month__weekday',
-							i === 0 ? 'is-sun' : '',
-							i === 6 ? 'is-sat' : '',
+							i === 0 ? 'is-sunday is-sun' : '',
+							i === 6 ? 'is-saturday is-sat' : '',
 						]
 							.filter(Boolean)
 							.join(' ')}
@@ -365,7 +402,7 @@ function MonthCalendar({
 					</div>
 				))}
 			</div>
-			<div className="smb-front-month__grid" role="grid">
+			<div className="smb-front-month-grid smb-front-month__grid" role="grid">
 				{cells.map((cell) => {
 					const inRange = cell.ymd >= startYmd && cell.ymd <= endYmd;
 					const daySchedules = schedulesByDate.get(cell.ymd) || [];
@@ -391,6 +428,7 @@ function MonthCalendar({
 							key={cell.ymd}
 							type="button"
 							className={[
+								'smb-front-month-cell',
 								'smb-front-month__cell',
 								!cell.isCurrentMonth ? 'is-other-month' : '',
 								!inRange && cell.isCurrentMonth ? 'is-out-of-range' : '',
@@ -398,8 +436,8 @@ function MonthCalendar({
 								isToday ? 'is-today' : '',
 								cls.disabled && inRange && cell.isCurrentMonth ? 'is-disabled' : '',
 								cls.tone && inRange ? `is-tone-${cls.tone}` : '',
-								dow === 0 ? 'is-sun' : '',
-								dow === 6 ? 'is-sat' : '',
+								dow === 0 ? 'is-sunday is-sun' : '',
+								dow === 6 ? 'is-saturday is-sat' : '',
 							]
 								.filter(Boolean)
 								.join(' ')}
@@ -415,14 +453,6 @@ function MonthCalendar({
 							<span className="smb-front-month__cell-day" aria-hidden="true">
 								{cell.date.getDate()}
 							</span>
-							{cls.label && cell.isCurrentMonth && inRange && (
-								<span
-									className={`smb-front-month__cell-badge is-${cls.tone}`}
-									aria-hidden="true"
-								>
-									{cls.label}
-								</span>
-							)}
 						</button>
 					);
 				})}

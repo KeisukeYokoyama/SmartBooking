@@ -1664,3 +1664,608 @@
 .smb-front-main-page__confirm-btn {
 	width: 100%;
 }
+
+/* ============================================================
+ * Gen-C: 日付・時間ピッカー
+ *
+ * spec-amendment-frontend-redesign.md「変更3: UIコンポーネント仕様」のうち、
+ *   - 日付ピッカー（日表示・横スクロールカード）
+ *   - 日付ピッカー（月表示・グリッドカレンダー）
+ *   - 日/月トグル（iOS セグメントコントロール風）
+ *   - 時間スロット（縦並び）
+ * を担当する。
+ *
+ * 設計方針:
+ *   - 既存クラス（.smb-front-day-tile / .smb-front-month__cell / .smb-front-calendar-toggle / .smb-front-time-btn）
+ *     を上書きして見た目を刷新する（Eval テストの破壊を最小化）。
+ *   - 新仕様の class（.smb-front-date-list / .smb-front-month-grid / .smb-front-view-toggle / .smb-front-time-list 等）
+ *     も併記して提供。JSX 側で既存 class と併用する。
+ *   - CSS 変数は Gen-B で定義済みのものを参照のみ（再定義しない）。
+ *   - レスポンシブ専用のメディアクエリは Gen-D 担当。最低限の transition 0.2s ease のみここで設定可。
+ * ============================================================ */
+
+/* ---------- 日/月トグル (Gen-C) ----------
+ *
+ * iOS セグメントコントロール風。コンテナを薄いグレー、アクティブボタンを白＋影で浮かせる。
+ * セクションタイトルの右側に配置されることを想定（DateSelect 側で flex 配置）。
+ */
+
+.smb-front-view-toggle,
+.smb-front-calendar-toggle {
+	display: inline-flex;
+	gap: 0;
+	padding: 4px;
+	background: #f3f4f6;
+	border-radius: 6px;
+	margin: 0;
+}
+
+.smb-front-view-toggle-btn,
+.smb-front-calendar-toggle__btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	background: transparent;
+	padding: 8px 16px;
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	color: #6b7280;
+	border-radius: 4px;
+	cursor: pointer;
+	min-width: 48px;
+	min-height: 32px;
+	line-height: 1;
+	transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.smb-front-view-toggle-btn.is-active,
+.smb-front-calendar-toggle__btn.is-active {
+	background: #ffffff;
+	color: #111827;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+	font-weight: 600;
+}
+
+.smb-front-view-toggle-btn:focus-visible,
+.smb-front-calendar-toggle__btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+/* セクションタイトル + トグル を横並びにするヘッダ行 */
+
+.smb-front-date-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 20px;
+	flex-wrap: wrap;
+}
+
+.smb-front-date-section-head .smb-front-section-title {
+	margin: 0;
+}
+
+/* ---------- 日付ピッカー: 日表示（横スクロールカード）(Gen-C) ----------
+ *
+ * カード 80×80px / padding 15px 10px / 角丸 8px / 背景 #f3f4f6。
+ * ホバー: 背景 #e5e7eb。
+ * 選択時: 背景 var(--smb-front-color-date-selected) #374151 / 文字 #fff。
+ * 土曜: var(--smb-front-color-saturday) / 日曜: var(--smb-front-color-sunday) / 無効: 取消線 + 文字 #9ca3af。
+ *
+ * 内部レイアウト: 日付（4/27 太字 18-20px）+ 曜日（月 12-13px）。
+ */
+
+.smb-front-date-list,
+.smb-front-day-strip {
+	display: flex;
+	gap: 8px;
+	overflow-x: auto;
+	padding: 4px 4px 12px;
+	-webkit-overflow-scrolling: touch;
+	scroll-snap-type: x proximity;
+	scrollbar-width: thin;
+}
+
+.smb-front-date-list::-webkit-scrollbar,
+.smb-front-day-strip::-webkit-scrollbar {
+	height: 6px;
+}
+
+.smb-front-date-list::-webkit-scrollbar-track,
+.smb-front-day-strip::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.smb-front-date-list::-webkit-scrollbar-thumb,
+.smb-front-day-strip::-webkit-scrollbar-thumb {
+	background: #d1d5db;
+	border-radius: 3px;
+}
+
+.smb-front-date-card,
+.smb-front-day-tile {
+	flex: 0 0 auto;
+	width: 80px;
+	height: 80px;
+	min-height: 80px;
+	padding: 15px 10px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	background: #f3f4f6;
+	border: none;
+	border-radius: 8px;
+	font-family: inherit;
+	color: var(--smb-front-text-body);
+	cursor: pointer;
+	transition: background-color 0.2s ease, color 0.2s ease;
+	scroll-snap-align: start;
+}
+
+.smb-front-date-card:hover:not(:disabled):not(.is-disabled),
+.smb-front-day-tile:hover:not(:disabled):not(.is-disabled) {
+	background: #e5e7eb;
+	box-shadow: none;
+	transform: none;
+	border-color: transparent;
+}
+
+.smb-front-date-card:focus-visible,
+.smb-front-day-tile:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-date-card.is-selected,
+.smb-front-day-tile.is-selected {
+	background: var(--smb-front-color-date-selected);
+	border-color: var(--smb-front-color-date-selected);
+	color: #ffffff;
+}
+
+.smb-front-date-card.is-selected:hover,
+.smb-front-day-tile.is-selected:hover {
+	background: var(--smb-front-color-date-selected);
+}
+
+.smb-front-date-card.is-disabled,
+.smb-front-date-card:disabled,
+.smb-front-day-tile.is-disabled,
+.smb-front-day-tile:disabled {
+	background: #f3f4f6;
+	color: var(--smb-front-color-disabled);
+	cursor: not-allowed;
+	opacity: 1;
+	text-decoration: line-through;
+	text-decoration-thickness: 1px;
+}
+
+.smb-front-date-card__day,
+.smb-front-day-tile__day {
+	font-size: 19px;
+	font-weight: 700;
+	line-height: 1.1;
+	letter-spacing: 0.2px;
+}
+
+.smb-front-date-card__weekday,
+.smb-front-day-tile__weekday {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--smb-front-text-muted);
+	line-height: 1.2;
+}
+
+/* 月ラベルは Gen-C 仕様では非表示（カードに「4/27」と「月」のみ表示） */
+.smb-front-day-tile__month {
+	display: none;
+}
+
+/* 選択時の文字色は白に統一 */
+.smb-front-date-card.is-selected .smb-front-date-card__weekday,
+.smb-front-day-tile.is-selected .smb-front-day-tile__weekday,
+.smb-front-day-tile.is-selected .smb-front-day-tile__day {
+	color: #ffffff;
+	opacity: 1;
+}
+
+/* 土・日の曜日色（未選択時のみ） */
+.smb-front-date-card.is-saturday:not(.is-selected) .smb-front-date-card__day,
+.smb-front-date-card.is-saturday:not(.is-selected) .smb-front-date-card__weekday,
+.smb-front-day-tile.is-sat:not(.is-selected):not(.is-disabled):not(:disabled) .smb-front-day-tile__day,
+.smb-front-day-tile.is-sat:not(.is-selected):not(.is-disabled):not(:disabled) .smb-front-day-tile__weekday {
+	color: var(--smb-front-color-saturday);
+}
+
+.smb-front-date-card.is-sunday:not(.is-selected) .smb-front-date-card__day,
+.smb-front-date-card.is-sunday:not(.is-selected) .smb-front-date-card__weekday,
+.smb-front-day-tile.is-sun:not(.is-selected):not(.is-disabled):not(:disabled) .smb-front-day-tile__day,
+.smb-front-day-tile.is-sun:not(.is-selected):not(.is-disabled):not(:disabled) .smb-front-day-tile__weekday {
+	color: var(--smb-front-color-sunday);
+}
+
+/* バッジは Gen-C 仕様では非表示。日表示カードはシンプルに保つ。 */
+.smb-front-day-tile__badge {
+	display: none;
+}
+
+/* ---------- 日付ピッカー: 月表示（グリッドカレンダー）(Gen-C) ----------
+ *
+ * 7 列グリッド / gap 4px / セル aspect-ratio 1。
+ * ヘッダー: 月タイトル中央 18px 600 + 左右ナビボタン（円形 40px、薄ボーダー、< / >）。
+ * 曜日行: 14px 太字 中央寄せ。
+ * 通常日: 中央寄せ 16px / hover で背景 #f3f4f6。
+ * 選択日: 背景 var(--smb-front-color-date-selected) / 文字 #fff / 角丸 8px。
+ * 無効日（範囲外/締切/満席）: opacity 0.5 / 取消線 / 文字 #d1d5db / cursor not-allowed。
+ * 前後月の日付: 文字 var(--smb-front-color-disabled) #9ca3af。
+ */
+
+.smb-front-month {
+	margin-bottom: 0;
+}
+
+.smb-front-month-header,
+.smb-front-month__nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+	gap: 8px;
+}
+
+.smb-front-month-title,
+.smb-front-month__label {
+	font-size: 18px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+	text-align: center;
+	flex: 1 1 auto;
+	line-height: 1.2;
+}
+
+.smb-front-month-nav,
+.smb-front-month__nav-btn {
+	width: 40px;
+	height: 40px;
+	min-width: 40px;
+	min-height: 40px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #ffffff;
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: 50%;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 18px;
+	color: var(--smb-front-text-body);
+	line-height: 1;
+	transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.smb-front-month-nav:hover:not(:disabled),
+.smb-front-month__nav-btn:hover:not(:disabled) {
+	background: #f3f4f6;
+	border-color: var(--smb-front-border-strong);
+}
+
+.smb-front-month-nav:focus-visible,
+.smb-front-month__nav-btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-month-nav:disabled,
+.smb-front-month__nav-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.smb-front-month-nav__icon {
+	font-size: 18px;
+	line-height: 1;
+}
+
+.smb-front-month__weekdays {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 4px;
+	margin-bottom: 8px;
+}
+
+.smb-front-month-day,
+.smb-front-month__weekday {
+	text-align: center;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--smb-front-text-muted);
+	padding: 8px 0;
+	line-height: 1.2;
+}
+
+.smb-front-month-day.is-saturday,
+.smb-front-month__weekday.is-sat {
+	color: var(--smb-front-color-saturday);
+}
+
+.smb-front-month-day.is-sunday,
+.smb-front-month__weekday.is-sun {
+	color: var(--smb-front-color-sunday);
+}
+
+.smb-front-month-grid,
+.smb-front-month__grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 4px;
+}
+
+.smb-front-month-cell,
+.smb-front-month__cell {
+	aspect-ratio: 1 / 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--smb-front-text-body);
+	padding: 0;
+	min-height: 40px;
+	line-height: 1;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.smb-front-month-cell:hover:not(:disabled):not(.is-disabled):not(.is-other-month):not(.is-out-of-range),
+.smb-front-month__cell:hover:not(:disabled):not(.is-disabled):not(.is-other-month):not(.is-out-of-range) {
+	background: #f3f4f6;
+	border-color: transparent;
+}
+
+.smb-front-month-cell:focus-visible,
+.smb-front-month__cell:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: -1px;
+}
+
+.smb-front-month-cell.is-selected,
+.smb-front-month__cell.is-selected {
+	background: var(--smb-front-color-date-selected);
+	border-color: var(--smb-front-color-date-selected);
+	color: #ffffff;
+	font-weight: 600;
+}
+
+.smb-front-month-cell.is-selected:hover,
+.smb-front-month__cell.is-selected:hover {
+	background: var(--smb-front-color-date-selected);
+}
+
+/* 範囲外（過去 / display_period 超過）と前後月セルは取消線つきで薄く */
+.smb-front-month-cell.is-other-month,
+.smb-front-month-cell.is-out-of-range,
+.smb-front-month__cell.is-other-month,
+.smb-front-month__cell.is-out-of-range {
+	background: transparent;
+	color: var(--smb-front-color-disabled);
+	cursor: not-allowed;
+	opacity: 0.5;
+	text-decoration: line-through;
+	text-decoration-thickness: 1px;
+}
+
+/* スケジュール側で disabled（締切 / 満席）になっている日 */
+.smb-front-month-cell.is-disabled,
+.smb-front-month__cell.is-disabled {
+	background: transparent;
+	color: var(--smb-front-color-disabled);
+	cursor: not-allowed;
+	opacity: 0.5;
+	text-decoration: line-through;
+	text-decoration-thickness: 1px;
+}
+
+.smb-front-month-cell:disabled,
+.smb-front-month__cell:disabled {
+	cursor: not-allowed;
+}
+
+/* 土 / 日（選択中・他月以外） */
+.smb-front-month-cell.is-saturday:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled),
+.smb-front-month__cell.is-sat:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled) {
+	color: var(--smb-front-color-saturday);
+}
+
+.smb-front-month-cell.is-saturday:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled) .smb-front-month__cell-day,
+.smb-front-month__cell.is-sat:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled) .smb-front-month__cell-day {
+	color: var(--smb-front-color-saturday);
+}
+
+.smb-front-month-cell.is-sunday:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled),
+.smb-front-month__cell.is-sun:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled) {
+	color: var(--smb-front-color-sunday);
+}
+
+.smb-front-month-cell.is-sunday:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled) .smb-front-month__cell-day,
+.smb-front-month__cell.is-sun:not(.is-selected):not(.is-other-month):not(.is-out-of-range):not(.is-disabled) .smb-front-month__cell-day {
+	color: var(--smb-front-color-sunday);
+}
+
+/* 月セル内の日付テキスト（色はセル本体から継承させる） */
+.smb-front-month-grid .smb-front-month__cell-day,
+.smb-front-month__grid .smb-front-month__cell-day {
+	font-size: 16px;
+	font-weight: 500;
+	line-height: 1;
+	color: inherit;
+}
+
+.smb-front-month-cell.is-selected .smb-front-month__cell-day,
+.smb-front-month__cell.is-selected .smb-front-month__cell-day {
+	color: #ffffff;
+	font-weight: 600;
+}
+
+/* バッジは月表示でも非表示（シンプル化） */
+.smb-front-month__cell-badge {
+	display: none;
+}
+
+/* 「今日」のハイライトはあえて控えめにする（選択リングと衝突させない） */
+.smb-front-month-cell.is-today:not(.is-selected),
+.smb-front-month__cell.is-today:not(.is-selected) {
+	box-shadow: inset 0 0 0 1px var(--smb-front-border-default);
+}
+
+/* ---------- 時間スロット（縦並び）(Gen-C) ----------
+ *
+ * 縦並びリスト / 各スロット 幅 100% / padding 15px 20px / 中央寄せ。
+ * 枠 1px solid var(--smb-front-border-default) / 角丸 var(--smb-front-radius) (8px) / 16px 500。
+ * 背景 #fff / 文字 var(--smb-front-text-body)。
+ * ホバー: 枠 var(--smb-front-color-focus) / 背景 var(--smb-front-bg-light)。
+ * 選択時: 枠＆背景 var(--smb-front-color-time-selected) (#374151) / 文字 #fff。
+ * 無効: 背景 var(--smb-front-bg-light) / 文字 var(--smb-front-text-muted) / 「× 10:00〜10:30」表記。
+ */
+
+.smb-front-time-slots {
+	margin-top: 30px;
+	padding-top: 0;
+	border-top: none;
+}
+
+.smb-front-time-slots__header {
+	margin-bottom: 16px;
+}
+
+.smb-front-time-slots__date {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--smb-front-text-heading);
+}
+
+.smb-front-time-slots__subtitle {
+	font-size: 13px;
+	color: var(--smb-front-text-muted);
+}
+
+.smb-front-time-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.smb-front-time-slot,
+.smb-front-time-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	width: 100%;
+	min-height: 0;
+	padding: 15px 20px;
+	background: #ffffff;
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: var(--smb-front-radius);
+	font-family: inherit;
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--smb-front-text-body);
+	line-height: 1.4;
+	cursor: pointer;
+	text-align: center;
+	transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+.smb-front-time-slot:hover:not(:disabled):not(.is-disabled),
+.smb-front-time-btn:hover:not(:disabled):not(.is-disabled):not(.is-full):not(.is-closed) {
+	background: var(--smb-front-bg-light);
+	border-color: var(--smb-front-color-focus);
+	box-shadow: none;
+	transform: none;
+	color: var(--smb-front-text-body);
+}
+
+.smb-front-time-slot:focus-visible,
+.smb-front-time-btn:focus-visible {
+	outline: 2px solid var(--smb-front-color-focus);
+	outline-offset: 2px;
+}
+
+.smb-front-time-slot.is-selected,
+.smb-front-time-btn.is-selected {
+	background: var(--smb-front-color-time-selected);
+	border-color: var(--smb-front-color-time-selected);
+	color: #ffffff;
+	font-weight: 600;
+}
+
+.smb-front-time-slot.is-selected:hover,
+.smb-front-time-btn.is-selected:hover {
+	background: var(--smb-front-color-time-selected);
+	border-color: var(--smb-front-color-time-selected);
+	color: #ffffff;
+}
+
+/* few_left は通常スタイルに揃える（カード全体の警告色は控えめに、テキスト側で表現） */
+.smb-front-time-btn.is-few_left {
+	background: #ffffff;
+	border-color: var(--smb-front-border-default);
+}
+
+.smb-front-time-btn.is-few_left:hover:not(:disabled) {
+	background: var(--smb-front-bg-light);
+	border-color: var(--smb-front-color-focus);
+}
+
+.smb-front-time-btn.is-few_left.is-selected {
+	background: var(--smb-front-color-time-selected);
+	border-color: var(--smb-front-color-time-selected);
+	color: #ffffff;
+}
+
+/* 無効スロット（締切 / 満席） */
+.smb-front-time-slot.is-disabled,
+.smb-front-time-slot:disabled,
+.smb-front-time-btn.is-full,
+.smb-front-time-btn.is-closed,
+.smb-front-time-btn:disabled {
+	background: var(--smb-front-bg-light);
+	border-color: var(--smb-front-border-default);
+	color: var(--smb-front-text-muted);
+	cursor: not-allowed;
+	opacity: 1;
+	font-weight: 500;
+}
+
+.smb-front-time-slot__prefix,
+.smb-front-time-btn__prefix {
+	color: #e74c3c;
+	font-weight: 700;
+	margin-right: 4px;
+}
+
+.smb-front-time-btn__time {
+	font-size: 16px;
+	font-weight: inherit;
+	line-height: 1.2;
+}
+
+/* 既存の small バッジは Gen-C デザインでは非表示にしつつ、a11y 用には残す */
+.smb-front-time-btn__badge {
+	display: none;
+}
