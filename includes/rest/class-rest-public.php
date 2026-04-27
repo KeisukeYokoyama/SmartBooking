@@ -358,13 +358,27 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			}
 		}
 
-		// 意味のあるデフォルトを補完する。
-		if ( ! in_array( $out['flow_order'], array( 'A', 'B' ), true ) ) {
-			$out['flow_order'] = 'A';
-		}
-		if ( ! in_array( $out['calendar_mode'], array( 'day_only', 'month_only', 'toggle' ), true ) ) {
-			$out['calendar_mode'] = 'day_only';
-		}
+		// 管理画面が保存する値（date-first / form-first / day-horizontal / month-grid /
+		// day-and-month）を、フロント React が解釈する正準値（A / B / day_only / month_only /
+		// toggle）に正規化する。両側の語彙が異なるため、ここでブリッジしないと
+		// フロントは常にデフォルトにフォールバックする。
+		$flow_map = array(
+			'A'          => 'A',
+			'B'          => 'B',
+			'date-first' => 'A',
+			'form-first' => 'B',
+		);
+		$calendar_map = array(
+			'day_only'       => 'day_only',
+			'month_only'     => 'month_only',
+			'toggle'         => 'toggle',
+			'day-horizontal' => 'day_only',
+			'month-grid'     => 'month_only',
+			'day-and-month'  => 'toggle',
+		);
+		$out['flow_order']    = isset( $flow_map[ $out['flow_order'] ] ) ? $flow_map[ $out['flow_order'] ] : 'A';
+		$out['calendar_mode'] = isset( $calendar_map[ $out['calendar_mode'] ] ) ? $calendar_map[ $out['calendar_mode'] ] : 'day_only';
+
 		if ( $out['display_period_days'] <= 0 ) {
 			$out['display_period_days'] = 7;
 		}
