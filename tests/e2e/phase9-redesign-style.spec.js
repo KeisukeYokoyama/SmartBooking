@@ -166,13 +166,18 @@ test.describe( 'Phase 9 Eval-2: デザイントークン / コンポーネント
 		page,
 	} ) => {
 		seedFewSchedules();
+		// restoreBaseline が smb_calendar_view_mode を delete するため、
+		// REST 側のデフォルト 'day_only' が返ってトグルが描画されない。
+		// 明示的に 'day-and-month'（= REST が 'toggle' に正規化する値）をセットして
+		// 日/月トグルが描画される状態を作る。afterAll の restoreBaseline で復元される。
+		wpCli( `wp option update smb_calendar_view_mode "day-and-month"` );
+
 		await gotoFrontForm( page );
 
-		// 日表示 → 月表示へ切り替え（仕様: トグルボタン「月」）.
-		const monthToggle = page.getByRole( 'button', { name: /月表示|月$/ } ).first();
-		if ( await monthToggle.count() ) {
-			await monthToggle.click();
-		}
+		// トグルボタンは role="tab"（DateSelect.jsx の <button role="tab">）。
+		const monthToggle = page.getByRole( 'tab', { name: /月/ } ).first();
+		await expect( monthToggle ).toBeVisible();
+		await monthToggle.click();
 
 		await page.waitForSelector(
 			'.smb-front-month-cell:not(.is-disabled):not(.is-other-month):not(.is-out-of-range)',

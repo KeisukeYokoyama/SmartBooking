@@ -49,7 +49,12 @@
       "Bash(npx wp-scripts *)",
       "Bash(xargs -I{} php -l \"{}\")",
       "Bash(awk 'BEGIN{RS=\"@media\";} /smb-card/' build/admin.css)",
-      "Bash(awk 'BEGIN{RS=\"@media\";} /smb-card[^_]/' build/admin.css)"
+      "Bash(awk 'BEGIN{RS=\"@media\";} /smb-card[^_]/' build/admin.css)",
+      "Bash(python3 -c 'import sys,json; d=json.load\\(sys.stdin\\); print\\(\"flow_order=\", d[\"flow_order\"]\\); print\\(\"calendar_mode=\", d[\"calendar_mode\"]\\)')",
+      "Bash(awk -v RS='}' '/smb-front-day-tile/ && /background/' /Users/keisukeyokoyama/dev/smart-booking/build/frontend.css)",
+      "Bash(awk -v RS='}' '/background/ && /smb-front-\\(day-tile|date-card\\)/' /Users/keisukeyokoyama/dev/smart-booking/build/frontend.css)",
+      "Bash(awk -v RS='}' 'NR>20 && /smb-front-\\(day-tile|date-card\\)/ && /background/' /Users/keisukeyokoyama/dev/smart-booking/build/frontend.css)",
+      "Bash(md5 /Users/keisukeyokoyama/dev/smart-booking/build/frontend.css /tmp/trace-extract/resources/49f68052d2b58b4c618fc810c84ac0951f14a28b.css)"
     ],
     "deny": [
       "Bash(npx wp-env run cli wp plugin delete*)",
