@@ -2432,11 +2432,6 @@
    予約一覧ページ
    ========================================================================== */
 
-.smb-section-card--reservations {
-	padding: 0;
-	overflow: hidden;
-}
-
 /* ---------- ステータスバッジ ---------- */
 
 .smb-status-badge {
@@ -2484,9 +2479,10 @@
 /* ---------- フィルター ---------- */
 
 .smb-reservation-filters {
-	/* 外側カード（`.smb-section-card--reservations`）の上部に配置され、
+	/* 外側カード（`.smb-section-card`）の上部に配置され、
 	   テーブルとの境界線を底辺に持つフィルタブロック。 */
 	border-bottom: 1px solid var(--smb-color-divider);
+	margin-bottom: 16px;
 
 	&__header {
 		display: flex;

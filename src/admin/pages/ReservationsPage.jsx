@@ -330,7 +330,7 @@ export default function ReservationsPage() {
 				/>
 			)}
 
-			<div className="smb-section-card smb-section-card--reservations">
+			<div className="smb-section-card">
 				<ReservationFilters
 					filters={filters}
 					onChange={handleFiltersChange}
