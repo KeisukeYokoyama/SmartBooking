@@ -137,7 +137,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		// 追加ボタン.
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 		await expect(
 			page.locator( '.smb-toast--success' ).last()
@@ -167,7 +167,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		await startInputs.nth( 1 ).fill( '10:00' );
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 		await expect(
 			page.locator( '.smb-field__error', { hasText: /重なって/ } )
@@ -186,7 +186,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 			.click();
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 		await expect(
 			page.locator( '.smb-field__error, .smb-slot-editor__empty' ).first()
@@ -677,7 +677,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		await dateInput.fill( '' );
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 		// schedule_date 用のエラーが表示される.
 		await expect(
@@ -707,7 +707,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		// このまま保存 → 成功する（capacity=1 で送信される）.
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 		await expect(
 			page.locator( '.smb-toast--success' ).last()
@@ -826,7 +826,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		// 保存できる.
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 		await expect(
 			page.locator( '.smb-toast--success' ).last()

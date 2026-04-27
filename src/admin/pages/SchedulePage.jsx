@@ -402,69 +402,69 @@ export default function SchedulePage() {
 				</div>
 			</div>
 
-			<div className="smb-schedule-toolbar">
-				<div className="smb-schedule-toolbar__nav">
-					<button
-						type="button"
-						className="smb-icon-btn"
-						onClick={goPrevMonth}
-						aria-label="前の月"
-					>
-						‹
-					</button>
-					<button
-						type="button"
-						className="smb-icon-btn"
-						onClick={goNextMonth}
-						aria-label="次の月"
-					>
-						›
-					</button>
-					<button type="button" className="smb-btn smb-btn--secondary smb-btn--sm" onClick={goToday}>
-						今日
-					</button>
-					<h2 className="smb-schedule-toolbar__month">{formatYearMonth(currentMonth)}</h2>
-				</div>
-				<div className="smb-schedule-toolbar__filters">
-					{showStoreFilter && (
-						<label className="smb-inline-field">
-							<span className="smb-inline-field__label">店舗</span>
-							<select
-								className="smb-select"
-								value={selectedStoreId}
-								onChange={(e) => {
-									setSelectedStoreId(e.target.value);
-									setSelectedStaffId('');
-								}}
-							>
-								{storeFilterOptions.map((o) => (
-									<option key={o.value} value={o.value}>
-										{o.label}
-									</option>
-								))}
-							</select>
-						</label>
-					)}
-					{showStaffFilter && (
-						<label className="smb-inline-field">
-							<span className="smb-inline-field__label">担当者</span>
-							<select
-								className="smb-select"
-								value={selectedStaffId}
-								onChange={(e) => setSelectedStaffId(e.target.value)}
-							>
-								{staffFilterSelect.map((o) => (
-									<option key={o.value} value={o.value}>
-										{o.label}
-									</option>
-								))}
-							</select>
-						</label>
-					)}
-				</div>
-			</div>
-
 			<div className="smb-section-card">
+				<div className="smb-schedule-toolbar">
+					<div className="smb-schedule-toolbar__nav">
+						<button
+							type="button"
+							className="smb-icon-btn"
+							onClick={goPrevMonth}
+							aria-label="前の月"
+						>
+							‹
+						</button>
+						<button
+							type="button"
+							className="smb-icon-btn"
+							onClick={goNextMonth}
+							aria-label="次の月"
+						>
+							›
+						</button>
+						<button type="button" className="smb-btn smb-btn--secondary smb-btn--sm" onClick={goToday}>
+							今日
+						</button>
+						<h2 className="smb-schedule-toolbar__month">{formatYearMonth(currentMonth)}</h2>
+					</div>
+					<div className="smb-schedule-toolbar__filters">
+						{showStoreFilter && (
+							<label className="smb-inline-field">
+								<span className="smb-inline-field__label">店舗</span>
+								<select
+									className="smb-select"
+									value={selectedStoreId}
+									onChange={(e) => {
+										setSelectedStoreId(e.target.value);
+										setSelectedStaffId('');
+									}}
+								>
+									{storeFilterOptions.map((o) => (
+										<option key={o.value} value={o.value}>
+											{o.label}
+										</option>
+									))}
+								</select>
+							</label>
+						)}
+						{showStaffFilter && (
+							<label className="smb-inline-field">
+								<span className="smb-inline-field__label">担当者</span>
+								<select
+									className="smb-select"
+									value={selectedStaffId}
+									onChange={(e) => setSelectedStaffId(e.target.value)}
+								>
+									{staffFilterSelect.map((o) => (
+										<option key={o.value} value={o.value}>
+											{o.label}
+										</option>
+									))}
+								</select>
+							</label>
+						)}
+					</div>
+				</div>
+
 				<div className="smb-schedule-layout">
 					<div className="smb-schedule-layout__calendar">
 						<CalendarGrid
