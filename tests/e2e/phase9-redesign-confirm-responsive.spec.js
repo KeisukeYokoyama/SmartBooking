@@ -164,9 +164,11 @@ test.describe( 'Phase 9 Eval-4: 確認/完了/レスポンシブ', () => {
 		const labelWidth = await firstRow
 			.locator( '.smb-front-confirm-label' )
 			.evaluate( ( el ) => el.getBoundingClientRect().width );
-		// flex: 0 0 120px で 120px 固定 (誤差±2px).
-		expect( labelWidth ).toBeGreaterThanOrEqual( 118 );
-		expect( labelWidth ).toBeLessThanOrEqual( 122 );
+		// デスクトップ: flex: 0 0 120px / モバイル ≤480px: flex: 0 0 96px (値領域確保のため狭める).
+		const viewportWidth = page.viewportSize().width;
+		const expectedLabelWidth = viewportWidth <= 480 ? 96 : 120;
+		expect( labelWidth ).toBeGreaterThanOrEqual( expectedLabelWidth - 2 );
+		expect( labelWidth ).toBeLessThanOrEqual( expectedLabelWidth + 2 );
 
 		// 値部に入力した名前が含まれること.
 		await expect( list ).toContainText( 'リデザイン 太郎' );
