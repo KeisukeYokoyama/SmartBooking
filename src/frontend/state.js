@@ -3,20 +3,22 @@
  *
  * ステップ制の予約フォームに必要な最小限の state を useReducer で保持する。
  *
- * ステップ一覧:
+ * ステップ一覧 (Gen-A 以降):
  *   'loading'  — 初期データ取得中
  *   'error'    — 初期データ取得失敗
  *   'store'    — 店舗選択
  *   'staff'    — 担当者選択
- *   'date'     — 日付選択 (Gen-B)
- *   'time'     — 時間選択 (Gen-B)
- *   'form'     — フォーム入力 (Gen-C)
- *   'confirm'  — 確認画面 (Gen-C)
- *   'done'     — 完了画面 (Gen-C)
+ *   'main'     — メイン入力 (日付 + 時間 + フォームを 1 画面に統合)
+ *   'confirm'  — 確認画面
+ *   'done'     — 完了画面
+ *
+ * 後方互換のため 'date' / 'time' / 'form' が GO_TO_STEP 等で渡された場合は
+ * 'main' に書き換える（time/scheduleId は date 指定時のみクリア）。
  *
  * 表示順序（flow_order）:
- *   'A' (default): store → staff → date → time → form → confirm → done
- *   'B'          : store → staff → form → date → time → confirm → done
+ *   'A' (default): store → staff → main(日付→フォーム) → confirm → done
+ *   'B'          : store → staff → main(フォーム→日付) → confirm → done
+ *   ※ flow_order の差は MainInputPage 内のセクション順序で吸収する。
  */
 
 export const INITIAL_STATE = {
@@ -64,14 +66,15 @@ export const INITIAL_STATE = {
 /**
  * flow_order を反映したステップの順序。
  *
- * @param {string} flowOrder 'A' または 'B'
+ * Gen-A 以降は date/time/form を 'main' に統合したため A/B の差は
+ * MainInputPage 内のセクション順序で吸収し、ステップ順は同一になる。
+ *
+ * @param {string} _flowOrder 'A' または 'B'（参考のため受け取るが結果は同じ）
  * @return {string[]} ステップ名の配列
  */
-export function getStepOrder( flowOrder ) {
-	if ( flowOrder === 'B' ) {
-		return [ 'store', 'staff', 'form', 'date', 'time', 'confirm', 'done' ];
-	}
-	return [ 'store', 'staff', 'date', 'time', 'form', 'confirm', 'done' ];
+// eslint-disable-next-line no-unused-vars
+export function getStepOrder( _flowOrder ) {
+	return [ 'store', 'staff', 'main', 'confirm', 'done' ];
 }
 
 /**
@@ -143,7 +146,7 @@ export function resolveInitialStep( {
 		staffId = 0;
 		const order = getStepOrder( flowOrder );
 		const idx = order.indexOf( 'staff' );
-		step = order[ idx + 1 ] || 'date';
+		step = order[ idx + 1 ] || 'main';
 	} else if ( staffCountForResolvedStore === 1 ) {
 		const single =
 			staff.find( ( s ) => s.store_id === storeId ) || staff[ 0 ];
@@ -152,14 +155,14 @@ export function resolveInitialStep( {
 			// flow_order を考慮して次のステップを決定する。
 			const order = getStepOrder( flowOrder );
 			const idx = order.indexOf( 'staff' );
-			step = order[ idx + 1 ] || 'date';
+			step = order[ idx + 1 ] || 'main';
 		}
 	} else if ( showStaffFront === false ) {
 		// staffId は 0（= 未確定 / サーバ側で自動振り分け）。
 		staffId = 0;
 		const order = getStepOrder( flowOrder );
 		const idx = order.indexOf( 'staff' );
-		step = order[ idx + 1 ] || 'date';
+		step = order[ idx + 1 ] || 'main';
 	}
 
 	return { step, storeId, staffId };
@@ -168,12 +171,12 @@ export function resolveInitialStep( {
 /**
  * 現在ステップから戻れる先のステップが存在するかどうかを判定する。
  *
+ * Gen-A 以降は 'main' ステップに date/time/form が統合されたため、
+ * 'main' から戻る場合のみ store/staff のスキップ判定で「実際に表示されるステップ」を探す。
+ *
  * スキップされる可能性のある step:
  *   - 'store':  hasUserStores=false / fixedStoreId > 0 / 有効店舗が 1 つ以下 / show_store_front=false ならスキップ
  *   - 'staff':  hasUserStaff=false / 当該 store_id に紐づく担当者が 1 人以下 / show_staff_front=false ならスキップ
- *   - その他:   スキップしない
- *
- * 真に戻れる step が 1 つでも存在すれば true。
  *
  * @param {Object} state 現在のフォーム状態
  * @return {boolean} 戻れるステップが存在すれば true
@@ -224,7 +227,7 @@ export function canGoBack( state ) {
 			}
 			return true;
 		}
-		// それ以外のステップ（date / time / form）はスキップしない。
+		// それ以外（main/confirm/done）はスキップしない。
 		return true;
 	}
 	return false;
@@ -349,7 +352,7 @@ export function reducer( state, action ) {
 					...state,
 					storeId,
 					staffId: 0,
-					step: order[ idx + 1 ] || 'date',
+					step: order[ idx + 1 ] || 'main',
 				};
 			}
 			// 担当者が 1 人なら staff をスキップ。
@@ -360,7 +363,7 @@ export function reducer( state, action ) {
 					...state,
 					storeId,
 					staffId: staffForStore[ 0 ].id,
-					step: order[ idx + 1 ] || 'date',
+					step: order[ idx + 1 ] || 'main',
 				};
 			}
 			if ( staffForStore.length === 0 ) {
@@ -372,7 +375,7 @@ export function reducer( state, action ) {
 					error: 'この店舗には予約可能な担当者がいません。',
 				};
 			}
-			// show_staff_front=false の場合は担当者ステップをスキップして date へ。
+			// show_staff_front=false の場合は担当者ステップをスキップして main へ。
 			// staffId は 0（= サーバ側で自動振り分け）。availability 取得時も staff_id を送らない。
 			if ( ! showStaffFront ) {
 				const order = getStepOrder( state.settings.flow_order );
@@ -381,7 +384,7 @@ export function reducer( state, action ) {
 					...state,
 					storeId,
 					staffId: 0,
-					step: order[ idx + 1 ] || 'date',
+					step: order[ idx + 1 ] || 'main',
 				};
 			}
 			return { ...state, storeId, staffId: null, step: 'staff' };
@@ -393,7 +396,7 @@ export function reducer( state, action ) {
 			return {
 				...state,
 				staffId: action.payload,
-				step: order[ idx + 1 ] || 'date',
+				step: order[ idx + 1 ] || 'main',
 			};
 		}
 
@@ -415,19 +418,13 @@ export function reducer( state, action ) {
 		}
 
 		case 'SET_TIME': {
-			// 時間枠クリックで time + scheduleId を同時に確定し、次ステップへ進める。
+			// Gen-A 以降: 時間枠クリックでは time + scheduleId のみ更新し、ステップは触らない。
+			// 同一画面 ('main') 内で日付・時間・フォームを並べているため、画面遷移は不要。
 			const payload = action.payload || {};
-			const order = getStepOrder(
-				state.settings ? state.settings.flow_order : 'A'
-			);
-			// flow が time → form なら form へ、そうでなければ次ステップへ。
-			const timeIdx = order.indexOf( 'time' );
-			const nextStep = order[ timeIdx + 1 ] || 'form';
 			return {
 				...state,
 				time: payload.time || null,
 				scheduleId: payload.scheduleId || null,
-				step: nextStep,
 			};
 		}
 
@@ -481,16 +478,11 @@ export function reducer( state, action ) {
 		}
 
 		case 'GO_TO_CONFIRM': {
-			// flow_order に応じて確認画面または日付選択へ遷移。
-			// flow A: form → confirm。flow B: form → date（time/scheduleId は保持）。
-			const order = getStepOrder(
-				state.settings ? state.settings.flow_order : 'A'
-			);
-			const formIdx = order.indexOf( 'form' );
-			const nextStep = order[ formIdx + 1 ] || 'confirm';
+			// Gen-A 以降: 'main' から常に 'confirm' へ。
+			// 日付・時間・フォーム入力はすべて 'main' で揃えてある前提。
 			return {
 				...state,
-				step: nextStep,
+				step: 'confirm',
 				submitError: null,
 				submitErrorStatus: null,
 			};
@@ -499,7 +491,7 @@ export function reducer( state, action ) {
 		case 'GO_BACK_FROM_CONFIRM':
 			return {
 				...state,
-				step: 'form',
+				step: 'main',
 				submitError: null,
 				submitErrorStatus: null,
 			};
@@ -546,19 +538,20 @@ export function reducer( state, action ) {
 
 		case 'GO_TO_STEP': {
 			const next = action.payload;
-			// date ステップへ戻る場合は、選択中の time / scheduleId を破棄する。
-			// 例: ConfirmPage で 409 (満席) 後に「日付を選び直す」を押した時、
-			// 古い満席の枠を握ったままにせず、ユーザーに新しい時間枠を選び直させる。
-			// submitError もクリーンに消しておく。
-			if ( next === 'date' ) {
+			// 後方互換: 旧版で使われていた 'date' / 'time' / 'form' は 'main' に書き換える。
+			// 'date' 指定（例: ConfirmPage の 409 後の「日付を選び直す」）は time/scheduleId をクリアして main に戻す。
+			if ( next === 'date' || next === 'time' ) {
 				return {
 					...state,
-					step: 'date',
+					step: 'main',
 					time: null,
 					scheduleId: null,
 					submitError: null,
 					submitErrorStatus: null,
 				};
+			}
+			if ( next === 'form' ) {
+				return { ...state, step: 'main' };
 			}
 			return { ...state, step: next };
 		}
@@ -583,11 +576,7 @@ export function reducer( state, action ) {
 			// idx より前で、スキップされない最初の step を探す。
 			let target = idx - 1;
 			while ( target >= 0 ) {
-				let candidate = order[ target ];
-				// time ステップは DateSelect と一体化しているため date に集約する。
-				if ( candidate === 'time' ) {
-					candidate = 'date';
-				}
+				const candidate = order[ target ];
 				if ( candidate === 'store' ) {
 					if (
 						! hasUserStores ||

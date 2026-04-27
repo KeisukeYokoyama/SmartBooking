@@ -5,16 +5,14 @@
  *   マウント時に `/public/stores`, `/public/staff`, `/public/settings`, `/public/custom-fields` を
  *   並列取得し、スキップルールを適用して初期ステップを決定する。
  *
- * ステップ (Gen-C 完了時点):
- *   - store:   StoreSelect
- *   - staff:   StaffSelect
- *   - date:    DateSelect + TimeSelect（一体表示）
- *   - time:    DateSelect + TimeSelect へフォールバック
- *   - form:    FormInput
- *   - confirm: ConfirmPage
- *   - done:    DonePage
+ * ステップ (Gen-A 以降):
+ *   - store:   StoreSelect (別画面)
+ *   - staff:   StaffSelect (別画面)
+ *   - main:    MainInputPage (日付 + 時間 + フォーム入力を 1 画面に統合)
+ *   - confirm: ConfirmPage (別画面)
+ *   - done:    DonePage (別画面)
  *
- * 表示順序（flow_order）は `state.js` の getStepOrder() に集約。
+ * 表示順序（flow_order）は MainInputPage 内のセクション順序で吸収する。
  */
 import { useEffect, useReducer } from 'react';
 import { publicAPI } from './api';
@@ -22,12 +20,10 @@ import ErrorMessage from './components/ErrorMessage';
 import Spinner from './components/Spinner';
 import { canGoBack, INITIAL_STATE, reducer } from './state';
 import ConfirmPage from './steps/ConfirmPage';
-import DateSelect from './steps/DateSelect';
 import DonePage from './steps/DonePage';
-import FormInput from './steps/FormInput';
+import MainInputPage from './steps/MainInputPage';
 import StaffSelect from './steps/StaffSelect';
 import StoreSelect from './steps/StoreSelect';
-import TimeSelect from './steps/TimeSelect';
 
 export default function App({ fixedStoreId = 0 }) {
 	const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
@@ -156,40 +152,12 @@ export default function App({ fixedStoreId = 0 }) {
 			)}
 
 			{/*
-			  日付選択ステップ:
-			    DateSelect の内側に TimeSelect をネストする。
-			    日付が未選択なら時間枠は非表示、選択されたらカレンダー下部に並ぶ。
-			  仕様 3.4「日付を選択すると、カレンダーの下に空き時間枠がボタン形式で表示される」。
+			  メイン入力ステップ:
+			    日付 + 時間 + フォーム入力を 1 画面に統合する (MainInputPage)。
+			    flow_order ('A' / 'B') の差はセクションの並び順で吸収する。
 			*/}
-			{state.step === 'date' && (
-				<DateSelect
-					state={state}
-					dispatch={dispatch}
-					onBack={
-						canGoBack(state) ? () => dispatch({ type: 'GO_BACK' }) : undefined
-					}
-				>
-					<TimeSelect state={state} dispatch={dispatch} />
-				</DateSelect>
-			)}
-
-			{/* time ステップは現状使わない（SET_TIME で直接 form へ遷移）。
-			    ただし flow_order 切替等のために状態としては存在するので、
-			    明示的に DateSelect+TimeSelect を表示して安全側にフォールバック。 */}
-			{state.step === 'time' && (
-				<DateSelect
-					state={state}
-					dispatch={dispatch}
-					onBack={
-						canGoBack(state) ? () => dispatch({ type: 'GO_BACK' }) : undefined
-					}
-				>
-					<TimeSelect state={state} dispatch={dispatch} />
-				</DateSelect>
-			)}
-
-			{state.step === 'form' && (
-				<FormInput
+			{state.step === 'main' && (
+				<MainInputPage
 					state={state}
 					dispatch={dispatch}
 					onBack={

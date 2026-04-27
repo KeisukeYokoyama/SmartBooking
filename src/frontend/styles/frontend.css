@@ -1323,3 +1323,54 @@
 		animation-duration: 1600ms;
 	}
 }
+
+/* ============================================================
+ * Gen-A: フォーム幅制限 (main / confirm / done のみ)
+ *
+ * 仕様 spec-amendment-frontend-redesign.md 「変更1: 画面構成の変更」と
+ * 「変更2: レイアウト」のフォーム最大幅 450px / calc(100vw - 48px) を
+ * メイン入力画面・確認画面・完了画面に適用する。
+ * 店舗選択・担当者選択 (StoreSelect / StaffSelect) には適用しない。
+ * ============================================================ */
+
+.smb-front-main-page,
+.smb-front-confirm-page,
+.smb-front-done-page {
+	max-width: 450px;
+	width: calc(100vw - 48px);
+	margin: 0 auto;
+}
+
+/* Gen-A: メイン入力ページのセクション間マージン (見た目変更最小化のため簡易) */
+.smb-front-main-page__section + .smb-front-main-page__section {
+	margin-top: 32px;
+}
+
+.smb-front-main-page__back-row {
+	margin-bottom: 16px;
+}
+
+/* Gen-A: 戻る行内ボタンは StepHeader 内 absolute 指定を打ち消し、通常配置に戻す */
+.smb-front-main-page__back-row .smb-front-step-header__back {
+	position: static;
+}
+
+.smb-front-main-page__hint {
+	margin: 16px 0 0;
+	padding: 12px 16px;
+	border-radius: var(--smb-front-radius-sm, 6px);
+	background: var(--smb-front-muted-bg, #f8f9fa);
+	color: var(--smb-front-text-muted, #6c757d);
+	font-size: 14px;
+	text-align: center;
+}
+
+.smb-front-main-page__actions {
+	margin-top: 30px;
+	display: flex;
+	justify-content: center;
+}
+
+.smb-front-main-page__confirm-btn {
+	width: 100%;
+}

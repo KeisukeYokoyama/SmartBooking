@@ -32,7 +32,7 @@ export default function DonePage({ state }) {
 	if (!completedReservation) {
 		// 直接アクセスされた場合のフォールバック（本来は起き得ない）。
 		return (
-			<div className="smb-front-step" ref={topRef}>
+			<div className="smb-front-step smb-front-done-page" ref={topRef}>
 				<div className="smb-front-done">
 					<div className="smb-front-done__check" aria-hidden="true">
 						✓
@@ -54,7 +54,7 @@ export default function DonePage({ state }) {
 	const showStaff = settings ? settings.show_staff_front !== false : true;
 
 	return (
-		<div className="smb-front-step" ref={topRef}>
+		<div className="smb-front-step smb-front-done-page" ref={topRef}>
 			<div className="smb-front-done">
 				<div className="smb-front-done__check" aria-hidden="true">
 					✓

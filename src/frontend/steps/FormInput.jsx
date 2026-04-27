@@ -62,8 +62,15 @@ function validateField(field, value) {
 
 /**
  * FormInput: フォーム入力画面。
+ *
+ * @param {object}   props
+ * @param {object}   props.state            グローバルフォーム状態
+ * @param {Function} props.dispatch         reducer dispatch
+ * @param {Function} [props.onBack]         「戻る」ボタンハンドラ。未指定なら表示しない
+ * @param {boolean}  [props.hideHeader=false] StepHeader を表示しない (MainInputPage 内に埋め込む時に使用)
+ * @param {boolean}  [props.hideSubmit=false] 「確認画面へ進む」ボタンを表示しない (MainInputPage 内に埋め込む時に使用)
  */
-export default function FormInput({ state, dispatch, onBack }) {
+export default function FormInput({ state, dispatch, onBack, hideHeader = false, hideSubmit = false }) {
 	const { customFields, formValues } = state;
 
 	// sort_order で並べ替え。customFields は配列。
@@ -129,11 +136,13 @@ export default function FormInput({ state, dispatch, onBack }) {
 
 	return (
 		<div className="smb-front-step">
-			<StepHeader
-				title="お客様情報の入力"
-				subtitle="ご予約に必要な情報をご入力ください。"
-				onBack={onBack}
-			/>
+			{!hideHeader && (
+				<StepHeader
+					title="お客様情報の入力"
+					subtitle="ご予約に必要な情報をご入力ください。"
+					onBack={onBack}
+				/>
+			)}
 
 			<form className="smb-front-form" onSubmit={handleSubmit} noValidate>
 				{orderedFields.map((f) => {
@@ -395,14 +404,16 @@ export default function FormInput({ state, dispatch, onBack }) {
 					</label>
 				</div>
 
-				<div className="smb-front-form__actions">
-					<button
-						type="submit"
-						className="smb-front-btn smb-front-btn--primary"
-					>
-						確認画面へ進む
-					</button>
-				</div>
+				{!hideSubmit && (
+					<div className="smb-front-form__actions">
+						<button
+							type="submit"
+							className="smb-front-btn smb-front-btn--primary"
+						>
+							確認画面へ進む
+						</button>
+					</div>
+				)}
 			</form>
 		</div>
 	);

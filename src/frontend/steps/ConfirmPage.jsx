@@ -148,7 +148,7 @@ export default function ConfirmPage({ state, dispatch }) {
 	};
 
 	return (
-		<div className="smb-front-step" ref={topRef}>
+		<div className="smb-front-step smb-front-confirm-page" ref={topRef}>
 			<StepHeader
 				title="予約内容の確認"
 				subtitle="以下の内容でご予約を確定します。"
