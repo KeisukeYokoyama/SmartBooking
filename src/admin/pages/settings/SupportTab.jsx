@@ -9,8 +9,8 @@
 import Button from '../../components/Button';
 
 const SUPPORT_SITE = 'https://www.wp-smart-booking.com/';
-const GUIDE_URL = `${SUPPORT_SITE}docs/`;
-const FAQ_URL = `${SUPPORT_SITE}faq/`;
+const GUIDE_URL = `${SUPPORT_SITE}help/`;
+const FAQ_URL = `${SUPPORT_SITE}#faq`;
 const CONTACT_URL = `${SUPPORT_SITE}contact/`;
 
 export default function SupportTab() {
