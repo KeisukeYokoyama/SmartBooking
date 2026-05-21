@@ -6,143 +6,157 @@ Author: 株式会社リベルダージ
 Author URI: https://www.liberdade-inc.com/
 Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
-Tested up to: 6.4
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-無料で多機能。最短5分で導入できるWordPress予約プラグイン。面談・相談型の予約に特化し、日本の商習慣（入力→確認→完了）に最適化。
+Free, full-featured WordPress booking plugin. Built for consultation-style appointments with a 3-step flow (input, confirm, done).
 
 == Description ==
 
-Smart Booking は、弁護士・士業・結婚相談所・整体院・学習塾など「人（担当者）に紐づく面談・相談型の予約」に特化した、完全無料の WordPress 予約プラグインです。
+Smart Booking is a completely free WordPress booking plugin built specifically for consultation-style appointments tied to a person (a staff member). It is designed for use cases such as lawyers, certified professionals, marriage agencies, chiropractic clinics, and tutoring schools.
 
-= 主な特徴 =
+= Key Features =
 
-* **完全無料・制限なし** — Pro 版や有料アドオンはありません。すべての機能が無料で利用できます。
-* **5分で導入可能** — プラグインを有効化するとデフォルト店舗・担当者が自動生成され、ショートコード `[smart_booking]` を投稿・固定ページに貼るだけで予約フォームが表示されます。
-* **日本の商習慣に最適化** — 「入力 → 確認画面 → 完了画面」の3ステップフロー。確認画面で内容を見直してから予約を確定できます。
-* **店舗・担当者管理** — 複数店舗・複数担当者ごとにスケジュールを管理可能。1店舗・1担当者の場合は選択ステップを自動でスキップします。
-* **柔軟なスケジュール設定** — 30分／60分／90分／120分単位の時間枠、定員管理、曜日パターンでの一括コピー、既存スケジュールの上書きオプション。
-* **カスタムフィールド** — 氏名・メール・電話の3項目に加えて、テキスト／メール／電話／テキストエリア／セレクト／ラジオ／チェックボックスを追加可能。
-* **メール通知** — 予約受付時にユーザーと管理者へ自動送信。承認時にユーザーへ確定メールを送信。テンプレートは管理画面で編集可能。
-* **デザインカスタマイズ** — ボタン色・日付選択色・時間帯色・必須マーク色・フォーカス色を管理画面から変更可能。
-* **同時予約の競合防止** — アトミックな1クエリで定員を管理し、ダブルブッキングを防ぎます。
-* **WordPress.org 審査準拠** — 外部 CDN 不使用、PHP セッション不使用、全クエリ prepare、全出力エスケープ、nonce 検証、権限チェック実装済み。
+* **Completely free, no limits** — There is no Pro version, no paid add-ons, and no license activation. Every feature is free.
+* **Ready in 5 minutes** — Activating the plugin auto-creates a default store, staff member, and the three core fields (name, email, phone). Just paste the `[smart_booking]` shortcode into a post or page to display the booking form.
+* **Optimized for the Japanese booking flow** — A 3-step flow ("input → confirmation → done") that lets the customer review their entries on a dedicated confirmation screen before finalizing the booking.
+* **Multi-store / multi-staff management** — Manage schedules per store and per staff member. Whether the store-select and staff-select steps are shown to customers is automatically decided by how many active records exist (skipped when there is only one).
+* **Flexible schedule configuration** — Time slots in 30 / 60 / 90 / 120-minute units, capacity per slot, weekday-pattern bulk copy, and an option to overwrite existing schedules.
+* **Calendar display modes** — Choose between day view (horizontal scroll), month view (calendar grid), or a toggle between both, configurable from the admin screen.
+* **Custom fields** — In addition to the three built-in fields (name, email, phone), administrators can add text, email, phone, textarea, select, radio, and checkbox fields.
+* **Email notifications** — Automatic emails are sent to the customer and the administrator when a booking is received, and a confirmation email is sent to the customer on approval. All templates are editable from the admin screen.
+* **Design customization** — Button color, date-selection color, time-slot color, required-mark color, and focus color are all configurable from the admin screen.
+* **Concurrent booking protection** — Capacity is enforced through a single atomic SQL UPDATE, preventing double-bookings when multiple users submit at the same moment.
+* **Google Tag Manager (GTM) integration** — Each booking step (`store_select`, `staff_select`, `date_select`, `time_select`, `form_input`, `confirm`, `complete`) is automatically pushed to `window.dataLayer`, so you can wire up GA4 funnels and Google Ads conversion tags through GTM without writing any code. The GTM container tag itself must be installed separately on your site.
+* **WordPress.org guideline compliant** — No external CDN scripts/styles, no PHP sessions, all queries use `$wpdb->prepare()`, all output is escaped, and every REST endpoint enforces nonce + `current_user_can('manage_options')`.
 
-= 対応している予約ステップ =
+= Supported booking flow =
 
-[店舗選択] → [担当者選択] → [日付選択] → [時間選択] → [フォーム入力] → [確認画面] → [完了画面]
+[Store Select] → [Staff Select] → [Date Select] → [Time Select] → [Form Input] → [Confirmation] → [Done]
 
-店舗が1つのみ／担当者が1人のみの場合、その選択ステップは自動的にスキップされます。
+The store-select and staff-select steps are shown only when more than one active store / staff record exists. With a single store and a single staff member, the customer starts directly from date selection.
 
-= 外部連携（任意・デフォルトOFF） =
+= Optional integrations (off by default) =
 
-以下の外部連携機能は **デフォルトで OFF** です。設定画面「外部連携」タブで管理者が明示的に有効化し、API キー等を入力した場合のみ通信が発生します。
+The following external integrations are **off by default**. They only initiate any outbound traffic after an administrator explicitly enables them on the "Integrations" tab and provides the required credentials (API key, etc.).
 
-* **Google カレンダー連携** — 予約確定時に Google カレンダーへイベントを作成、キャンセル時に削除します。
-* **ChatWork 通知** — 予約受付時に指定の ChatWork ルームへ通知メッセージを投稿します。
+* **Google Calendar integration** — Creates a calendar event when a booking is received and deletes it on cancellation.
+* **ChatWork notifications** — Posts a notification message to a designated ChatWork room when a booking is received.
 
-詳細は「外部サービスとの通信について」セクションをご参照ください。
+See the "External services" section below for full details.
 
-= カスタマイズ・機能リクエスト =
+= Customization & feature requests =
 
-機能リクエストやカスタマイズのご相談は、開発元の[株式会社リベルダージ](https://www.liberdade-inc.com/)、またはサービスサイト [wp-smart-booking.com](https://www.wp-smart-booking.com/) よりお問い合わせください。
+For feature requests and customization inquiries, please contact the developer, [Liberdade Inc.](https://www.liberdade-inc.com/), or visit our service site at [wp-smart-booking.com](https://www.wp-smart-booking.com/).
 
 == Installation ==
 
-1. プラグイン ZIP を WordPress 管理画面の「プラグイン > 新規追加」からアップロードするか、`/wp-content/plugins/smart-booking` ディレクトリに展開します。
-2. 管理画面「プラグイン」から **Smart Booking** を有効化します。
-3. 有効化時にデフォルトの店舗1つ・担当者1人・カスタムフィールド3つ（氏名・メール・電話）が自動生成されます。
-4. サイドバーの **Smart Booking** メニューから、店舗・担当者・スケジュール・フォームフィールドを設定します。
-5. 投稿または固定ページに `[smart_booking]` ショートコードを貼り付けて公開すると、予約フォームが表示されます。
+1. Upload the plugin ZIP from "Plugins > Add New" in your WordPress admin, or extract the archive into `/wp-content/plugins/smart-booking`.
+2. Activate **Smart Booking** from the "Plugins" screen.
+3. On activation, one default store, one default staff member, and three custom fields (name, email, phone) are created automatically.
+4. Configure stores, staff members, schedules, and form fields from the **Smart Booking** menu in the admin sidebar.
+5. Paste the `[smart_booking]` shortcode into a post or page and publish it to display the booking form.
 
-特定店舗の予約フォームのみを表示したい場合は `[smart_booking store_id="1"]` のように `store_id` 属性を指定できます。
+To restrict the form to a specific store, pass a `store_id` attribute, e.g. `[smart_booking store_id="1"]`.
 
 == Frequently Asked Questions ==
 
-= プラグインは完全に無料ですか？ =
+= Is the plugin really completely free? =
 
-はい。Pro 版や有料アドオン、ライセンス認証は一切ありません。すべての機能を無料でご利用いただけます。
+Yes. There is no Pro version, no paid add-ons, and no license activation. All features are available for free.
 
-= デフォルトでインターネット通信は発生しますか？ =
+= Does the plugin make any outbound network requests by default? =
 
-いいえ。Smart Booking は標準状態では外部サービスへ通信しません。Google カレンダー連携と ChatWork 通知は、管理者が「外部連携」タブで明示的に有効化し API キーを入力した場合にのみ通信が発生します。
+No. Out of the box, Smart Booking does not contact any external service. The Google Calendar integration and ChatWork notifications only send data after the administrator explicitly enables them on the "Integrations" tab and provides the necessary API credentials.
 
-= スマートフォンに対応していますか？ =
+= Is the booking form mobile-friendly? =
 
-はい。フロント予約フォーム、確認画面、完了画面はすべてレスポンシブ対応しており、スマートフォン（375px 幅）でも快適に操作できます。
+Yes. The front-end booking form, confirmation screen, and completion screen are all responsive and have been verified to work on smartphone widths (375px) as well as tablets and desktops.
 
-= 同じ時間枠に複数人が同時に予約した場合、どうなりますか？ =
+= What happens when multiple customers try to book the same time slot at the same time? =
 
-予約確定時にアトミックな1クエリで定員を管理しているため、定員を超える予約は受け付けません。満席になった瞬間に他のユーザーが送信した場合は、エラーメッセージが表示されます。
+Capacity is enforced by a single atomic SQL UPDATE statement, so no booking that exceeds the slot capacity will be accepted. If the slot fills up between page load and submission, the user will see an error message instead of a successful booking.
 
-= スケジュールを毎週同じパターンで設定する方法はありますか？ =
+= Can I configure recurring weekly schedules in bulk? =
 
-はい。スケジュール管理画面の「スケジュールをコピー」から「パターンで選択」を選び、曜日（日〜土）と期間（開始日〜終了日）を指定すると、複数日に一括で複製できます。既存スケジュールの上書き有無も選択できます。
+Yes. From the schedule management screen, choose "Copy schedule" → "Pattern", select the weekdays (Sun–Sat) and the date range, and the schedule will be duplicated across all matching dates. You can choose whether to overwrite existing schedules.
 
-= 予約者からのキャンセルはできますか？ =
+= Can customers cancel their own bookings? =
 
-v1 ではユーザー側のキャンセル機能は提供していません。電話・メールでキャンセルの連絡を受け取った後、管理画面の予約一覧でステータスを「キャンセル」に変更してください。
+In v1, there is no customer-side cancellation. After receiving a cancellation request by phone or email, change the booking status to "Cancelled" from the booking list in the admin.
 
-= フォームに項目を追加できますか？ =
+= Can I add fields to the booking form? =
 
-はい。「フォーム設定」画面から、テキスト／メール／電話／テキストエリア／セレクト／ラジオ／チェックボックスのフィールドを追加・並び替え・削除できます。
+Yes. From the "Form Settings" screen you can add, reorder, or remove fields of the following types: text, email, phone, textarea, select, radio, and checkbox.
 
-= 予約一覧をエクスポートできますか？ =
+= Can I export the booking list? =
 
-はい。予約一覧画面の「CSV出力」ボタンから、フィルタ済みの予約データを CSV ファイルとしてダウンロードできます。
+Yes. From the booking list screen, the "Export CSV" button downloads the currently filtered bookings as a CSV file.
 
-= プラグイン削除時にデータはどうなりますか？ =
+= What happens to my data when I delete the plugin? =
 
-WordPress の「削除」操作を行うと、Smart Booking が作成した6つのカスタムテーブルとオプションがすべて削除されます。データを残したい場合は「無効化」のみ行い、削除はしないでください。
+Performing the WordPress "Delete" operation drops all six custom tables and removes all options created by Smart Booking. To preserve your data, only "Deactivate" the plugin — do not delete it.
 
 == Screenshots ==
 
-1. フロント予約フォーム（PC・横スクロール日付表示 + 時間枠選択）
-2. 管理画面 — スケジュール管理（月カレンダー + スケジュールリスト）
-3. 管理画面 — 予約一覧（フィルタ + ステータス管理 + CSV 出力）
-4. 管理画面 — フォーム設定（フィールドタイプカード + フィールド一覧）
+1. Front-end booking form (desktop, horizontal-scroll date picker + time-slot selection)
+2. Admin — Schedule management (month calendar + schedule list)
+3. Admin — Booking list (filters + status management + CSV export)
+4. Admin — Form settings (field-type cards + field list)
 
 == External services ==
 
-このプラグインは以下の外部サービスと通信する場合があります。**いずれもデフォルトでは OFF** であり、管理者が「設定 > 外部連携」タブで明示的に有効化し、必要な認証情報（API キー等）を入力した場合にのみ通信が発生します。
+This plugin may communicate with the following external services. **Both are off by default**, and outbound traffic only occurs after an administrator explicitly enables the integration on the "Settings > Integrations" tab and provides the required credentials.
 
 = Google Calendar API =
 
-* **通信先**: `https://www.googleapis.com/calendar/v3/`
-* **目的**: 予約確定時に Google カレンダーへイベントを作成し、キャンセル時に該当イベントを削除します。
-* **送信データ**: 予約日時、予約者名、店舗名、担当者名、予約番号
-* **タイミング**: 予約承認時（イベント作成）／キャンセル時（イベント削除）
-* **認証方式**: サービスアカウントの JSON キーファイル（管理者が設定画面でアップロード）
-* **デフォルト**: OFF
-* **利用規約**: [Google APIs Terms of Service](https://developers.google.com/terms)
-* **プライバシーポリシー**: [Google Privacy Policy](https://policies.google.com/privacy)
+* **Endpoint**: `https://www.googleapis.com/calendar/v3/`
+* **Purpose**: Creates a Google Calendar event when a booking is received, and deletes the event when the booking is cancelled.
+* **Data sent**: Booking date and time, customer name, store name, staff name, booking number.
+* **Timing**: When a booking is received (event creation) / when a booking is cancelled (event deletion).
+* **Authentication**: Service account JSON key (uploaded by the administrator on the settings screen).
+* **Default**: Off
+* **Terms of service**: [Google APIs Terms of Service](https://developers.google.com/terms)
+* **Privacy policy**: [Google Privacy Policy](https://policies.google.com/privacy)
 
 = ChatWork API =
 
-* **通信先**: `https://api.chatwork.com/v2/`
-* **目的**: 予約受付時に指定の ChatWork ルームへ通知メッセージを投稿します。
-* **送信データ**: 予約者名、予約日時、店舗名、担当者名、予約番号
-* **タイミング**: 予約受付時（ユーザーがフォーム送信した直後）
-* **認証方式**: API トークン（管理者が設定画面で入力）
-* **デフォルト**: OFF
-* **利用規約**: [ChatWork 利用規約](https://go.chatwork.com/ja/terms/)
-* **プライバシーポリシー**: [ChatWork プライバシーポリシー](https://go.chatwork.com/ja/privacy/)
+* **Endpoint**: `https://api.chatwork.com/v2/`
+* **Purpose**: Posts a notification message to a designated ChatWork room when a booking is received.
+* **Data sent**: Customer name, booking date and time, store name, staff name, booking number.
+* **Timing**: Immediately after a customer submits the booking form.
+* **Authentication**: API token (entered by the administrator on the settings screen).
+* **Default**: Off
+* **Terms of service**: [ChatWork Terms of Service](https://go.chatwork.com/en/terms/)
+* **Privacy policy**: [ChatWork Privacy Policy](https://go.chatwork.com/en/privacy/)
 
-これらの機能を利用しない場合、Smart Booking は外部サービスへ一切通信しません。
+If neither integration is enabled, Smart Booking does not make any outbound requests to external services.
 
 == Changelog ==
 
+= 0.2.0 =
+* Front-end UI redesign for the booking form, confirmation screen, and completion screen.
+* Improved store-select and staff-select card layout (uniform card height, clickable cards, hover state).
+* Added a "selected info" bar that persists store and staff context after they have been selected.
+* Fixed background color regression on date and time-slot selection (active state now reflects the configured color).
+* Expanded responsive coverage and end-to-end test suites (picker verification, confirmation/completion screens, responsive layouts).
+* Removed debug logging from the Google Calendar integration.
+* Added Google Tag Manager (GTM) data-layer events for each booking step (`store_select`, `staff_select`, `date_select`, `time_select`, `form_input`, `confirm`, `complete`) so GA4 funnels and Google Ads conversion tags can be wired up through GTM.
+
 = 0.1.0 =
-* 初回リリース
-* 予約フォーム、店舗・担当者管理、スケジュール管理、予約一覧、フォーム設定、設定画面（5タブ）の全機能
-* メール通知（予約受付・予約承認）
-* Google カレンダー連携（任意・デフォルト OFF）
-* ChatWork 通知（任意・デフォルト OFF）
+* Initial release.
+* Booking form, store / staff management, schedule management, booking list, form settings, and a 5-tab settings screen.
+* Email notifications (booking received and booking approved).
+* Optional Google Calendar integration (off by default).
+* Optional ChatWork notifications (off by default).
 
 == Upgrade Notice ==
 
+= 0.2.0 =
+UI redesign and bug fixes for the front-end booking flow. No database migrations are required.
+
 = 0.1.0 =
-初回リリース版です。
+Initial release.

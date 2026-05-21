@@ -5,6 +5,7 @@ vendor/
 .DS_Store
 .vscode/
 .idea/
+.claude/
 *.log
 
 .wp-env.override.json

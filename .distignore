@@ -1,0 +1,32 @@
+# Smart Booking - production distribution exclude list
+# Used by `wp dist-archive` / `npm run plugin-zip` to build the WordPress.org ZIP.
+
+# Test suite & artifacts
+tests/
+test-results/
+playwright.config.js
+
+# Dev environment
+.wp-env.json
+credentials/
+phpcs.xml.dist
+
+# VCS / editor / AI assistant
+.gitignore
+.git/
+.claude/
+CLAUDE.md
+
+# Documentation & spec (dev-only)
+docs/
+smart-booking-spec.md
+project-context.md
+website-update-instructions.md
+
+# Build sources & dependencies (only `build/` is shipped)
+node_modules/
+src/
+package-lock.json
+
+# Self
+.distignore
