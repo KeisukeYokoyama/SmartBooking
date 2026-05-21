@@ -1646,7 +1646,7 @@
 .smb-front-confirm-page,
 .smb-front-done-page {
 	max-width: 450px;
-	width: calc(100vw - 48px);
+	width: 100%;
 	margin: 0 auto;
 }
 
