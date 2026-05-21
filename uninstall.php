@@ -27,21 +27,15 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 function smart_booking_run_uninstall() {
 	global $wpdb;
 
-	$smart_booking_prefix = $wpdb->prefix . 'smb_';
-	$smart_booking_tables = array(
-		$smart_booking_prefix . 'reservation_meta',
-		$smart_booking_prefix . 'reservations',
-		$smart_booking_prefix . 'schedules',
-		$smart_booking_prefix . 'staff',
-		$smart_booking_prefix . 'stores',
-		$smart_booking_prefix . 'custom_fields',
-	);
-
-	foreach ( $smart_booking_tables as $smart_booking_table ) {
-		// テーブル名は信頼できる内部定数由来。プレースホルダでは識別子を扱えないため直接埋め込む。
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( "DROP TABLE IF EXISTS {$smart_booking_table}" );
-	}
+	// テーブル名は wpdb->prefix と固定文字列のみで構成。プレースホルダでは識別子を扱えないため直接埋め込む。
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smb_reservation_meta" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smb_reservations" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smb_schedules" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smb_staff" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smb_stores" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smb_custom_fields" );
+	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	// smb_ プレフィックスのオプションを全削除.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

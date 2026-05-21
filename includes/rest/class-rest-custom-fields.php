@@ -128,9 +128,8 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 */
 	public function get_items() {
 		global $wpdb;
-		$t = $this->table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT * FROM {$t} ORDER BY sort_order ASC, id ASC", ARRAY_A );
+		$rows = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}smb_custom_fields ORDER BY sort_order ASC, id ASC", ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
 		}
@@ -146,9 +145,8 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	public function get_item( $request ) {
 		global $wpdb;
 		$id = (int) $request['id'];
-		$t  = $this->table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_custom_fields WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_field_not_found', '指定されたフィールドが見つかりません。', 404 );
 		}
@@ -163,7 +161,6 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 */
 	private function sanitize_create( $request ) {
 		global $wpdb;
-		$t = $this->table();
 
 		$label = sanitize_text_field( (string) $request->get_param( 'field_label' ) );
 		if ( '' === $label ) {
@@ -179,20 +176,20 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		if ( '' === $key ) {
 			// 自動生成: field_N.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$max = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t}" );
+			$max = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_custom_fields" );
 			$key = 'field_' . ( $max + 1 );
 		}
 
 		// 既存 key との衝突チェック.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE field_key = %s", $key ) );
+		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_custom_fields WHERE field_key = %s", $key ) );
 		if ( $exists > 0 ) {
 			// 衝突した場合は suffix を付ける.
 			$i = 2;
 			do {
 				$candidate = $key . '_' . $i;
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE field_key = %s", $candidate ) );
+				$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_custom_fields WHERE field_key = %s", $candidate ) );
 				++$i;
 			} while ( $exists > 0 && $i < 100 );
 			$key = $candidate;
@@ -261,9 +258,8 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	public function update_item( $request ) {
 		global $wpdb;
 		$id = (int) $request['id'];
-		$t  = $this->table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_custom_fields WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_field_not_found', '指定されたフィールドが見つかりません。', 404 );
 		}
@@ -314,7 +310,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
-			$t,
+			$wpdb->prefix . 'smb_custom_fields',
 			$update,
 			array( 'id' => $id ),
 			array( '%s', '%s', '%s', '%s', '%d', '%d' ),
@@ -332,9 +328,8 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	public function delete_item( $request ) {
 		global $wpdb;
 		$id = (int) $request['id'];
-		$t  = $this->table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_custom_fields WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_field_not_found', '指定されたフィールドが見つかりません。', 404 );
 		}
@@ -346,7 +341,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			);
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete( $t, array( 'id' => $id ), array( '%d' ) );
+		$wpdb->delete( $wpdb->prefix . 'smb_custom_fields', array( 'id' => $id ), array( '%d' ) );
 		return rest_ensure_response(
 			array(
 				'deleted' => true,
@@ -365,7 +360,6 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 */
 	public function reorder( $request ) {
 		global $wpdb;
-		$t     = $this->table();
 		$items = $request->get_param( 'items' );
 		if ( ! is_array( $items ) ) {
 			return $this->error( 'smb_field_reorder_invalid', '並び替えデータの形式が正しくありません。', 400 );
@@ -380,7 +374,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			$order = isset( $item['sort_order'] ) ? (int) $item['sort_order'] : 0;
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
-				$t,
+				$wpdb->prefix . 'smb_custom_fields',
 				array( 'sort_order' => $order ),
 				array( 'id' => $id ),
 				array( '%d' ),

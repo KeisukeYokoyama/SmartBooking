@@ -30,40 +30,34 @@ class Smart_Booking_Reservation_Context {
 			return null;
 		}
 
-		$res_table    = $wpdb->prefix . 'smb_reservations';
-		$stores_table = $wpdb->prefix . 'smb_stores';
-		$staff_table  = $wpdb->prefix . 'smb_staff';
-		$meta_table   = $wpdb->prefix . 'smb_reservation_meta';
-		$fields_table = $wpdb->prefix . 'smb_custom_fields';
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		$reservation = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$res_table} WHERE id = %d", $reservation_id ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_reservations WHERE id = %d", $reservation_id ),
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		if ( ! $reservation ) {
 			return null;
 		}
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		$store      = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$stores_table} WHERE id = %d", (int) $reservation['store_id'] ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_stores WHERE id = %d", (int) $reservation['store_id'] ),
 			ARRAY_A
 		);
 		$staff      = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$staff_table} WHERE id = %d", (int) $reservation['staff_id'] ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_staff WHERE id = %d", (int) $reservation['staff_id'] ),
 			ARRAY_A
 		);
 		$meta_rows  = $wpdb->get_results(
-			$wpdb->prepare( "SELECT meta_key, meta_value FROM {$meta_table} WHERE reservation_id = %d", $reservation_id ),
+			$wpdb->prepare( "SELECT meta_key, meta_value FROM {$wpdb->prefix}smb_reservation_meta WHERE reservation_id = %d", $reservation_id ),
 			ARRAY_A
 		);
 		$field_defs = $wpdb->get_results(
-			"SELECT field_key, field_label, field_type FROM {$fields_table} ORDER BY sort_order ASC, id ASC",
+			"SELECT field_key, field_label, field_type FROM {$wpdb->prefix}smb_custom_fields ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 
 		$meta = array();
 		if ( is_array( $meta_rows ) ) {
@@ -125,13 +119,10 @@ class Smart_Booking_Reservation_Context {
 		global $wpdb;
 		$start_short = substr( (string) $start_time, 0, 5 );
 
-		$schedules_table = $wpdb->prefix . 'smb_schedules';
-		$res_table       = $wpdb->prefix . 'smb_reservations';
-
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$end_time = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT s.end_time FROM {$schedules_table} s INNER JOIN {$res_table} r ON r.schedule_id = s.id WHERE r.id = %d",
+				"SELECT s.end_time FROM {$wpdb->prefix}smb_schedules s INNER JOIN {$wpdb->prefix}smb_reservations r ON r.schedule_id = s.id WHERE r.id = %d",
 				(int) $reservation_id
 			)
 		);

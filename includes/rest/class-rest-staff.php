@@ -112,7 +112,6 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 	 */
 	public function get_items( $request ) {
 		global $wpdb;
-		$table = $this->table();
 
 		// 一覧では is_system=1（システムエンティティ）を常に除外する。
 		$where  = array( 'is_system = 0' );
@@ -127,12 +126,12 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 			$params[] = absint( $request->get_param( 'store_id' ) );
 		}
 
-		$sql = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY sort_order ASC, id ASC';
+		$sql = "SELECT * FROM {$wpdb->prefix}smb_staff WHERE " . implode( ' AND ', $where ) . ' ORDER BY sort_order ASC, id ASC';
 		if ( ! empty( $params ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$rows = $wpdb->get_results( $sql, ARRAY_A );
 		}
 		if ( ! is_array( $rows ) ) {
@@ -149,10 +148,9 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 	 */
 	public function get_item( $request ) {
 		global $wpdb;
-		$id    = (int) $request['id'];
-		$table = $this->table();
+		$id = (int) $request['id'];
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_staff WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_staff_not_found', '指定された担当者が見つかりません。', 404 );
 		}
@@ -167,7 +165,6 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 	 */
 	private function sanitize_input( $request ) {
 		global $wpdb;
-		$stores_table = $wpdb->prefix . 'smb_stores';
 
 		$name = sanitize_text_field( (string) $request->get_param( 'name' ) );
 		if ( '' === $name ) {
@@ -179,7 +176,7 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_staff_store_required', '所属店舗を選択してください。', 400 );
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$store_exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$stores_table} WHERE id = %d", $store_id ) );
+		$store_exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_stores WHERE id = %d", $store_id ) );
 		if ( 0 === $store_exists ) {
 			return $this->error( 'smb_staff_store_invalid', '指定された所属店舗が存在しません。', 400 );
 		}
@@ -241,10 +238,9 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 	 */
 	public function update_item( $request ) {
 		global $wpdb;
-		$id    = (int) $request['id'];
-		$table = $this->table();
+		$id = (int) $request['id'];
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE id = %d", $id ) );
+		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_staff WHERE id = %d", $id ) );
 		if ( 0 === $exists ) {
 			return $this->error( 'smb_staff_not_found', '指定された担当者が見つかりません。', 404 );
 		}
@@ -257,7 +253,7 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
-			$table,
+			$wpdb->prefix . 'smb_staff',
 			$data,
 			array( 'id' => $id ),
 			array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s' ),
@@ -282,13 +278,10 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 	 */
 	public function delete_item( $request ) {
 		global $wpdb;
-		$id           = (int) $request['id'];
-		$table        = $this->table();
-		$reservations = $wpdb->prefix . 'smb_reservations';
-		$schedules    = $wpdb->prefix . 'smb_schedules';
+		$id = (int) $request['id'];
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$wpdb->prefix}smb_staff WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_staff_not_found', '指定された担当者が見つかりません。', 404 );
 		}
@@ -298,7 +291,7 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$reservation_count = (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM {$reservations} WHERE staff_id = %d", $id )
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_reservations WHERE staff_id = %d", $id )
 		);
 		if ( $reservation_count > 0 ) {
 			return new WP_Error(
@@ -318,10 +311,10 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 		// 予約は無いがスケジュールが残っている場合は、紐づくスケジュールも一緒に削除する。
 		// （フロント側で削除前に件数を提示し、ユーザーに確認させる運用）
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete( $schedules, array( 'staff_id' => $id ), array( '%d' ) );
+		$wpdb->delete( $wpdb->prefix . 'smb_schedules', array( 'staff_id' => $id ), array( '%d' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
+		$wpdb->delete( $wpdb->prefix . 'smb_staff', array( 'id' => $id ), array( '%d' ) );
 		return rest_ensure_response(
 			array(
 				'deleted' => true,

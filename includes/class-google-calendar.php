@@ -287,9 +287,8 @@ class Smart_Booking_Google_Calendar {
 			return null;
 		}
 		global $wpdb;
-		$schedules_table = $wpdb->prefix . 'smb_schedules';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$end_time = $wpdb->get_var( $wpdb->prepare( "SELECT end_time FROM {$schedules_table} WHERE id = %d", $schedule_id ) );
+		$end_time = $wpdb->get_var( $wpdb->prepare( "SELECT end_time FROM {$wpdb->prefix}smb_schedules WHERE id = %d", $schedule_id ) );
 		if ( ! $end_time ) {
 			return null;
 		}
@@ -317,10 +316,9 @@ class Smart_Booking_Google_Calendar {
 	 */
 	private function save_event_id( $reservation_id, $event_id ) {
 		global $wpdb;
-		$meta_table = $wpdb->prefix . 'smb_reservation_meta';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		$wpdb->insert(
-			$meta_table,
+			$wpdb->prefix . 'smb_reservation_meta',
 			array(
 				'reservation_id' => (int) $reservation_id,
 				'meta_key'       => self::META_KEY,
@@ -328,6 +326,7 @@ class Smart_Booking_Google_Calendar {
 			),
 			array( '%d', '%s', '%s' )
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 	}
 
 	/**
@@ -338,9 +337,8 @@ class Smart_Booking_Google_Calendar {
 	 */
 	private function load_event_id( $reservation_id ) {
 		global $wpdb;
-		$meta_table = $wpdb->prefix . 'smb_reservation_meta';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$value = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$meta_table} WHERE reservation_id = %d AND meta_key = %s LIMIT 1", (int) $reservation_id, self::META_KEY ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+		$value = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->prefix}smb_reservation_meta WHERE reservation_id = %d AND meta_key = %s LIMIT 1", (int) $reservation_id, self::META_KEY ) );
 		return is_string( $value ) ? $value : '';
 	}
 
@@ -352,15 +350,15 @@ class Smart_Booking_Google_Calendar {
 	 */
 	private function delete_event_meta( $reservation_id ) {
 		global $wpdb;
-		$meta_table = $wpdb->prefix . 'smb_reservation_meta';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 		$wpdb->delete(
-			$meta_table,
+			$wpdb->prefix . 'smb_reservation_meta',
 			array(
 				'reservation_id' => (int) $reservation_id,
 				'meta_key'       => self::META_KEY,
 			),
 			array( '%d', '%s' )
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 	}
 }

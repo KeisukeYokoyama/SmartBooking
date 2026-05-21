@@ -43,6 +43,7 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 			// メール通知.
 			'smb_mail_from_name'                   => 'text',
 			'smb_mail_from_email'                  => 'email',
+			'smb_mail_admin_notify_enabled'        => 'bool',
 			'smb_mail_receipt_user_subject'        => 'text',
 			'smb_mail_receipt_user_body'           => 'html',
 			'smb_mail_receipt_admin_subject'       => 'text',
