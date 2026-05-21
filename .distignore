@@ -5,6 +5,7 @@
 tests/
 test-results/
 playwright.config.js
+playwright.uninstall.config.js
 
 # Dev environment
 .wp-env.json
@@ -25,8 +26,14 @@ website-update-instructions.md
 
 # Build sources & dependencies (only `build/` is shipped)
 node_modules/
+vendor/
 src/
+package.json
 package-lock.json
+webpack.config.js
+eslint.config.cjs
+composer.json
+composer.lock
 
 # Self
 .distignore
