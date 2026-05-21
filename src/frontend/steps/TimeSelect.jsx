@@ -125,22 +125,21 @@ export default function TimeSelect({ state, dispatch, embedded = true }) {
 									aria-pressed={isSelected}
 									aria-label={ariaLabel}
 								>
-									{disabled && (
-										<span
-											className="smb-front-time-slot__prefix smb-front-time-btn__prefix"
-											aria-hidden="true"
-										>
-											×
+									<span className="smb-front-time-btn__label" aria-hidden="true">
+										{disabled && (
+											<span className="smb-front-time-slot__prefix smb-front-time-btn__prefix">
+												×
+											</span>
+										)}
+										<span className="smb-front-time-btn__time">
+											{s.start_time}
+											{s.end_time ? (
+												<>
+													<span>〜</span>
+													{s.end_time}
+												</>
+											) : null}
 										</span>
-									)}
-									<span className="smb-front-time-btn__time" aria-hidden="true">
-										{s.start_time}
-										{s.end_time ? (
-											<>
-												<span>〜</span>
-												{s.end_time}
-											</>
-										) : null}
 									</span>
 									{label && (
 										<span

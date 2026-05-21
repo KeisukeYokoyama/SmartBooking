@@ -2240,13 +2240,15 @@
 
 .smb-front-time-slot,
 .smb-front-time-btn {
+	position: relative;
 	display: flex;
+	flex-direction: row;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
+	gap: 0;
 	width: 100%;
-	min-height: 0;
-	padding: 15px 20px;
+	min-height: 52px;
+	padding: 12px 20px;
 	background: #ffffff;
 	border: 1px solid var(--smb-front-border-default);
 	border-radius: var(--smb-front-radius);
@@ -2331,11 +2333,22 @@
 	font-weight: 500;
 }
 
+.smb-front-time-btn__label {
+	position: relative;
+}
+
 .smb-front-time-slot__prefix,
 .smb-front-time-btn__prefix {
+	position: absolute;
+	right: 100%;
+	margin-right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
 	color: #e74c3c;
+	font-size: 13px;
 	font-weight: 700;
-	margin-right: 4px;
+	line-height: 1;
+	pointer-events: none;
 }
 
 .smb-front-time-btn__time {
