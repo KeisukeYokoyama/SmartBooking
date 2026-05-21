@@ -130,6 +130,17 @@ function headerLines( headers ) {
 }
 
 /**
+ * メールログから指定アドレス宛のメールを見つける。
+ * to フィールドは文字列・配列のどちらでも対応する。
+ *
+ * @param {Array} log メールキャプチャログ
+ * @param {string} addr 検索したいメールアドレス
+ * @returns {object|undefined} マッチしたメール、なければ undefined
+ */
+const findMailTo = ( log, addr ) =>
+	log.find( ( m ) => [].concat( m.to ).includes( addr ) );
+
+/**
  * 公開予約を作成して reservation_id を返す。失敗時は throw。
  * @param {import('@playwright/test').Page}         page
  * @param {number}                                  scheduleId
@@ -239,9 +250,9 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		const log = fetchMailLog();
 		expect( log.length ).toBe( 2 );
 
-		// 宛先で分類.
-		const userMail = log.find( ( m ) => m.to === 'hanako@example.com' );
-		const adminMail = log.find( ( m ) => m.to === 'store-a@example.com' );
+		// 宛先で分類（to は配列・文字列のどちらでも対応）.
+		const userMail = findMailTo( log, 'hanako@example.com' );
+		const adminMail = findMailTo( log, 'store-a@example.com' );
 		expect(
 			userMail,
 			'user mail to hanako@example.com exists'
@@ -317,7 +328,7 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 
 		const log = fetchMailLog();
 		expect( log.length ).toBe( 2 );
-		const adminMail = log.find( ( m ) => m.to === 'store-a@example.com' );
+		const adminMail = findMailTo( log, 'store-a@example.com' );
 		expect( adminMail ).toBeTruthy();
 		const adminHeaders = headerLines( adminMail.headers );
 		expect(
@@ -406,7 +417,7 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		const log = fetchMailLog();
 		expect( log.length ).toBe( 1 );
 		const approval = log[ 0 ];
-		expect( approval.to ).toBe( 'approve@example.com' );
+		expect( [].concat( approval.to ) ).toContain( 'approve@example.com' );
 		expect( approval.subject ).toContain( 'ご予約が確定しました' );
 		expect( approval.subject ).toContain( '店舗1' );
 		expect( approval.message ).toContain( '承認 太郎' );
@@ -415,9 +426,9 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	} );
 
 	// ----------------------------------------------------------------
-	// 4. 店舗メール空 → 管理者メールが送られない（ユーザー宛のみ）
+	// 4. 店舗メール空 → wp_admin_email にフォールバック送信（2 通）
 	// ----------------------------------------------------------------
-	test( '店舗メール空: 管理者宛はスキップ、ユーザー宛 1 通のみ', async ( {
+	test( '店舗メール空: ユーザー宛 + wp_admin 宛フォールバックの 2 通', async ( {
 		page,
 	} ) => {
 		setStoreEmail( USER_STORE_ID, '' );
@@ -439,9 +450,24 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		} );
 
 		const log = fetchMailLog();
-		expect( log.length ).toBe( 1 );
-		expect( log[ 0 ].to ).toBe( 'no-store@example.com' );
-		expect( log[ 0 ].subject ).toContain( 'ご予約を受け付けました' );
+		expect( log.length ).toBe( 2 );
+
+		const userMail = findMailTo( log, 'no-store@example.com' );
+		expect( userMail, 'user mail exists' ).toBeTruthy();
+		expect( userMail.subject ).toContain( 'ご予約を受け付けました' );
+
+		// 店舗メール空のとき wp_admin_email（wp-env デフォルト: wordpress@example.com）にフォールバック。
+		const adminMail = findMailTo( log, 'wordpress@example.com' );
+		expect( adminMail, 'admin fallback mail to wordpress@example.com exists' ).toBeTruthy();
+
+		// 担当者メールが設定されている場合は Cc に付く。
+		const adminHeaders = headerLines( adminMail.headers );
+		expect(
+			adminHeaders.some( ( h ) =>
+				/^Cc:\s*staff-a@example\.com$/i.test( h )
+			),
+			`admin mail should have staff Cc; got: ${ JSON.stringify( adminHeaders ) }`
+		).toBe( true );
 	} );
 
 	// ----------------------------------------------------------------
@@ -473,7 +499,7 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		const log = fetchMailLog();
 		// ユーザー宛 + 管理者宛 = 2 通。送信が成功していれば log は 2 件以上.
 		expect( log.length ).toBe( 2 );
-		const userMail = log.find( ( m ) => m.to === 'fromempty@example.com' );
+		const userMail = findMailTo( log, 'fromempty@example.com' );
 		expect( userMail ).toBeTruthy();
 		// From ヘッダ: blogname または admin_email にフォールバック、もしくは無い場合もあり得る.
 		// 明示的に「From: が含まれる場合は <...@...> 形式が正しい」程度の緩い検証に留める.
