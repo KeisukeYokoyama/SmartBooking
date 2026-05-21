@@ -1,14 +1,16 @@
 /**
- * Phase 6 Eval (Gen-C): 店舗・担当者フロント表示制御 E2E。
+ * Phase 6 Eval: 店舗・担当者フロント表示制御 E2E。
  *
- * docs/spec-amendment-store-staff-visibility.md に基づく統合テスト。
+ * 仕様: smb_show_store_front / smb_show_staff_front の手動 ON/OFF トグルで
+ * フロントの店舗選択・担当者選択ステップ表示を制御する（デフォルト OFF）。
+ *   - ON  → ステップを表示する（1 件しかない場合でも自動スキップしない）
+ *   - OFF → ステップをスキップし、デフォルト店舗・デフォルト担当者を自動選択
  *
- * テストシナリオ:
- *   A. show_store_front=OFF       → 店舗選択ステップが出ず、確認/完了画面に店舗名が出ない。
- *   B. show_staff_front=OFF       → 担当者選択ステップが出ず、同一時刻枠は capacity 合算。
- *                                   予約完了で内部的に sort_order 順の担当者へ自動割当。
- *   C. 両方 OFF                    → いきなり日付選択。確認/完了画面に店舗名・担当者名なし。
- *   D. 既存挙動（両方 ON、店舗2/担当者2） → 旧来通り完走、店舗名・担当者名が表示される。
+ * シナリオ:
+ *   A. show_store_front=OFF (+ show_staff_front=ON) → 店舗ステップスキップ、担当者は表示
+ *   B. show_staff_front=OFF + 担当者2 → 担当者ステップなし・capacity 合算・自動割当
+ *   C. 両方 OFF → いきなり日付選択
+ *   D. 両方 ON + 店舗2/担当者2 → フルフロー
  *
  * テスト後は必ず option / DB を baseline に戻す。
  */
@@ -94,34 +96,37 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 	} );
 
 	// ============================================================
-	// A. show_store_front=OFF
+	// A. show_store_front=OFF + show_staff_front=ON
 	// ============================================================
 
-	test( 'A: show_store_front=OFF + 店舗2 → 店舗選択スキップ・確認/完了に店舗名なし', async ( {
+	test( 'A: show_store_front=OFF + show_staff_front=ON → 店舗ステップスキップ + 担当者ステップ表示', async ( {
 		page,
 	} ) => {
-		// 店舗 2 件、担当者は店舗1 に 1 名（baseline）→ 担当者ステップもスキップ。
+		// 店舗 2 件、店舗1 に担当者 2 名（担当者選択ステップに意味を持たせる）。
 		const store2 = insertStore( '渋谷店', { sort_order: 30 } );
-		// 店舗1 のみにスケジュールを入れる（sort_order 最小の店舗が選ばれる前提を検証）。
-		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
-		// store2 にも担当者を作る（フロントの自動割り当て先候補として 1 名）。
-		insertStaff( store2, '渋谷担当', { sort_order: 20 } );
+		const staffB = insertStaff( USER_STORE_ID, '担当者B', { sort_order: 20 } );
+		insertStaff( store2, '渋谷担当', { sort_order: 30 } );
+		// 店舗1 / 担当者A・B の両方にスケジュールを入れる。
+		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 1 );
+		seedWeekSchedules( USER_STORE_ID, staffB, 1 );
 
 		setOption( 'smb_show_store_front', 0 );
+		setOption( 'smb_show_staff_front', 1 );
 
 		await gotoFrontForm( page );
 
-		// 店舗選択ステップが表示されないこと。
+		// 店舗選択ステップは表示されない（OFF + 自動で sort_order 最小の店舗1 が選ばれる）。
 		await expect(
 			page.getByRole( 'heading', { name: '店舗を選択' } )
 		).toHaveCount( 0 );
 
-		// 担当者は店舗1 に 1 名のみ → 担当者選択もスキップ → いきなり日付選択。
+		// 担当者選択ステップは表示される（ON + 担当者2名）。
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '担当者を選択' } )
 		).toBeVisible();
+		await page.getByRole( 'button', { name: /担当者1 を選択/ } ).click();
 
-		// 完走させる。
+		// 日付選択へ（メイン入力画面の日付セクション）。
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
 			timeout: 10_000,
 		} );
@@ -137,16 +142,13 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 			phone: '090-1111-1111',
 		} );
 
-		// 確認画面: 店舗名行が出ない（dt が無い、または店舗1 文字列が出ない）。
+		// 確認画面: 店舗名は出ない（OFF）、担当者名は出る（ON）。
 		await expect( page.locator( '.smb-front-confirm' ) ).toBeVisible();
-		const confirmText = await page
-			.locator( '.smb-front-confirm' )
+		const confirmSummaryText = await page
+			.locator( '.smb-front-confirm-summary' )
 			.innerText();
-		expect( confirmText ).not.toContain( '店舗1' );
-		// 担当者は表示される設定（show_staff_front=ON）。「担当者1」は出る or staff スキップ時に
-		// 表示されないはず → このケースは staff も自動スキップ（1 名）だが state.staffId=1 で
-		// ConfirmPage は表示する。よって担当者名は出るのが現仕様。
-		// → assert は店舗のみ非表示で確認する。
+		expect( confirmSummaryText ).not.toContain( '店舗1' );
+		expect( confirmSummaryText ).toContain( '担当者1' );
 
 		await page.getByRole( 'button', { name: '予約を確定する' } ).click();
 		await expect(
@@ -159,6 +161,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 			.locator( '.smb-front-done__summary' )
 			.innerText();
 		expect( doneText ).not.toContain( '店舗1' );
+		expect( doneText ).toContain( '担当者1' );
 	} );
 
 	// ============================================================
@@ -199,13 +202,10 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 
 		await gotoFrontForm( page );
 
-		// 担当者選択ステップが表示されない → 日付選択へ直行。
+		// 担当者選択ステップが表示されない → 日付選択（メイン入力画面）へ直行。
 		await expect(
 			page.getByRole( 'heading', { name: '担当者を選択' } )
 		).toHaveCount( 0 );
-		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
-		).toBeVisible();
 
 		// 日付タイル → 時間枠ボタン。
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -241,9 +241,9 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		} );
 
 		// 確認画面: 担当者名が出ない（show_staff_front=OFF）。
-		await expect( page.locator( '.smb-front-confirm' ) ).toBeVisible();
+		await expect( page.locator( '.smb-front-confirm-page' ) ).toBeVisible();
 		const confirmText = await page
-			.locator( '.smb-front-confirm' )
+			.locator( '.smb-front-confirm-page' )
 			.innerText();
 		expect( confirmText ).not.toContain( '担当者1' );
 		expect( confirmText ).not.toContain( '担当者B' );
@@ -342,10 +342,10 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 
 		await gotoFrontForm( page );
 
-		// いきなり日付選択。
-		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
-		).toBeVisible();
+		// いきなり日付選択（店舗・担当者ステップは出ない）。
+		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
+			timeout: 10_000,
+		} );
 		await expect(
 			page.getByRole( 'heading', { name: '店舗を選択' } )
 		).toHaveCount( 0 );
@@ -368,9 +368,9 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 			phone: '090-3333-3333',
 		} );
 
-		// 確認画面: 店舗名・担当者名いずれも出ない。
+		// 確認画面: 店舗名・担当者名いずれも出ない（OFF のためサマリにも非表示）。
 		const confirmText = await page
-			.locator( '.smb-front-confirm' )
+			.locator( '.smb-front-confirm-page' )
 			.innerText();
 		expect( confirmText ).not.toContain( '店舗1' );
 		expect( confirmText ).not.toContain( '梅田店' );
@@ -397,7 +397,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 	// D. 既存挙動の互換性（両方 ON、店舗2/担当者2）
 	// ============================================================
 
-	test( 'D: 両方 ON（デフォルト） + 店舗2/担当者2 → 旧来通りフルフロー、店舗名・担当者名表示', async ( {
+	test( 'D: 両方 ON + 店舗2/担当者2 → フルフロー、店舗名・担当者名表示', async ( {
 		page,
 	} ) => {
 		const store2 = insertStore( '札幌店', { sort_order: 30 } );
@@ -405,7 +405,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		insertStaff( store2, '札幌担当', { sort_order: 20 } );
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
 
-		// option はデフォルト（未設定 = ON）。明示的にも ON にしておく。
+		// 新仕様ではデフォルト OFF のため、必ず明示的に ON を設定する。
 		setOption( 'smb_show_store_front', 1 );
 		setOption( 'smb_show_staff_front', 1 );
 
@@ -422,9 +422,6 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		).toBeVisible();
 		await page.getByRole( 'button', { name: /担当者1 を選択/ } ).click();
 
-		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
-		).toBeVisible();
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
 			timeout: 10_000,
 		} );
@@ -441,12 +438,12 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		} );
 
 		// 確認画面: 店舗名・担当者名 いずれも表示される。
-		await expect( page.locator( '.smb-front-confirm' ) ).toContainText(
-			'店舗1'
-		);
-		await expect( page.locator( '.smb-front-confirm' ) ).toContainText(
-			'担当者1'
-		);
+		await expect(
+			page.locator( '.smb-front-confirm-summary' )
+		).toContainText( '店舗1' );
+		await expect(
+			page.locator( '.smb-front-confirm-summary' )
+		).toContainText( '担当者1' );
 
 		await page.getByRole( 'button', { name: '予約を確定する' } ).click();
 		await expect(

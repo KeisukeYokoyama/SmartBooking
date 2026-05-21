@@ -371,8 +371,19 @@ async function fillCoreFormAndGoConfirm(
 	await page.locator( '#smb-front-field-customer_name' ).fill( name );
 	await page.locator( '#smb-front-field-customer_email' ).fill( email );
 	await page.locator( '#smb-front-field-customer_phone' ).fill( phone );
-	await page.getByRole( 'button', { name: '確認画面へ進む' } ).click();
-	await page.waitForSelector( '.smb-front-confirm', { timeout: 10_000 } );
+	// Gen-A 以降: MainInputPage の集約ボタン「予約内容の確認」を押す。
+	// 旧版の FormInput 内ボタン「確認画面へ進む」も後方互換として一応探索する。
+	const newBtn = page.getByRole( 'button', { name: '予約内容の確認' } );
+	if ( ( await newBtn.count() ) > 0 ) {
+		await newBtn.click();
+	} else {
+		await page
+			.getByRole( 'button', { name: '確認画面へ進む' } )
+			.click();
+	}
+	await page.waitForSelector( '.smb-front-confirm-page, .smb-front-confirm', {
+		timeout: 10_000,
+	} );
 }
 
 module.exports = {

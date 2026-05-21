@@ -57,12 +57,12 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			),
 			'smb_show_store_front'       => array(
 				'key'     => 'show_store_front',
-				'default' => 1,
+				'default' => 0,
 				'type'    => 'bool',
 			),
 			'smb_show_staff_front'       => array(
 				'key'     => 'show_staff_front',
-				'default' => 1,
+				'default' => 0,
 				'type'    => 'bool',
 			),
 			'smb_completion_message'     => array(
@@ -223,13 +223,12 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 */
 	public function get_stores() {
 		global $wpdb;
-		$table = $wpdb->prefix . 'smb_stores';
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
 		// is_system=1（システムエンティティ）はユーザーには見えないため公開 API でも返さない。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, name, description, image_id, calendar_color, prefecture, city, address_line, phone, sort_order
-			FROM {$table}
+			FROM {$wpdb->prefix}smb_stores
 			WHERE is_active = 1 AND is_system = 0
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
@@ -273,7 +272,6 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 */
 	public function get_staff( $request ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'smb_staff';
 
 		$store_id = absint( $request->get_param( 'store_id' ) );
 
@@ -284,7 +282,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT id, store_id, name, description, image_id, sort_order
-					FROM {$table}
+					FROM {$wpdb->prefix}smb_staff
 					WHERE is_active = 1 AND is_system = 0 AND store_id = %d
 					ORDER BY sort_order ASC, id ASC",
 					$store_id
@@ -294,7 +292,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		} else {
 			$rows = $wpdb->get_results(
 				"SELECT id, store_id, name, description, image_id, sort_order
-				FROM {$table}
+				FROM {$wpdb->prefix}smb_staff
 				WHERE is_active = 1 AND is_system = 0
 				ORDER BY sort_order ASC, id ASC",
 				ARRAY_A
@@ -358,10 +356,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			}
 		}
 
-		// 管理画面が保存する値（date-first / form-first / day-horizontal / month-grid /
-		// day-and-month）を、フロント React が解釈する正準値（A / B / day_only / month_only /
-		// toggle）に正規化する。両側の語彙が異なるため、ここでブリッジしないと
-		// フロントは常にデフォルトにフォールバックする。
+		// 管理画面が保存する値を、フロント React が解釈する正準値に正規化する。
+		// 旧バージョンの値（date-first / form-first / day-horizontal / month-grid / day-and-month / toggle）も後方互換として受け付ける。
 		$flow_map = array(
 			'A'          => 'A',
 			'B'          => 'B',
@@ -371,10 +367,11 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		$calendar_map = array(
 			'day_only'       => 'day_only',
 			'month_only'     => 'month_only',
-			'toggle'         => 'toggle',
+			'both'           => 'both',
+			'toggle'         => 'both',
 			'day-horizontal' => 'day_only',
 			'month-grid'     => 'month_only',
-			'day-and-month'  => 'toggle',
+			'day-and-month'  => 'both',
 		);
 		$out['flow_order']    = isset( $flow_map[ $out['flow_order'] ] ) ? $flow_map[ $out['flow_order'] ] : 'A';
 		$out['calendar_mode'] = isset( $calendar_map[ $out['calendar_mode'] ] ) ? $calendar_map[ $out['calendar_mode'] ] : 'day_only';
@@ -393,12 +390,11 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 */
 	public function get_custom_fields() {
 		global $wpdb;
-		$table = $wpdb->prefix . 'smb_custom_fields';
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order
-			FROM {$table}
+			FROM {$wpdb->prefix}smb_custom_fields
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
@@ -449,13 +445,12 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 */
 	public function get_availability( $request ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'smb_schedules';
 
 		$store_id = absint( $request->get_param( 'store_id' ) );
 		$staff_id = absint( $request->get_param( 'staff_id' ) );
 
 		// 担当者非表示モード: staff_id 未指定なら同一時刻枠を統合する。
-		$show_staff_front = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
+		$show_staff_front = ( (int) get_option( 'smb_show_staff_front', 0 ) ) ? 1 : 0;
 		$aggregate_staff  = ( 0 === $show_staff_front && $staff_id <= 0 );
 
 		$display_days = (int) get_option( 'smb_display_days', 7 );
@@ -493,11 +488,11 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		$sql = "SELECT id, store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count
-			FROM {$table}
+			FROM {$wpdb->prefix}smb_schedules
 			WHERE " . implode( ' AND ', $where ) . '
 			ORDER BY schedule_date ASC, start_time ASC';
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
@@ -688,10 +683,6 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 */
 	public function create_reservation( $request ) {
 		global $wpdb;
-		$schedules_table = $wpdb->prefix . 'smb_schedules';
-		$res_table       = $wpdb->prefix . 'smb_reservations';
-		$meta_table      = $wpdb->prefix . 'smb_reservation_meta';
-		$fields_table    = $wpdb->prefix . 'smb_custom_fields';
 
 		// ハニーポット: 空でなければボット判定してブロック。
 		$honeypot = $request->get_param( 'honeypot' );
@@ -710,7 +701,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$schedule = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$schedules_table} WHERE id = %d", $schedule_id ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_schedules WHERE id = %d", $schedule_id ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -763,7 +754,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_defs = $wpdb->get_results(
-			"SELECT field_key, field_label, field_type, is_required FROM {$fields_table} ORDER BY sort_order ASC, id ASC",
+			"SELECT field_key, field_label, field_type, is_required FROM {$wpdb->prefix}smb_custom_fields ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -808,22 +799,21 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		// 担当者非表示モード判定。OFF のときは同一時刻枠の他担当者にも空きを探しに行く。
-		$show_staff_front = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
+		$show_staff_front = ( (int) get_option( 'smb_show_staff_front', 0 ) ) ? 1 : 0;
 
 		// アトミック UPDATE 対象の schedule_id を決定する。
 		$now             = $this->now_mysql();
 		$booked_schedule = $schedule;
 		$booked_id       = $schedule_id;
 		$affected        = 0;
-		$staff_table     = $wpdb->prefix . 'smb_staff';
 
 		if ( 0 === $show_staff_front ) {
 			// 同一 (store_id, schedule_date, start_time) の有効な担当者枠を sort_order 順に走査。
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$candidates = $wpdb->get_col(
 				$wpdb->prepare(
-					"SELECT s.id FROM {$schedules_table} s
-					INNER JOIN {$staff_table} st ON s.staff_id = st.id
+					"SELECT s.id FROM {$wpdb->prefix}smb_schedules s
+					INNER JOIN {$wpdb->prefix}smb_staff st ON s.staff_id = st.id
 					WHERE s.store_id = %d
 						AND s.schedule_date = %s
 						AND s.start_time = %s
@@ -848,7 +838,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$try = $wpdb->query(
 					$wpdb->prepare(
-						"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+						"UPDATE {$wpdb->prefix}smb_schedules SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
 						$now,
 						$cand_id
 					)
@@ -861,7 +851,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 						// 採用枠の詳細を取り直す（store_id / schedule_date / start_time は同じだが staff_id が変わる）。
 						// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 						$booked_schedule = $wpdb->get_row(
-							$wpdb->prepare( "SELECT * FROM {$schedules_table} WHERE id = %d", $cand_id ),
+							$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_schedules WHERE id = %d", $cand_id ),
 							ARRAY_A
 						);
 						// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -874,7 +864,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$affected = (int) $wpdb->query(
 				$wpdb->prepare(
-					"UPDATE {$schedules_table} SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+					"UPDATE {$wpdb->prefix}smb_schedules SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
 					$now,
 					$schedule_id
 				)
@@ -895,7 +885,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->query(
 				$wpdb->prepare(
-					"UPDATE {$schedules_table} SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
+					"UPDATE {$wpdb->prefix}smb_schedules SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
 					$booked_id
 				)
 			);
@@ -906,7 +896,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// 予約 INSERT.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ok = $wpdb->insert(
-			$res_table,
+			$wpdb->prefix . 'smb_reservations',
 			array(
 				'store_id'       => (int) $booked_schedule['store_id'],
 				'staff_id'       => (int) $booked_schedule['staff_id'],
@@ -929,7 +919,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->query(
 				$wpdb->prepare(
-					"UPDATE {$schedules_table} SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
+					"UPDATE {$wpdb->prefix}smb_schedules SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
 					$booked_id
 				)
 			);
@@ -961,9 +951,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			} else {
 				$value = sanitize_textarea_field( (string) $raw );
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			$wpdb->insert(
-				$meta_table,
+				$wpdb->prefix . 'smb_reservation_meta',
 				array(
 					'reservation_id' => $reservation_id,
 					'meta_key'       => $key_clean,
@@ -971,18 +961,18 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				),
 				array( '%d', '%s', '%s' )
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		}
 
 		// 店舗名・担当者名を引いて返す（完了画面で利用）. 採用された booked_schedule を参照する。
 		// システムエンティティ（is_system=1）はユーザーに見えないため空文字で返す。
-		$stores_table = $wpdb->prefix . 'smb_stores';
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$store_row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT name, is_system FROM {$stores_table} WHERE id = %d", (int) $booked_schedule['store_id'] ),
+			$wpdb->prepare( "SELECT name, is_system FROM {$wpdb->prefix}smb_stores WHERE id = %d", (int) $booked_schedule['store_id'] ),
 			ARRAY_A
 		);
 		$staff_row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT name, is_system FROM {$staff_table} WHERE id = %d", (int) $booked_schedule['staff_id'] ),
+			$wpdb->prepare( "SELECT name, is_system FROM {$wpdb->prefix}smb_staff WHERE id = %d", (int) $booked_schedule['staff_id'] ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared

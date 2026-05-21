@@ -152,10 +152,10 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 				'input[name="smb_booking_flow_order"][value="form-first"]'
 			)
 			.check();
-		// カレンダー表示モード: 月表示.
+		// カレンダー表示モード: 月表示のみ.
 		await page
 			.locator(
-				'input[name="smb_calendar_view_mode"][value="month-grid"]'
+				'input[name="smb_calendar_view_mode"][value="month_only"]'
 			)
 			.check();
 		// 表示期間: 60.
@@ -172,7 +172,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		const res = await restCall( page, 'GET', 'settings' );
 		expect( res.ok ).toBe( true );
 		expect( res.data.settings.smb_booking_flow_order ).toBe( 'form-first' );
-		expect( res.data.settings.smb_calendar_view_mode ).toBe( 'month-grid' );
+		expect( res.data.settings.smb_calendar_view_mode ).toBe( 'month_only' );
 		expect( String( res.data.settings.smb_display_days ) ).toBe( '60' );
 	} );
 
@@ -791,7 +791,7 @@ test.describe( 'Phase 2: 設定画面 - レスポンシブ（375px）', () => {
 			.click();
 		await page
 			.locator(
-				'input[name="smb_calendar_view_mode"][value="month-grid"]'
+				'input[name="smb_calendar_view_mode"][value="month_only"]'
 			)
 			.check();
 		await page.getByRole( 'button', { name: '基本設定を保存' } ).click();

@@ -185,10 +185,10 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 				'input[name="smb_booking_flow_order"][value="form-first"]'
 			)
 			.check();
-		// カレンダー表示モード: 月表示 (month-grid を選択).
+		// カレンダー表示モード: 月表示のみ (month_only を選択).
 		await page
 			.locator(
-				'input[name="smb_calendar_view_mode"][value="month-grid"]'
+				'input[name="smb_calendar_view_mode"][value="month_only"]'
 			)
 			.check();
 
@@ -203,7 +203,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 			'form-first'
 		);
 		expect( adminGet.data.settings.smb_calendar_view_mode ).toBe(
-			'month-grid'
+			'month_only'
 		);
 
 		// --- フロントで反映を確認 ---

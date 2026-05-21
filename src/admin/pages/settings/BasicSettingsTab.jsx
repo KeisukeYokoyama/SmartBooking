@@ -2,9 +2,11 @@
  * 設定ページ - 基本設定タブ。
  *
  * - 予約フローの順序（日付・時間 → フォーム / フォーム → 日付・時間）
- * - カレンダー表示モード（日表示 / 月表示）
+ * - カレンダー表示モード（日表示のみ / 月表示のみ / 日月切替）
  * - 表示期間（14/30/60/90 日）
  * - 予約締切設定（○時間前 / ○日前）
+ * - 店舗選択ステップ ON/OFF（手動トグル、デフォルト OFF）
+ * - 担当者選択ステップ ON/OFF（手動トグル、デフォルト OFF）
  * - 完了メッセージ
  */
 import { useEffect, useState } from 'react';
@@ -20,8 +22,9 @@ const FLOW_OPTIONS = [
 ];
 
 const VIEW_OPTIONS = [
-	{ value: 'day-horizontal', label: '日表示（横スクロール）' },
-	{ value: 'month-grid', label: '月表示（グリッド）' },
+	{ value: 'day_only', label: '日表示のみ' },
+	{ value: 'month_only', label: '月表示のみ' },
+	{ value: 'both', label: '日表示＋月表示切替' },
 ];
 
 const DAYS_OPTIONS = [
@@ -33,13 +36,34 @@ const DAYS_OPTIONS = [
 
 const DEFAULT_VALUES = {
 	smb_booking_flow_order: 'date-first',
-	smb_calendar_view_mode: 'day-horizontal',
+	smb_calendar_view_mode: 'day_only',
 	smb_display_days: '30',
 	smb_booking_deadline_type: 'hours', // 'hours' | 'days'
 	smb_booking_deadline_hours: '2',
 	smb_booking_deadline_days: '1',
+	smb_show_store_front: false,
+	smb_show_staff_front: false,
 	smb_completion_message: '',
 };
+
+// 旧スラッグから正準値への正規化（後方互換）。
+const VIEW_MODE_ALIASES = {
+	'day-horizontal': 'day_only',
+	'month-grid': 'month_only',
+	'day-and-month': 'both',
+	toggle: 'both',
+};
+
+function normalizeViewMode(raw) {
+	const v = String(raw || '').trim();
+	if (Object.prototype.hasOwnProperty.call(VIEW_MODE_ALIASES, v)) {
+		return VIEW_MODE_ALIASES[v];
+	}
+	if (v === 'day_only' || v === 'month_only' || v === 'both') {
+		return v;
+	}
+	return DEFAULT_VALUES.smb_calendar_view_mode;
+}
 
 /**
  * サーバから取得した settings を基本設定タブの state に変換する。
@@ -48,33 +72,31 @@ const DEFAULT_VALUES = {
 function hydrate(settings) {
 	const hours = Number(settings.smb_booking_deadline_hours || 0);
 	const days = Number(settings.smb_booking_deadline_days || 0);
-	// どちらか一方のみ設定されていれば、それを type と見なす。両方あれば days を優先（より厳しい設定として日単位運用のケースを想定）。
 	let type = 'hours';
 	if (days > 0 && hours === 0) type = 'days';
 	else if (days > 0 && hours > 0) type = 'days';
 	else type = 'hours';
 
-	// 表示制御フラグはバックエンドから 0/1 / true/false いずれの形でも返り得るため正規化する。
-	// キーが未定義（旧データ）の場合はデフォルト ON 扱いにする（既存挙動互換）。
+	// 表示制御フラグ: 旧データ（未定義）はデフォルト OFF として扱う。
 	const showStore =
 		settings.smb_show_store_front === undefined
-			? true
-			: !! Number(settings.smb_show_store_front);
+			? false
+			: !!Number(settings.smb_show_store_front);
 	const showStaff =
 		settings.smb_show_staff_front === undefined
-			? true
-			: !! Number(settings.smb_show_staff_front);
+			? false
+			: !!Number(settings.smb_show_staff_front);
 
 	return {
 		smb_booking_flow_order: settings.smb_booking_flow_order || 'date-first',
-		smb_calendar_view_mode: settings.smb_calendar_view_mode || 'day-horizontal',
+		smb_calendar_view_mode: normalizeViewMode(settings.smb_calendar_view_mode),
 		smb_display_days: String(settings.smb_display_days || '30'),
 		smb_booking_deadline_type: type,
 		smb_booking_deadline_hours: String(hours || 2),
 		smb_booking_deadline_days: String(days || 1),
-		smb_completion_message: settings.smb_completion_message || '',
 		smb_show_store_front: showStore,
 		smb_show_staff_front: showStaff,
+		smb_completion_message: settings.smb_completion_message || '',
 	};
 }
 
@@ -88,7 +110,6 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 		setInitial(next);
 	}, [settings]);
 
-	// dirty 伝搬
 	useEffect(() => {
 		const dirty = Object.keys(values).some((k) => values[k] !== initial[k]);
 		onDirtyChange && onDirtyChange(dirty);
@@ -105,7 +126,6 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 			smb_show_store_front: values.smb_show_store_front ? 1 : 0,
 			smb_show_staff_front: values.smb_show_staff_front ? 1 : 0,
 		};
-		// 締切: 選択された type のみ値を送り、他方は 0（無効）にする
 		if (values.smb_booking_deadline_type === 'hours') {
 			patch.smb_booking_deadline_hours = Number(values.smb_booking_deadline_hours) || 0;
 			patch.smb_booking_deadline_days = 0;
@@ -238,6 +258,7 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					<h3 className="smb-settings-section__title">フロント表示</h3>
 					<p className="smb-settings-section__lead">
 						予約フォームに「店舗選択」「担当者選択」のステップを表示するかどうかを切り替えます。
+						OFF にすると、フロントではステップを表示せず、デフォルトの店舗・担当者が自動的に選択されます。
 					</p>
 				</div>
 
@@ -250,12 +271,12 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 							label={
 								values.smb_show_store_front
 									? '表示する（フロントに店舗選択ステップを出す）'
-									: '表示しない（自動で店舗を割り当てる）'
+									: '表示しない（デフォルト店舗を自動で割り当てる）'
 							}
 						/>
 						<p className="smb-field-help">
-							OFFにしても、管理画面ではスケジュールに店舗を紐づけて管理できます。<br />
-							店舗が1つだけの場合、この設定に関わらず自動的にスキップされます。
+							ON にすると、店舗が1つしかない場合でも店舗選択ステップが表示されます。<br />
+							OFF にしても、管理画面ではスケジュールに店舗を紐づけて管理できます。
 						</p>
 					</div>
 				</div>
@@ -273,8 +294,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 							}
 						/>
 						<p className="smb-field-help">
-							OFFにしても、管理画面ではスケジュールに担当者を紐づけて管理できます。<br />
-							担当者が1人だけの場合、この設定に関わらず自動的にスキップされます。
+							ON にすると、担当者が1人しかいない場合でも担当者選択ステップが表示されます。<br />
+							OFF にしても、管理画面ではスケジュールに担当者を紐づけて管理できます。
 						</p>
 					</div>
 				</div>
