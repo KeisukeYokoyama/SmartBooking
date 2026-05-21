@@ -1,9 +1,5 @@
 === Smart Booking ===
 Contributors: liberdadeinc
-Plugin Name: Smart Booking
-Plugin URI: https://www.wp-smart-booking.com/
-Author: 株式会社リベルダージ
-Author URI: https://www.liberdade-inc.com/
 Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 6.9
