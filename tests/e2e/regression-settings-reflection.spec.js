@@ -80,7 +80,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 
 		// 日付選択ステップが先に表示される.
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 		// フォーム入力ステップは表示されない.
 		await expect(
@@ -99,14 +99,20 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 		seedWeekSlots();
 		await gotoFrontForm( page );
 
-		// フォーム入力ステップが先に表示される.
+		// flow_order='B' (form-first) では MainInputPage 内でフォームセクションが先に来る.
+		// MainInputPage は 1 画面統合のため見出しは非表示 (hideHeader=true) だが、
+		// フォームセクション (.smb-front-main-page__section--form) が先頭に配置される.
+		const sections = page.locator( '.smb-front-main-page__section' );
+		// 最初のセクションがフォームセクションであること.
+		await expect( sections.first() ).toHaveClass( /smb-front-main-page__section--form/ );
+		// フォームの入力フィールドが表示されている.
 		await expect(
-			page.getByRole( 'heading', { name: 'お客様情報の入力' } )
+			page.locator( '#smb-front-field-customer_name' )
 		).toBeVisible();
-		// 日付選択ステップは表示されない（form-first なので最初は date が出ない）.
+		// 日付選択セクションも DOM 上に存在するが、後に来る.
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
-		).toHaveCount( 0 );
+			page.locator( '.smb-front-date-section-head' )
+		).toBeVisible();
 	} );
 
 	// ============================================================
@@ -121,7 +127,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 		await gotoFrontForm( page );
 
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 		await page.waitForSelector( '.smb-front-day-strip', {
 			timeout: 10_000,
@@ -145,7 +151,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 		await gotoFrontForm( page );
 
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
 
@@ -168,7 +174,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 		// フロントで初期描画が「日付を選択」(=デフォルト 'A') であること.
 		await gotoFrontForm( page );
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 
 		// 月グリッドはデフォルト 'day_only' なので表示されない.
@@ -229,14 +235,18 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 		expect( publicSettings.flow_order ).toBe( 'B' );
 		expect( publicSettings.calendar_mode ).toBe( 'month_only' );
 
-		// flow_order='B' なので最初はフォーム入力ステップ.
+		// flow_order='B' なので MainInputPage 内でフォームセクションが先頭に来る.
+		// MainInputPage は 1 画面統合のため見出しは非表示 (hideHeader=true) だが、
+		// フォームセクション (.smb-front-main-page__section--form) が先頭に配置される.
+		const sections = page.locator( '.smb-front-main-page__section' );
+		await expect( sections.first() ).toHaveClass( /smb-front-main-page__section--form/ );
+		// フォームの入力フィールドが表示されている.
 		await expect(
-			page.getByRole( 'heading', { name: 'お客様情報の入力' } )
+			page.locator( '#smb-front-field-customer_name' )
 		).toBeVisible();
-		// このステップでは calendar は出ない (form-first の最初は form のため).
-		// 念のため日付選択見出しが出ていないことを確認.
+		// 日付選択セクションも DOM 上に存在するが、後に来る.
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
-		).toHaveCount( 0 );
+			page.locator( '.smb-front-date-section-head' )
+		).toBeVisible();
 	} );
 } );

@@ -75,7 +75,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		await gotoFrontForm( page );
 
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 		await page.waitForSelector( '.smb-front-day-tile', {
 			timeout: 10_000,
@@ -98,7 +98,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		await gotoFrontForm( page );
 
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
 
@@ -117,7 +117,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		await gotoFrontForm( page );
 
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 
 		// トグルボタンが両方表示される.
@@ -251,10 +251,9 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 			has: page.locator( `.smb-front-day-tile__day:text("${ dayNum }")` ),
 		} );
 		await expect( fewTile ).toHaveCount( 1 );
-		// few_left バッジ.
-		await expect(
-			fewTile.locator( '.smb-front-day-tile__badge.is-few' )
-		).toContainText( '残りわずか' );
+		// Gen-D: few_left 状態は is-tone-few クラスで表現、aria-label に「残りわずか」を含む.
+		await expect( fewTile ).toHaveClass( /is-tone-few/ );
+		await expect( fewTile ).toHaveAttribute( 'aria-label', /残りわずか/ );
 
 		const fullDayNum = new Date( fullDate ).getDate();
 		const fullTile = page.locator( '.smb-front-day-tile' ).filter( {
@@ -262,9 +261,9 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 				`.smb-front-day-tile__day:text("${ fullDayNum }")`
 			),
 		} );
-		await expect(
-			fullTile.locator( '.smb-front-day-tile__badge.is-full' )
-		).toContainText( '満席' );
+		// Gen-D: full 状態は is-tone-full クラスで表現、aria-label に「満席」を含む.
+		await expect( fullTile ).toHaveClass( /is-tone-full/ );
+		await expect( fullTile ).toHaveAttribute( 'aria-label', /満席/ );
 		// 満席タイルは disabled.
 		await expect( fullTile ).toBeDisabled();
 	} );
@@ -404,7 +403,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 
 		// 同一画面に「日付を選択」見出しもまだ存在 (= 次ステップに遷移していない).
 		await expect(
-			page.getByRole( 'heading', { name: '日付を選択' } )
+			page.getByRole( 'heading', { name: '日付選択' } )
 		).toBeVisible();
 
 		// 時間ボタンが 2 個ある.
@@ -473,7 +472,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		await page.locator( '.smb-front-time-btn' ).first().click();
 
 		await expect(
-			page.getByRole( 'heading', { name: 'お客様情報の入力' } )
+			page.locator( '#smb-front-field-customer_name' )
 		).toBeVisible( {
 			timeout: 5_000,
 		} );
@@ -632,9 +631,9 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 			),
 		} );
 		await expect( tile2 ).toBeDisabled();
-		await expect(
-			tile2.locator( '.smb-front-day-tile__badge.is-closed' )
-		).toContainText( '締切' );
+		// Gen-D: closed 状態は is-tone-closed クラスで表現、aria-label に「締切」を含む.
+		await expect( tile2 ).toHaveClass( /is-tone-closed/ );
+		await expect( tile2 ).toHaveAttribute( 'aria-label', /締切/ );
 	} );
 
 	test( 'deadline_hours=2: 当日から1時間後の枠は closed (実時間で過去枠を毎日 02:00 へ作る検証)', async ( {
@@ -661,13 +660,13 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 			timeout: 10_000,
 		} );
 
-		// 当日タイルは「締切」バッジで disabled.
+		// 当日タイルは「締切」状態で disabled.
 		const todayTile = page.locator( '.smb-front-day-tile.is-today' );
 		await expect( todayTile ).toHaveCount( 1 );
 		await expect( todayTile ).toBeDisabled();
-		await expect(
-			todayTile.locator( '.smb-front-day-tile__badge.is-closed' )
-		).toContainText( '締切' );
+		// Gen-D: closed 状態は is-tone-closed クラスで表現、aria-label に「締切」を含む.
+		await expect( todayTile ).toHaveClass( /is-tone-closed/ );
+		await expect( todayTile ).toHaveAttribute( 'aria-label', /締切/ );
 	} );
 
 	test( '両方設定: deadline_days=5 と deadline_hours=2 → 厳しい方 (5日) が適用され3日後は closed', async ( {
@@ -703,9 +702,9 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		} );
 		// 5日前 (=厳しい方) が適用されて closed になる.
 		await expect( tile ).toBeDisabled();
-		await expect(
-			tile.locator( '.smb-front-day-tile__badge.is-closed' )
-		).toContainText( '締切' );
+		// Gen-D: closed 状態は is-tone-closed クラスで表現、aria-label に「締切」を含む.
+		await expect( tile ).toHaveClass( /is-tone-closed/ );
+		await expect( tile ).toHaveAttribute( 'aria-label', /締切/ );
 	} );
 
 	// ============================================================

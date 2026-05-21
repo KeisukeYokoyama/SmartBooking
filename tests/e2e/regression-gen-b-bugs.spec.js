@@ -234,23 +234,31 @@ test.describe( 'Gen-B リグレッション: 重複登録防止 + 隣月対応 +
 			.fill( targetDate );
 
 		// 店舗・担当者は既に1つだけなので自動選択されている (defaultStoreId/defaultStaffId).
-		// Slot 1 行目はデフォルト 10:00 = 既存。グレーアウト + 「既に登録済みです」表示を期待.
+		// 既存スケジュール (10:00) がある日付でモーダルを開くと、編集モードで既存スロットがロードされる.
+		// モーダルタイトルが「スケジュールを設定」であり、既存スロットが1行目に表示されることを期待.
+		await expect(
+			page.locator( '.smb-modal__title', { hasText: 'スケジュールを設定' } )
+		).toBeVisible();
+		// 既存スケジュールの注意メッセージが表示される.
+		await expect(
+			page.locator( '.smb-schedule-form__notice' )
+		).toBeVisible();
+		// 1 行目: 既存 10:00 スロット（id あり・編集行）が表示される.
 		const firstRow = page.locator( '.smb-slot-editor__list li' ).first();
-		await expect( firstRow ).toHaveClass( /is-existing/ );
-		await expect( firstRow.locator( '.smb-slot-editor__lock-note' ) ).toContainText(
-			'既に登録済み'
-		);
+		await expect( firstRow ).toBeVisible();
+		// start_time が 10:00 の input が表示されている.
+		await expect( firstRow.locator( 'input[type="time"]' ) ).toHaveValue( '10:00' );
 
 		// 「時間枠を追加」を押して 11:00 (新規) 行を追加.
 		await page
 			.locator( 'button.smb-btn--secondary', { hasText: '時間枠を追加' } )
 			.click();
 
-		// 2 行目は is-existing クラスが付かない.
+		// 2 行目 (新規行) が追加される.
 		const secondRow = page.locator( '.smb-slot-editor__list li' ).nth( 1 );
-		await expect( secondRow ).not.toHaveClass( /is-existing/ );
+		await expect( secondRow ).toBeVisible();
 
-		// 「追加する」ボタンをクリックして送信. レスポンスを傍受.
+		// 「保存」ボタンをクリックして送信. レスポンスを傍受.
 		const responsePromise = page.waitForResponse(
 			( res ) =>
 				/\/wp-json\/smart-booking\/v1\/schedules$/.test( res.url() ) &&

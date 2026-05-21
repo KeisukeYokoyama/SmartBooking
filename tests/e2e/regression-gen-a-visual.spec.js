@@ -127,7 +127,7 @@ test.describe( 'Gen-A 視覚回帰: 管理画面外観 + スケジュールUI', 
 		await page.locator( '#smb-schedule-date' ).fill( targetDate2 );
 		await page
 			.locator( '.smb-modal__footer' )
-			.getByRole( 'button', { name: '追加する' } )
+			.getByRole( 'button', { name: '保存' } )
 			.click();
 
 		const toast = page.locator( '.smb-toast' ).first();
