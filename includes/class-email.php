@@ -57,18 +57,54 @@ class Smart_Booking_Email {
 			array()
 		);
 
-		// 管理者宛（店舗メール）。担当者メールがあれば CC。表示制御に関わらず常に値を含める。.
-		$cc          = array();
-		$staff_email = (string) $formatted['staff_email'];
-		if ( '' !== $staff_email && is_email( $staff_email ) ) {
-			$cc[] = $staff_email;
+		// 管理者系通知の宛先を「管理者へのメール」トグルの状態で組み立てる。
+		//
+		// ON  : admin_email を常に To に含める（店舗有無に関わらず）。店舗があれば追加 To。
+		//       担当者は CC（あれば）。
+		// OFF : admin_email は使わない。店舗があれば To。担当者があれば CC。
+		//       店舗が空のときは（担当者の有無に関わらず）何も送らない。
+		$admin_enabled = ( 1 === (int) get_option( 'smb_mail_admin_notify_enabled', 1 ) );
+		$store_email   = (string) $formatted['store_email'];
+		$staff_email   = (string) $formatted['staff_email'];
+		$wp_admin_to   = (string) get_option( 'admin_email', '' );
+
+		$to_list = array();
+		$cc_list = array();
+
+		if ( $admin_enabled ) {
+			if ( '' !== $wp_admin_to && is_email( $wp_admin_to ) ) {
+				$to_list[] = $wp_admin_to;
+			}
+			if ( '' !== $store_email && is_email( $store_email ) ) {
+				$to_list[] = $store_email;
+			}
+			if ( '' !== $staff_email && is_email( $staff_email ) ) {
+				$cc_list[] = $staff_email;
+			}
+		} else {
+			// OFF: 店舗メールがなければ送らない（担当者だけのケースも送信しない）。
+			if ( '' === $store_email || ! is_email( $store_email ) ) {
+				return;
+			}
+			$to_list[] = $store_email;
+			if ( '' !== $staff_email && is_email( $staff_email ) ) {
+				$cc_list[] = $staff_email;
+			}
 		}
+
+		// 同一アドレスの重複を除外（admin_email と店舗メールが一致するケース等）。
+		$to_list = array_values( array_unique( $to_list ) );
+
+		if ( empty( $to_list ) ) {
+			return;
+		}
+
 		$this->send(
-			(string) $formatted['store_email'],
+			$to_list,
 			(string) get_option( 'smb_mail_receipt_admin_subject', '' ),
 			(string) get_option( 'smb_mail_receipt_admin_body', '' ),
 			$context,
-			$cc
+			$cc_list
 		);
 	}
 
@@ -110,8 +146,8 @@ class Smart_Booking_Email {
 		if ( ! is_array( $context ) || empty( $context['formatted'] ) || ! is_array( $context['formatted'] ) ) {
 			return $context;
 		}
-		$show_store = ( (int) get_option( 'smb_show_store_front', 1 ) ) ? 1 : 0;
-		$show_staff = ( (int) get_option( 'smb_show_staff_front', 1 ) ) ? 1 : 0;
+		$show_store = ( (int) get_option( 'smb_show_store_front', 0 ) ) ? 1 : 0;
+		$show_staff = ( (int) get_option( 'smb_show_staff_front', 0 ) ) ? 1 : 0;
 
 		// システムエンティティ（is_system=1）に紐づく場合はユーザー宛では名前を出さない。
 		$store_is_system = ( ! empty( $context['store'] ) && is_array( $context['store'] ) && ! empty( $context['store']['is_system'] ) ) ? 1 : 0;
@@ -146,15 +182,25 @@ class Smart_Booking_Email {
 	 * wp_mail_content_type フィルタは送信中だけ追加し、終了時に必ず除去する
 	 * （他プラグインの mail に影響を残さないため）。
 	 *
-	 * @param string   $to      送信先メールアドレス。
-	 * @param string   $subject 件名テンプレート。
-	 * @param string   $body    本文テンプレート。
-	 * @param array    $context Reservation context（テンプレート展開用）。
-	 * @param string[] $cc      CC 用メールアドレス配列。
+	 * @param string|string[] $to      送信先メールアドレス（単一 or 複数）。
+	 * @param string          $subject 件名テンプレート。
+	 * @param string          $body    本文テンプレート。
+	 * @param array           $context Reservation context（テンプレート展開用）。
+	 * @param string[]        $cc      CC 用メールアドレス配列。
 	 * @return void
 	 */
 	private function send( $to, $subject, $body, $context, $cc ) {
-		if ( '' === $to || ! is_email( $to ) ) {
+		// 単一文字列 / 配列を許容し、フィルタした上で wp_mail に渡す。
+		$to_list = is_array( $to ) ? $to : array( (string) $to );
+		$to_list = array_values(
+			array_filter(
+				$to_list,
+				static function ( $addr ) {
+					return is_string( $addr ) && '' !== $addr && is_email( $addr );
+				}
+			)
+		);
+		if ( empty( $to_list ) ) {
 			return;
 		}
 
@@ -169,7 +215,7 @@ class Smart_Booking_Email {
 		$headers = $this->build_headers( $cc );
 
 		add_filter( 'wp_mail_content_type', array( $this, 'filter_content_type' ) );
-		wp_mail( $to, $rendered_subject, $rendered_body, $headers );
+		wp_mail( $to_list, $rendered_subject, $rendered_body, $headers );
 		remove_filter( 'wp_mail_content_type', array( $this, 'filter_content_type' ) );
 	}
 

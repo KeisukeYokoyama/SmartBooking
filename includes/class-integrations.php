@@ -7,6 +7,12 @@
  *
  * 各連携クラスは内部で「機能 OFF」を判定するため、ここでは無条件で wire する。
  *
+ * Google Calendar 連携の発火タイミング:
+ *   - 予約受付時 (received): カレンダーにイベント作成（承認待ちでも即時に枠を可視化し、
+ *     管理者のダブルブッキングを防ぐため）。
+ *   - 承認時 (approved): カレンダーには触れない（受付時に既に作成済み）。
+ *   - キャンセル時 (cancelled): カレンダーからイベント削除。
+ *
  * @package Smart_Booking
  */
 
@@ -30,10 +36,10 @@ class Smart_Booking_Integrations {
 	 * @return void
 	 */
 	public function init() {
-		// 受付時: ユーザー宛 + 管理者宛メール / ChatWork 通知.
+		// 受付時: ユーザー宛 + 管理者宛メール / ChatWork 通知 / Google カレンダーへイベント作成.
 		add_action( 'smart_booking_reservation_received', array( $this, 'on_received' ), 10, 1 );
 
-		// 承認時: ユーザー宛確定メール / Google カレンダーへイベント作成.
+		// 承認時: ユーザー宛確定メール（カレンダーには触れない）.
 		add_action( 'smart_booking_reservation_approved', array( $this, 'on_approved' ), 10, 1 );
 
 		// キャンセル時: Google カレンダーのイベント削除.
@@ -53,6 +59,7 @@ class Smart_Booking_Integrations {
 		}
 		( new Smart_Booking_Email() )->send_receipt( $ctx );
 		( new Smart_Booking_Chatwork() )->notify_received( $ctx );
+		( new Smart_Booking_Google_Calendar() )->create_event( $ctx );
 	}
 
 	/**
@@ -67,7 +74,6 @@ class Smart_Booking_Integrations {
 			return;
 		}
 		( new Smart_Booking_Email() )->send_approval( $ctx );
-		( new Smart_Booking_Google_Calendar() )->create_event( $ctx );
 	}
 
 	/**

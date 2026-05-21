@@ -4,6 +4,7 @@
 	"port": 8888,
 	"testsEnvironment": false,
 	"mappings": {
-		"wp-content/mu-plugins/smb-mail-catcher.php": "./tests/mu-plugins/smb-mail-catcher.php"
+		"wp-content/mu-plugins/smb-mail-catcher.php": "./tests/mu-plugins/smb-mail-catcher.php",
+		"wp-content/mu-plugins/smb-mailpit-smtp.php": "./tests/mu-plugins/smb-mailpit-smtp.php"
 	}
 }

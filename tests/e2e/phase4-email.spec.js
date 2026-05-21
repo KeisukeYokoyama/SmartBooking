@@ -161,6 +161,9 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	test.beforeEach( async () => {
 		restoreBaseline();
 		clearMailLog();
+		// mu-plugin smb-mail-catcher.php はオプトイン式のため、E2E テストでは明示的に有効化する。
+		// 既定 OFF の理由: ローカルブラウザ操作時に MailPit (smb-mailpit-smtp.php) で実送信を確認したいケースがあるため。
+		setOptionRaw( 'smb_mail_capture_enabled', '1' );
 		// 受付/承認テンプレの既定値を確認するため、起動時の値で固定し直す。
 		setOptionRaw( 'smb_mail_from_name', 'Smart Booking Test' );
 		setOptionRaw( 'smb_mail_from_email', 'noreply@example.com' );
@@ -192,6 +195,12 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 
 	test.afterAll( async () => {
 		clearMailLog();
+		// 後続テストで catcher が誤動作しないよう必ず OFF に戻す。
+		try {
+			wpCli( `option delete smb_mail_capture_enabled` );
+		} catch ( _e ) {
+			// 既に未設定なら無視。
+		}
 		restoreBaseline();
 	} );
 

@@ -8,13 +8,16 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import Button from '../../components/Button';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import Input from '../../components/Input';
+import Switch from '../../components/Switch';
 import Textarea from '../../components/Textarea';
 import TemplateVariableHelper from './TemplateVariableHelper';
 
 const MAIL_KEYS = [
 	'smb_mail_from_name',
 	'smb_mail_from_email',
+	'smb_mail_admin_notify_enabled',
 	'smb_mail_receipt_user_subject',
 	'smb_mail_receipt_user_body',
 	'smb_mail_receipt_admin_subject',
@@ -23,15 +26,23 @@ const MAIL_KEYS = [
 	'smb_mail_approval_user_body',
 ];
 
+const BOOL_KEYS = new Set(['smb_mail_admin_notify_enabled']);
+
 function hydrate(settings) {
 	const out = {};
 	for (const k of MAIL_KEYS) {
-		out[k] = settings[k] || '';
+		if (BOOL_KEYS.has(k)) {
+			// 未保存環境では undefined を許容しデフォルト ON とする。
+			const raw = settings[k];
+			out[k] = raw === undefined || raw === '' ? 1 : Number(raw) ? 1 : 0;
+		} else {
+			out[k] = settings[k] || '';
+		}
 	}
 	return out;
 }
 
-function BodyFieldWithHelper({ label, value, onChange, helperId }) {
+function BodyFieldWithHelper({ label, value, onChange, helperId, disabled = false }) {
 	return (
 		<div className="smb-mail-body">
 			<Textarea
@@ -39,6 +50,7 @@ function BodyFieldWithHelper({ label, value, onChange, helperId }) {
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
 				rows={8}
+				disabled={disabled}
 			/>
 			<TemplateHelperBinding
 				helperId={helperId}
@@ -86,6 +98,7 @@ function TemplateHelperBinding({ helperId, onInsert }) {
 export default function MailSettingsTab({ settings, onSave, saving, onDirtyChange }) {
 	const [values, setValues] = useState(() => hydrate(settings || {}));
 	const [initial, setInitial] = useState(() => hydrate(settings || {}));
+	const [adminToggleConfirmOpen, setAdminToggleConfirmOpen] = useState(false);
 
 	useEffect(() => {
 		const next = hydrate(settings || {});
@@ -100,9 +113,28 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 
 	const update = (patch) => setValues((prev) => ({ ...prev, ...patch }));
 
+	const handleAdminNotifyChange = (next) => {
+		if (next) {
+			update({ smb_mail_admin_notify_enabled: 1 });
+		} else {
+			// OFF にする際は確認ダイアログ。確定するまで値は変えない。
+			setAdminToggleConfirmOpen(true);
+		}
+	};
+
+	const confirmAdminNotifyOff = () => {
+		update({ smb_mail_admin_notify_enabled: 0 });
+		setAdminToggleConfirmOpen(false);
+	};
+
+	const cancelAdminNotifyOff = () => {
+		setAdminToggleConfirmOpen(false);
+	};
+
 	const handleSave = () => onSave({ ...values });
 
 	const isDirty = MAIL_KEYS.some((k) => values[k] !== initial[k]);
+	const adminNotifyOn = 1 === Number(values.smb_mail_admin_notify_enabled);
 
 	return (
 		<div className="smb-settings-form">
@@ -157,7 +189,18 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				<div className="smb-settings-section__header">
 					<h3 className="smb-settings-section__title">予約受付メール（管理者宛）</h3>
 					<p className="smb-settings-section__lead">
-						予約が入ったときに店舗メールへ届くメール。担当者メールが設定されていればCCに入ります。
+						予約が入ったときに店舗メール（To）と担当者メール（CC）へ届きます。「管理者へのメール」がオンのときは、加えて WordPress の管理者メールにも同時に通知が送られます。
+					</p>
+				</div>
+				<div className="smb-settings-toggle-row">
+					<Switch
+						id="smb-admin-notify-toggle"
+						checked={adminNotifyOn}
+						onChange={handleAdminNotifyChange}
+						label="管理者へのメール"
+					/>
+					<p className="smb-settings-toggle-row__hint">
+						オフにすると、WordPress の管理者メールへの通知は送られません。店舗・担当者宛の通知は引き続き送信されます。
 					</p>
 				</div>
 				<Input
@@ -209,6 +252,17 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					メール設定を保存
 				</Button>
 			</div>
+
+			<ConfirmDialog
+				open={adminToggleConfirmOpen}
+				title="管理者へのメールをオフにしますか？"
+				message="店舗や担当者のメールアドレスが登録されていない場合、予約完了メールは届きません。"
+				confirmLabel="オフにする"
+				cancelLabel="キャンセル"
+				variant="danger"
+				onConfirm={confirmAdminNotifyOff}
+				onCancel={cancelAdminNotifyOff}
+			/>
 		</div>
 	);
 }

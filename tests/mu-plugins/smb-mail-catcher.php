@@ -22,12 +22,20 @@ if ( ! defined( 'SMB_MAIL_CATCHER_MAX' ) ) {
  * pre_wp_mail フィルタで送信を傍受し、ログに保存する。
  * true を返すと wp_mail 本体は実行されない（実際の送信は行わない）。
  *
+ * オプトイン方式: `smb_mail_capture_enabled` オプションが '1' のときだけ傍受する。
+ * 既定は OFF。これにより、ローカルでのブラウザテスト時は wp_mail() がそのまま PHPMailer
+ * へ流れて MailPit (smb-mailpit-smtp.php) で受け取れる。
+ * E2E テスト (phase4-email.spec.js) は beforeEach でこのオプションを 1 にセットする。
+ *
  * @param null|bool $short_circuit pre_wp_mail の標準値。
  * @param array     $atts          wp_mail に渡された引数の連想配列。
- * @return bool
+ * @return null|bool
  */
 function smb_mail_catcher_capture( $short_circuit, $atts ) {
-	unset( $short_circuit );
+	if ( '1' !== (string) get_option( 'smb_mail_capture_enabled', '0' ) ) {
+		// 素通り: PHPMailer へ流して実際の送信を行う（MailPit などで受け取る）。
+		return $short_circuit;
+	}
 
 	$entry = array(
 		'to'         => isset( $atts['to'] ) ? $atts['to'] : '',
