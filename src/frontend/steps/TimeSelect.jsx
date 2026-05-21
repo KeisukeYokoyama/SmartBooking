@@ -17,8 +17,9 @@
  * state.date に対応する schedule のみ表示。
  * ボタン押下で SET_TIME を dispatch。reducer が次ステップへ自動遷移する。
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { fromYmd, formatMonthDay } from '../dateUtils';
+import { pushBookingEvent } from '../utils/analytics';
 
 const AVAILABILITY_LABELS = {
 	available: '',
@@ -29,6 +30,11 @@ const AVAILABILITY_LABELS = {
 
 export default function TimeSelect({ state, dispatch, embedded = true }) {
 	const { date: selectedYmd, schedules, time: selectedTime } = state;
+
+	// GTM 連携: 日付が選択されて時間枠が描画されるタイミングで time_select を送信。
+	useEffect(() => {
+		pushBookingEvent('time_select');
+	}, []);
 
 	const daySchedules = useMemo(() => {
 		if (!selectedYmd) return [];

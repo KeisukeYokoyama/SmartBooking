@@ -6,10 +6,21 @@
  *
  * スキップルール:
  *   - 担当者が 1 名のみ / storeId に紐づく担当者が 0 の場合は App 側でハンドリング済み。
+ *
+ * UI 設計（card-unification）: StoreSelect と同方針。
+ *   - プロフィール画像は円形（72px）、未設定時はイニシャル。
+ *   - 紹介文は 2 行 ellipsis。
+ *   - 「選ぶ→」CTA は廃止。カード全体クリッカブル + ホバー視覚変化。
  */
+import { useEffect } from 'react';
 import StepHeader from '../components/StepHeader';
+import { pushBookingEvent } from '../utils/analytics';
 
 export default function StaffSelect({ staff, storeId, onSelect, onBack }) {
+	useEffect(() => {
+		pushBookingEvent('staff_select');
+	}, []);
+
 	const filtered = staff.filter((s) => s.store_id === storeId);
 
 	return (
@@ -24,7 +35,7 @@ export default function StaffSelect({ staff, storeId, onSelect, onBack }) {
 			) : (
 				<ul className="smb-front-cards" role="list">
 					{filtered.map((member) => (
-						<li key={member.id}>
+						<li key={member.id} className="smb-front-cards__item">
 							<button
 								type="button"
 								className="smb-front-card"
@@ -49,12 +60,6 @@ export default function StaffSelect({ staff, storeId, onSelect, onBack }) {
 										<p className="smb-front-card__desc">{member.description}</p>
 									)}
 								</div>
-								<span
-									className="smb-front-card__cta"
-									aria-hidden="true"
-								>
-									選ぶ →
-								</span>
 							</button>
 						</li>
 					))}

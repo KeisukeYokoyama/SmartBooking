@@ -2379,6 +2379,24 @@
 	line-height: 1.6;
 }
 
+.smb-settings-toggle-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 14px;
+	padding: 10px 12px;
+	background: var(--smb-color-bg-elev);
+	border: 1px solid var(--smb-color-border);
+	border-radius: 6px;
+}
+
+.smb-settings-toggle-row__hint {
+	margin: 0;
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
+	line-height: 1.6;
+}
+
 .smb-settings-preset {
 	display: flex;
 	flex-wrap: wrap;

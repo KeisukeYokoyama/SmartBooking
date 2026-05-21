@@ -15,6 +15,7 @@
  *   - StoreSelect / StaffSelect は別画面のまま、本コンポーネントの対象外。
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import SelectionBar from '../components/SelectionBar';
 import DateSelect from './DateSelect';
 import FormInput from './FormInput';
 import TimeSelect from './TimeSelect';
@@ -146,6 +147,8 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 					</button>
 				</div>
 			)}
+
+			<SelectionBar state={state} />
 
 			{flowOrder === 'B' ? (
 				<>

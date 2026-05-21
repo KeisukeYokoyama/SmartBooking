@@ -23,7 +23,9 @@
 	--smb-front-color-button-hover: #e11d48;
 	--smb-front-color-button-text: #ffffff;
 	--smb-front-color-date-selected: #374151;
-	--smb-front-color-time-selected: #374151;
+	/* 時間枠の選択中ボーダー色（旧版 UI hover_color.png に倣い、focus 色と同じ青系をデフォルトに）。
+	   設定画面「デザイン」タブで上書き可能。 */
+	--smb-front-color-time-selected: #3498db;
 	--smb-front-color-required: #ef4444;
 	/* エイリアス: 設定キー `color_required_mark` に対応する CSS 変数名も用意しておく。
 	   CSS 側では `--smb-front-color-required` を参照するが、App.jsx から両方に書き込む。*/
@@ -143,7 +145,14 @@
 	margin: 0;
 }
 
-/* ---------- カードリスト ---------- */
+/* ---------- カードリスト ----------
+ *
+ * 高さ揃えの仕組み:
+ *   - `.smb-front-cards` は CSS Grid。同じ row の grid item は align-items: stretch（既定）で高さが揃う。
+ *   - `<li>.smb-front-cards__item` を grid item にして flex 化し、内側の `.smb-front-card` を
+ *     width/height 100% で伸ばすことで「li が伸びる ⇒ card も伸びる」を成立させる。
+ *   - 情報量が少ないカードは min-height で底支えし、視覚的なガタつきを防ぐ。
+ */
 
 .smb-front-cards {
 	list-style: none;
@@ -152,6 +161,7 @@
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 12px;
+	align-items: stretch;
 }
 
 @media (min-width: 640px) {
@@ -160,12 +170,18 @@
 	}
 }
 
+.smb-front-cards__item {
+	display: flex;
+	min-width: 0;
+}
+
 .smb-front-card {
 	display: flex;
 	width: 100%;
-	gap: 12px;
-	align-items: stretch;
+	gap: 14px;
+	align-items: flex-start;
 	padding: 16px;
+	min-height: 104px;
 	background: var(--smb-front-surface);
 	border: 1px solid var(--smb-front-border);
 	border-radius: var(--smb-front-radius);
@@ -178,7 +194,7 @@
 }
 
 .smb-front-card:hover {
-	border-color: var(--smb-front-border-strong);
+	border-color: var(--smb-front-color-focus);
 	box-shadow: var(--smb-front-shadow);
 	transform: translateY(-1px);
 }
@@ -223,47 +239,53 @@
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 6px;
 }
 
 .smb-front-card__name {
 	font-weight: 700;
 	font-size: 16px;
 	color: var(--smb-front-text);
+	line-height: 1.4;
 }
 
+/* 説明テキストは 2 行で省略表示。情報量差でカード高さがガタつくのを防ぐ */
 .smb-front-card__desc {
 	font-size: 14px;
 	color: var(--smb-front-text-muted);
 	margin: 0;
+	line-height: 1.5;
 	overflow-wrap: anywhere;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 }
 
 .smb-front-card__meta {
-	margin: 4px 0 0;
+	margin: 0;
 	display: grid;
-	grid-template-columns: 48px 1fr;
+	grid-template-columns: 40px 1fr;
 	row-gap: 2px;
 	column-gap: 8px;
 	font-size: 13px;
 	color: var(--smb-front-text-muted);
+	line-height: 1.5;
 }
 
 .smb-front-card__meta dt {
 	font-weight: 600;
 }
 
+/* 住所・電話番号も 2 行 ellipsis。カードの高さがバラつかないように。 */
 .smb-front-card__meta dd {
 	margin: 0;
-}
-
-.smb-front-card__cta {
-	align-self: center;
-	flex: 0 0 auto;
-	font-size: 13px;
-	color: var(--smb-front-color-button);
-	white-space: nowrap;
-	font-weight: 600;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 }
 
 /* ---------- 空状態・エラー ---------- */
@@ -1223,6 +1245,7 @@
 	.smb-front-card {
 		padding: 12px;
 		gap: 10px;
+		min-height: 88px;
 	}
 
 	.smb-front-card__media {
@@ -1230,10 +1253,6 @@
 		width: 56px;
 		height: 56px;
 		font-size: 16px;
-	}
-
-	.smb-front-card__cta {
-		display: none; /* スマホではカード全体タップで十分、矢印は省略 */
 	}
 
 	.smb-front-day-strip {
@@ -1643,6 +1662,51 @@
 /* Gen-A: 戻る行内ボタンは StepHeader 内 absolute 指定を打ち消し、通常配置に戻す */
 .smb-front-main-page__back-row .smb-front-step-header__back {
 	position: static;
+}
+
+/* ---------- 選択済み情報バー（店舗 / 担当者） ----------
+ *
+ * MainInputPage 上部に常時表示。視覚的に控えめだがいつでも見える位置。
+ * v1 では表示のみで、タップして戻る機能は持たせない（仕様書通り）。
+ * 店舗・担当者の両方がスキップされた場合はコンポーネント側で何も描画しない。
+ */
+.smb-front-selection-bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	margin-bottom: 20px;
+	padding: 10px 14px;
+	background: var(--smb-front-bg-light);
+	border: 1px solid var(--smb-front-border-default);
+	border-radius: var(--smb-front-radius-sm);
+	font-size: 13px;
+	color: var(--smb-front-text-sub);
+	line-height: 1.4;
+}
+
+.smb-front-selection-bar__item {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+}
+
+.smb-front-selection-bar__label {
+	flex: 0 0 auto;
+	color: var(--smb-front-text-muted);
+	font-size: 12px;
+}
+
+.smb-front-selection-bar__value {
+	color: var(--smb-front-text-heading);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.smb-front-selection-bar__sep {
+	color: var(--smb-front-text-muted);
+	user-select: none;
 }
 
 .smb-front-main-page__hint {
@@ -2213,19 +2277,26 @@
 	outline-offset: 2px;
 }
 
+/* 選択時: legacy UI スクリーンショット (docs/legacy-ui-handover/screenshots/hover_color.png) を踏襲。
+ * - 軽い背景色 + 太い青ボーダー + 読みやすい本文色 (旧版の塗りつぶしダーク bg ではなく、
+ *   ボーダーで「選択中」を示すスタイル)。
+ * - レイアウト崩れを避けるため border 自体は 1px のままで、box-shadow inset で 2px 相当の太枠を作る。
+ */
 .smb-front-time-slot.is-selected,
 .smb-front-time-btn.is-selected {
-	background: var(--smb-front-color-time-selected);
+	background: var(--smb-front-bg-light);
 	border-color: var(--smb-front-color-time-selected);
-	color: #ffffff;
+	box-shadow: inset 0 0 0 1px var(--smb-front-color-time-selected);
+	color: var(--smb-front-text-body);
 	font-weight: 600;
 }
 
 .smb-front-time-slot.is-selected:hover,
 .smb-front-time-btn.is-selected:hover {
-	background: var(--smb-front-color-time-selected);
+	background: var(--smb-front-bg-light);
 	border-color: var(--smb-front-color-time-selected);
-	color: #ffffff;
+	box-shadow: inset 0 0 0 1px var(--smb-front-color-time-selected);
+	color: var(--smb-front-text-body);
 }
 
 /* few_left は通常スタイルに揃える（カード全体の警告色は控えめに、テキスト側で表現） */
@@ -2240,9 +2311,10 @@
 }
 
 .smb-front-time-btn.is-few_left.is-selected {
-	background: var(--smb-front-color-time-selected);
+	background: var(--smb-front-bg-light);
 	border-color: var(--smb-front-color-time-selected);
-	color: #ffffff;
+	box-shadow: inset 0 0 0 1px var(--smb-front-color-time-selected);
+	color: var(--smb-front-text-body);
 }
 
 /* 無効スロット（締切 / 満席） */

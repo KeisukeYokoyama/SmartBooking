@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { formatMonthDay, fromYmd } from '../dateUtils';
+import { pushBookingEvent } from '../utils/analytics';
 
 const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -27,6 +28,11 @@ export default function DonePage({ state }) {
 		if (topRef.current && typeof topRef.current.scrollIntoView === 'function') {
 			topRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
 		}
+	}, []);
+
+	// GTM 連携: 完了画面マウント時に complete を送信（イベント名は smart_booking_complete）。
+	useEffect(() => {
+		pushBookingEvent('complete');
 	}, []);
 
 	if (!completedReservation) {
@@ -60,8 +66,8 @@ export default function DonePage({ state }) {
 			: '';
 
 	// 設定で店舗・担当者の表示を OFF にしている場合、完了画面でも該当行を出さない。
-	const showStore = settings ? settings.show_store_front !== false : true;
-	const showStaff = settings ? settings.show_staff_front !== false : true;
+	const showStore = !!(settings && settings.show_store_front === true);
+	const showStaff = !!(settings && settings.show_staff_front === true);
 
 	return (
 		<div

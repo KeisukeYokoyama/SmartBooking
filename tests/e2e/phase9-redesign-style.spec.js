@@ -194,9 +194,16 @@ test.describe( 'Phase 9 Eval-2: デザイントークン / コンポーネント
 		expect( bg ).toBe( 'rgb(55, 65, 81)' );
 	} );
 
-	// ---- 3) 時間選択状態の背景色 = #374151 ----
+	// ---- 3) 時間選択状態のスタイル ----
+	//
+	// 旧仕様: 選択時に bg=#374151 のダーク塗り潰し。
+	// 新仕様 (legacy UI hover_color.png 踏襲):
+	//   - bg は薄いベース色 (--smb-front-bg-light) のまま
+	//   - border-color は --smb-front-color-time-selected (青系 #3498db) に変化
+	//   - box-shadow inset で太枠を表現
+	//   - 文字色は本文色のまま読みやすく維持
 
-	test( '時間選択時 (.smb-front-time-slot.is-selected) の背景色は rgb(55, 65, 81)', async ( {
+	test( '時間選択時 (.smb-front-time-slot.is-selected) は青系ボーダー + 薄背景になる', async ( {
 		page,
 	} ) => {
 		seedFewSchedules();
@@ -212,10 +219,27 @@ test.describe( 'Phase 9 Eval-2: デザイントークン / コンポーネント
 			.click();
 		await page.getByRole( 'button', { name: /10:00から11:00/ } ).click();
 
-		const selected = page.locator( '.smb-front-time-slot.is-selected:not(.is-disabled)' );
+		const selected = page.locator(
+			'.smb-front-time-slot.is-selected:not(.is-disabled)'
+		);
 		await expect( selected ).toHaveCount( 1 );
-		const bg = await selected.evaluate( ( el ) => window.getComputedStyle( el ).backgroundColor );
-		expect( bg ).toBe( 'rgb(55, 65, 81)' );
+		// .smb-front-time-btn は border-color / box-shadow に 120ms の transition が掛かっているので、
+		// 直後の getComputedStyle は補間値（開始時=デフォルト境界色）を返す。確実に反映後を読むため待つ。
+		await page.waitForTimeout( 250 );
+		const info = await selected.evaluate( ( el ) => {
+			const cs = window.getComputedStyle( el );
+			return {
+				bg: cs.backgroundColor,
+				borderColor: cs.borderTopColor,
+				boxShadow: cs.boxShadow,
+			};
+		} );
+		// 背景は薄い (--smb-front-bg-light = #f8f9fa) — ダーク塗り潰しではない。
+		expect( info.bg ).toBe( 'rgb(248, 249, 250)' );
+		// ボーダーは青系 (--smb-front-color-time-selected デフォルト #3498db)。
+		expect( info.borderColor ).toBe( 'rgb(52, 152, 219)' );
+		// box-shadow inset で太枠を表現。
+		expect( info.boxShadow ).toContain( 'inset' );
 	} );
 
 	// ---- 4) 必須バッジの背景色 = #ef4444 ----

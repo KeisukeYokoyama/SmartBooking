@@ -13,6 +13,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import Spinner from '../components/Spinner';
 import StepHeader from '../components/StepHeader';
 import { formatMonthDay, fromYmd } from '../dateUtils';
+import { pushBookingEvent } from '../utils/analytics';
 
 const CORE_KEYS = ['customer_name', 'customer_email', 'customer_phone'];
 const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -52,10 +53,10 @@ export default function ConfirmPage({ state, dispatch }) {
 		submitError,
 		submitErrorStatus,
 	} = state;
-	// 設定で店舗・担当者の表示を OFF にしている場合、確認画面でも該当行を出さない。
-	// 未設定（旧挙動）はデフォルト ON 扱い（!== false）。
-	const showStore = settings ? settings.show_store_front !== false : true;
-	const showStaff = settings ? settings.show_staff_front !== false : true;
+	// 設定で店舗・担当者の表示を OFF にしている場合、確認画面でも該当行は表示しない
+	// （フロントの選択ステップを出さない以上、サマリにも出さないのが自然）。
+	const showStore = !!(settings && settings.show_store_front === true);
+	const showStaff = !!(settings && settings.show_staff_front === true);
 	const topRef = useRef(null);
 
 	useEffect(() => {
@@ -63,6 +64,11 @@ export default function ConfirmPage({ state, dispatch }) {
 		if (topRef.current && typeof topRef.current.scrollIntoView === 'function') {
 			topRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
 		}
+	}, []);
+
+	// GTM 連携: 確認画面マウント時に confirm ステップを送信。
+	useEffect(() => {
+		pushBookingEvent('confirm');
 	}, []);
 
 	// 送信エラー発生時はエラーバナーへスクロール + フォーカスを移す（a11y）。

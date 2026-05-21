@@ -12,8 +12,9 @@
  *   - 「確認画面へ」ボタンで state.step を 'confirm' に遷移。値は state.formValues に保持。
  *   - 「戻る」ボタンで前ステップへ。
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import StepHeader from '../components/StepHeader';
+import { pushBookingEvent } from '../utils/analytics';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 数字・ハイフン・プラス・括弧・スペースのみ許容（国際形式まで緩めに）。
@@ -72,6 +73,11 @@ function validateField(field, value) {
  */
 export default function FormInput({ state, dispatch, onBack, hideHeader = false, hideSubmit = false }) {
 	const { customFields, formValues } = state;
+
+	// GTM 連携: フォーム入力セクションがマウントされたタイミングで form_input を送信。
+	useEffect(() => {
+		pushBookingEvent('form_input');
+	}, []);
 
 	// sort_order で並べ替え。customFields は配列。
 	const orderedFields = useMemo(() => {

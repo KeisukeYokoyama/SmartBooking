@@ -5,7 +5,8 @@
  *   - settings.calendar_mode に応じて表示モード切替:
  *       'day_only'   : 横スクロール日表示のみ
  *       'month_only' : 月表示グリッドのみ
- *       'toggle'     : ユーザーが日/月を切替（iOS セグメントコントロール風トグル）
+ *       'both'       : ユーザーが日/月を切替（iOS セグメントコントロール風トグル、デフォルトは日表示）
+ *       （旧値 'toggle' も後方互換として 'both' と同じ扱い）
  *   - 表示範囲は今日 〜 今日 + settings.display_period_days - 1 日後まで。
  *   - 日付を選択すると、カレンダーの下に TimeSelect が差し込まれる（呼び出し元が担当）。
  *   - 締切過ぎた日付・全枠満席の日付は disabled（取消線表示）。
@@ -22,6 +23,7 @@ import { publicAPI } from '../api';
 import StepHeader from '../components/StepHeader';
 import Spinner from '../components/Spinner';
 import ErrorMessage from '../components/ErrorMessage';
+import { pushBookingEvent } from '../utils/analytics';
 import {
 	WEEKDAY_LABELS,
 	addDays,
@@ -87,6 +89,11 @@ export default function DateSelect({
 		calendarMode === 'month_only' ? 'month' : 'day'
 	);
 
+	// GTM 連携: コンポーネントマウント時に date_select ステップを送信。
+	useEffect(() => {
+		pushBookingEvent('date_select');
+	}, []);
+
 	// 表示範囲: today 〜 today + displayDays - 1.
 	const startDate = useMemo(() => today(), []);
 	const endDate = useMemo(
@@ -147,9 +154,13 @@ export default function DateSelect({
 		dispatch({ type: 'SET_DATE', payload: { date: ymd } });
 	};
 
-	const showDay = viewMode === 'day' || calendarMode === 'day_only';
-	const showMonth = viewMode === 'month' || calendarMode === 'month_only';
-	const showToggle = calendarMode === 'toggle';
+	// 'both' が canonical 値。'toggle' は旧データ向けの後方互換。
+	const isBoth = calendarMode === 'both' || calendarMode === 'toggle';
+	const showDay =
+		calendarMode === 'day_only' || (isBoth && viewMode === 'day');
+	const showMonth =
+		calendarMode === 'month_only' || (isBoth && viewMode === 'month');
+	const showToggle = isBoth;
 
 	// メイン入力画面に組み込む場合（embedded=true、デフォルト）は StepHeader を出さず、
 	// セクションタイトル + トグル を一段の見出し行で並べる。
