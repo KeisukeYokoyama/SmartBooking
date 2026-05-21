@@ -26,9 +26,10 @@ function wpCli( cmd ) {
 }
 
 /**
- * フロント予約フォームが設置されているページの URL（固定: page_id=7）。
+ * フロント予約フォームが設置されているページの URL（固定: page_id=5）。
+ * wp-env destroy 後の再構築では fresh install の auto_increment により page_id=5 となる。
  */
-const FRONT_PAGE_PATH = '/?page_id=7';
+const FRONT_PAGE_PATH = '/?page_id=5';
 
 /**
  * フロント予約フォームページに遷移して React がマウント完了し、
