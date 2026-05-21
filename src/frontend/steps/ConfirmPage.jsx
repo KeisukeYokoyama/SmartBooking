@@ -16,13 +16,11 @@ import { formatMonthDay, fromYmd } from '../dateUtils';
 import { pushBookingEvent } from '../utils/analytics';
 
 const CORE_KEYS = ['customer_name', 'customer_email', 'customer_phone'];
-const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
 
 function formatDateLabel(ymd) {
 	const d = fromYmd(ymd);
 	if (!d) return ymd || '';
-	const w = WEEKDAY_JA[d.getDay()] || '';
-	return `${formatMonthDay(d)}（${w}）`;
+	return formatMonthDay(d);
 }
 
 function renderValue(field, rawVal) {

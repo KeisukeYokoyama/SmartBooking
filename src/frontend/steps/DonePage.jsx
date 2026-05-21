@@ -11,13 +11,10 @@ import { useEffect, useRef } from 'react';
 import { formatMonthDay, fromYmd } from '../dateUtils';
 import { pushBookingEvent } from '../utils/analytics';
 
-const WEEKDAY_JA = ['日', '月', '火', '水', '木', '金', '土'];
-
 function formatDateLabel(ymd) {
 	const d = fromYmd(ymd);
 	if (!d) return ymd || '';
-	const w = WEEKDAY_JA[d.getDay()] || '';
-	return `${formatMonthDay(d)}（${w}）`;
+	return formatMonthDay(d);
 }
 
 export default function DonePage({ state }) {
