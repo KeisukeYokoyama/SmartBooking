@@ -37,3 +37,7 @@ composer.lock
 
 # Self
 .distignore
+
+# WordPress.org plugin assets (banner, icon, screenshots) are
+# uploaded separately via SVN after approval. Not part of plugin code.
+assets/

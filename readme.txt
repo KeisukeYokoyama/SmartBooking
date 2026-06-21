@@ -126,8 +126,8 @@ This plugin may communicate with the following external services. **Both are off
 * **Timing**: Immediately after a customer submits the booking form.
 * **Authentication**: API token (entered by the administrator on the settings screen).
 * **Default**: Off
-* **Terms of service**: [ChatWork Terms of Service](https://go.chatwork.com/en/terms/)
-* **Privacy policy**: [ChatWork Privacy Policy](https://go.chatwork.com/en/privacy/)
+* **Terms of service**: [ChatWork Terms of Service](https://go.chatwork.com/ja/terms/)
+* **Privacy policy**: [ChatWork Privacy Policy](https://www.kubell.com/privacy/)
 
 If neither integration is enabled, Smart Booking does not make any outbound requests to external services.
 
