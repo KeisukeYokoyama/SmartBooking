@@ -48,6 +48,12 @@ See the "External services" section below for full details.
 
 For feature requests and customization inquiries, please contact the developer, [Liberdade Inc.](https://www.liberdade-inc.com/), or visit our service site at [wp-smart-booking.com](https://www.wp-smart-booking.com/).
 
+= Source code =
+
+The complete source code, including the un-minified JavaScript and CSS sources under `src/`, is publicly available on GitHub:
+
+https://github.com/KeisukeYokoyama/SmartBooking
+
 == Installation ==
 
 1. Upload the plugin ZIP from "Plugins > Add New" in your WordPress admin, or extract the archive into `/wp-content/plugins/smart-booking`.
