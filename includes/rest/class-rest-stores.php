@@ -70,7 +70,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 	 */
 	private function table() {
 		global $wpdb;
-		return $wpdb->prefix . 'smb_stores';
+		return $wpdb->prefix . 'smabo_stores';
 	}
 
 	/**
@@ -124,7 +124,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 			$params[] = (int) $request->get_param( 'is_active' ) ? 1 : 0;
 		}
 
-		$sql = "SELECT * FROM {$wpdb->prefix}smb_stores WHERE {$where} ORDER BY sort_order ASC, id ASC";
+		$sql = "SELECT * FROM {$wpdb->prefix}smabo_stores WHERE {$where} ORDER BY sort_order ASC, id ASC";
 		if ( ! empty( $params ) ) {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
@@ -152,7 +152,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smb_stores WHERE id = %d", $id ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smabo_stores WHERE id = %d", $id ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -244,7 +244,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		$id = (int) $request['id'];
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_stores WHERE id = %d", $id ) );
+		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_stores WHERE id = %d", $id ) );
 		if ( 0 === $exists ) {
 			return $this->error( 'smb_store_not_found', '指定された店舗が見つかりません。', 404 );
 		}
@@ -257,7 +257,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
-			$wpdb->prefix . 'smb_stores',
+			$wpdb->prefix . 'smabo_stores',
 			$data,
 			array( 'id' => $id ),
 			array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s' ),
@@ -286,7 +286,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		$id = (int) $request['id'];
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$wpdb->prefix}smb_stores WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, is_system FROM {$wpdb->prefix}smabo_stores WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			return $this->error( 'smb_store_not_found', '指定された店舗が見つかりません。', 404 );
 		}
@@ -297,7 +297,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		// 予約チェックを先に行う。既存テストが「予約紐付き → 409」を期待しているため順序維持。
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$reservation_count = (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_reservations WHERE store_id = %d", $id )
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_reservations WHERE store_id = %d", $id )
 		);
 		if ( $reservation_count > 0 ) {
 			return new WP_Error(
@@ -317,7 +317,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		// 予約は無いがスケジュールが残っている場合は、ユーザーに先に削除させる。
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$schedule_count = (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_schedules WHERE store_id = %d", $id )
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_schedules WHERE store_id = %d", $id )
 		);
 		if ( $schedule_count > 0 ) {
 			return new WP_Error(
@@ -335,7 +335,7 @@ class Smart_Booking_REST_Stores extends Smart_Booking_REST_Base {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete( $wpdb->prefix . 'smb_stores', array( 'id' => $id ), array( '%d' ) );
+		$wpdb->delete( $wpdb->prefix . 'smabo_stores', array( 'id' => $id ), array( '%d' ) );
 
 		return rest_ensure_response(
 			array(

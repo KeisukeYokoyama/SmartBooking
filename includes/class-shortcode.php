@@ -102,9 +102,9 @@ class Smart_Booking_Shortcode {
 		// 初期表示の判定を安定させるためショートコード時点で持たせる。
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$user_stores_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_stores WHERE is_system = 0 AND is_active = 1" );
+		$user_stores_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_stores WHERE is_system = 0 AND is_active = 1" );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$user_staff_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smb_staff WHERE is_system = 0 AND is_active = 1" );
+		$user_staff_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_staff WHERE is_system = 0 AND is_active = 1" );
 
 		wp_localize_script(
 			'smart-booking-frontend',
