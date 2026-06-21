@@ -127,6 +127,12 @@ npm -v
 - ユーザーが設定画面で明示的に有効化した場合のみ通信が発生
 - readme.txt に通信先・目的・タイミングを明記すること
 
+### 命名規約（接頭辞）
+
+- DBテーブル名・option/transientキーは、他プラグインとの名前空間衝突を避けるため接頭辞を `smabo_` に統一する（例: `{$wpdb->prefix}smabo_stores`、`smabo_db_version`、`smabo_gcal_token`）。
+- 一方、REST APIのエラーコード（例: `smb_reservation_full`、`smb_staff_not_found`）は名前空間ではなく**識別子**であり、安定性を優先して接頭辞 `smb_` を維持する。
+- **エラーコードの `smb_` は移行漏れではなく意図的な設計判断。一括置換しないこと。**
+
 ---
 
 ## エージェント構成（Claude Code Task ツール）
