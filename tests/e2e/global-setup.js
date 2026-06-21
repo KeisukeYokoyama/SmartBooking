@@ -14,9 +14,9 @@ module.exports = async () => {
 	const snapshot = {
 		capturedAt: new Date().toISOString(),
 		tables: listSmbTables(),
-		storesCount: countRows( 'wp_smb_stores' ),
-		staffCount: countRows( 'wp_smb_staff' ),
-		customFieldsCount: countRows( 'wp_smb_custom_fields' ),
+		storesCount: countRows( 'wp_smabo_stores' ),
+		staffCount: countRows( 'wp_smabo_staff' ),
+		customFieldsCount: countRows( 'wp_smabo_custom_fields' ),
 		smbOptionsCount: countSmbOptions(),
 	};
 	fs.writeFileSync( SNAPSHOT_PATH, JSON.stringify( snapshot, null, 2 ) );

@@ -74,12 +74,12 @@ function stripWpEnvNoise( out ) {
  */
 function listSmbTables() {
 	const out = wpCli(
-		`db query "SHOW TABLES LIKE '%smb\\_%';" --skip-column-names`
+		`db query "SHOW TABLES LIKE '%smabo\\_%';" --skip-column-names`
 	);
 	return out
 		.split( '\n' )
 		.map( ( s ) => s.trim() )
-		.filter( ( s ) => s.length > 0 && s.toLowerCase().includes( 'smb_' ) )
+		.filter( ( s ) => s.length > 0 && s.toLowerCase().includes( 'smabo_' ) )
 		.sort();
 }
 
@@ -90,7 +90,7 @@ function listSmbTables() {
  */
 function countSmbOptions() {
 	const out = wpCli(
-		`db query "SELECT COUNT(*) FROM wp_options WHERE option_name LIKE 'smb\\_%';" --skip-column-names`
+		`db query "SELECT COUNT(*) FROM wp_options WHERE option_name LIKE 'smabo\\_%';" --skip-column-names`
 	);
 	const n = parseInt( out.trim(), 10 );
 	return Number.isFinite( n ) ? n : -1;
