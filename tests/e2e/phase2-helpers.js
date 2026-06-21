@@ -95,7 +95,7 @@ async function bootstrapAdmin( page, pageKey = 'schedule' ) {
 function resetSchedulesAndReservations() {
 	try {
 		execSync(
-			'npx wp-env run cli wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules;"',
+			'npx wp-env run cli wp db query "DELETE FROM wp_smabo_reservation_meta; DELETE FROM wp_smabo_reservations; DELETE FROM wp_smabo_schedules;"',
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -125,7 +125,7 @@ function restoreSnapshot() {
 		// 予約・スケジュール・余分な行を削除 → AUTO_INCREMENT を 2 に固定 → ユーザー店舗・担当者を id=2 で seed。
 		// id=1 はシステムエンティティのまま保持（マイグレーションで is_system=1 になっている）。
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smb_stores AUTO_INCREMENT=2; ALTER TABLE wp_smb_staff AUTO_INCREMENT=2; INSERT INTO wp_smb_stores (id, name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES (${ USER_STORE_ID }, '店舗1', '', '', '', '', '', '', 0, '#3B82F6', 1, 0, 10, NOW(), NOW()); INSERT INTO wp_smb_staff (id, store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STAFF_ID }, ${ USER_STORE_ID }, '担当者1', '', '', '', 0, 10, 1, 0, NOW(), NOW()); ALTER TABLE wp_smb_stores AUTO_INCREMENT=3; ALTER TABLE wp_smb_staff AUTO_INCREMENT=3;"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_smabo_reservation_meta; DELETE FROM wp_smabo_reservations; DELETE FROM wp_smabo_schedules; DELETE FROM wp_smabo_staff WHERE id > 1; DELETE FROM wp_smabo_stores WHERE id > 1; UPDATE wp_smabo_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smabo_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smabo_stores AUTO_INCREMENT=2; ALTER TABLE wp_smabo_staff AUTO_INCREMENT=2; INSERT INTO wp_smabo_stores (id, name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES (${ USER_STORE_ID }, '店舗1', '', '', '', '', '', '', 0, '#3B82F6', 1, 0, 10, NOW(), NOW()); INSERT INTO wp_smabo_staff (id, store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STAFF_ID }, ${ USER_STORE_ID }, '担当者1', '', '', '', 0, 10, 1, 0, NOW(), NOW()); ALTER TABLE wp_smabo_stores AUTO_INCREMENT=3; ALTER TABLE wp_smabo_staff AUTO_INCREMENT=3;"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -135,7 +135,7 @@ function restoreSnapshot() {
 		);
 		// 初期カスタムフィールド（customer_name/email/phone）以外を削除 + 初期フィールドの label/type/required をリセット.
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_smabo_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smabo_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smabo_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smabo_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -155,7 +155,7 @@ function restoreSnapshot() {
 function restoreSnapshotSystemOnly() {
 	try {
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_smb_reservation_meta; DELETE FROM wp_smb_reservations; DELETE FROM wp_smb_schedules; DELETE FROM wp_smb_staff WHERE id > 1; DELETE FROM wp_smb_stores WHERE id > 1; UPDATE wp_smb_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smb_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smb_stores AUTO_INCREMENT=2; ALTER TABLE wp_smb_staff AUTO_INCREMENT=2;"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_smabo_reservation_meta; DELETE FROM wp_smabo_reservations; DELETE FROM wp_smabo_schedules; DELETE FROM wp_smabo_staff WHERE id > 1; DELETE FROM wp_smabo_stores WHERE id > 1; UPDATE wp_smabo_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smabo_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smabo_stores AUTO_INCREMENT=2; ALTER TABLE wp_smabo_staff AUTO_INCREMENT=2;"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -164,7 +164,7 @@ function restoreSnapshotSystemOnly() {
 			}
 		);
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_smb_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smb_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smb_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smb_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_smabo_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smabo_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smabo_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smabo_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -211,7 +211,7 @@ function insertStoreDirectly( {
 	is_active = 1,
 	sort_order = 20,
 } ) {
-	const sql = `INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('${ name.replace(
+	const sql = `INSERT INTO wp_smabo_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('${ name.replace(
 		/'/g,
 		"''"
 	) }', '', '', '', '', '', '', 0, '${ calendar_color }', ${ is_active }, 0, ${ sort_order }, NOW(), NOW());`;
@@ -221,7 +221,7 @@ function insertStoreDirectly( {
 		stdio: [ 'ignore', 'pipe', 'pipe' ],
 		timeout: 30000,
 	} );
-	return maxId( 'wp_smb_stores' );
+	return maxId( 'wp_smabo_stores' );
 }
 
 /**
@@ -238,7 +238,7 @@ function insertStaffDirectly( {
 	is_active = 1,
 	sort_order = 20,
 } ) {
-	const sql = `INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ store_id }, '${ name.replace(
+	const sql = `INSERT INTO wp_smabo_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ store_id }, '${ name.replace(
 		/'/g,
 		"''"
 	) }', '', '', '', 0, ${ sort_order }, ${ is_active }, 0, NOW(), NOW());`;
@@ -248,7 +248,7 @@ function insertStaffDirectly( {
 		stdio: [ 'ignore', 'pipe', 'pipe' ],
 		timeout: 30000,
 	} );
-	return maxId( 'wp_smb_staff' );
+	return maxId( 'wp_smabo_staff' );
 }
 
 /**
