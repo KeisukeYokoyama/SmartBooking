@@ -30,7 +30,7 @@ class Smart_Booking_Activator {
 		self::seed_default_data();
 		self::seed_default_options();
 		self::run_migrations();
-		update_option( 'smb_db_version', SMART_BOOKING_VERSION );
+		update_option( 'smabo_db_version', SMART_BOOKING_VERSION );
 	}
 
 	/**
@@ -46,7 +46,7 @@ class Smart_Booking_Activator {
 	private static function run_migrations() {
 		global $wpdb;
 
-		$current = (string) get_option( 'smb_db_version', '0.0.0' );
+		$current = (string) get_option( 'smabo_db_version', '0.0.0' );
 
 		// 0.2.0: is_system 導入。
 		if ( version_compare( $current, '0.2.0', '<' ) ) {
@@ -95,41 +95,41 @@ class Smart_Booking_Activator {
 	private static function seed_default_options() {
 		$defaults = array(
 			// 基本設定.
-			'smb_booking_flow_order'           => 'date-first',
-			'smb_calendar_view_mode'           => 'day_only',
-			'smb_display_days'                 => 14,
-			'smb_booking_deadline_days'        => 0,
-			'smb_booking_deadline_hours'       => 2,
-			'smb_show_store_front'             => 0,
-			'smb_show_staff_front'             => 0,
-			'smb_completion_message'           => 'ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。',
+			'smabo_booking_flow_order'           => 'date-first',
+			'smabo_calendar_view_mode'           => 'day_only',
+			'smabo_display_days'                 => 14,
+			'smabo_booking_deadline_days'        => 0,
+			'smabo_booking_deadline_hours'       => 2,
+			'smabo_show_store_front'             => 0,
+			'smabo_show_staff_front'             => 0,
+			'smabo_completion_message'           => 'ご予約を受け付けました。確認メールをお送りしましたのでご確認ください。',
 
 			// メール（デフォルト文面）.
-			'smb_mail_from_name'               => get_option( 'blogname', 'Smart Booking' ),
-			'smb_mail_from_email'              => get_option( 'admin_email', '' ),
-			'smb_mail_admin_notify_enabled'    => 1,
-			'smb_mail_receipt_user_subject'    => '【{store_name}】ご予約を受け付けました',
-			'smb_mail_receipt_user_body'       => "{customer_name} 様\n\nご予約を受け付けました。\n下記内容にて承りました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n内容に変更がある場合はご連絡ください。",
-			'smb_mail_receipt_admin_subject'   => '【新規予約】{customer_name} 様 ({schedule_date} {schedule_time})',
-			'smb_mail_receipt_admin_body'      => "新しい予約が入りました。\n\n予約番号: {reservation_id}\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約者: {customer_name}\nメール: {customer_email}\n電話: {customer_phone}",
-			'smb_mail_approval_user_subject'   => '【{store_name}】ご予約が確定しました',
-			'smb_mail_approval_user_body'      => "{customer_name} 様\n\nご予約が確定しました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n当日お待ちしております。",
+			'smabo_mail_from_name'               => get_option( 'blogname', 'Smart Booking' ),
+			'smabo_mail_from_email'              => get_option( 'admin_email', '' ),
+			'smabo_mail_admin_notify_enabled'    => 1,
+			'smabo_mail_receipt_user_subject'    => '【{store_name}】ご予約を受け付けました',
+			'smabo_mail_receipt_user_body'       => "{customer_name} 様\n\nご予約を受け付けました。\n下記内容にて承りました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n内容に変更がある場合はご連絡ください。",
+			'smabo_mail_receipt_admin_subject'   => '【新規予約】{customer_name} 様 ({schedule_date} {schedule_time})',
+			'smabo_mail_receipt_admin_body'      => "新しい予約が入りました。\n\n予約番号: {reservation_id}\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約者: {customer_name}\nメール: {customer_email}\n電話: {customer_phone}",
+			'smabo_mail_approval_user_subject'   => '【{store_name}】ご予約が確定しました',
+			'smabo_mail_approval_user_body'      => "{customer_name} 様\n\nご予約が確定しました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n当日お待ちしております。",
 
 			// 外部連携はデフォルト OFF（WordPress.org 審査ルール）.
-			'smb_google_calendar_enabled'      => 0,
-			'smb_google_calendar_id'           => '',
+			'smabo_google_calendar_enabled'      => 0,
+			'smabo_google_calendar_id'           => '',
 			// サービスアカウント JSON（autoload=no で別保存。下の add_option で個別に処理）.
-			'smb_google_calendar_client_email' => '',
-			'smb_chatwork_enabled'             => 0,
-			'smb_chatwork_api_token'           => '',
-			'smb_chatwork_room_id'             => '',
+			'smabo_google_calendar_client_email' => '',
+			'smabo_chatwork_enabled'             => 0,
+			'smabo_chatwork_api_token'           => '',
+			'smabo_chatwork_room_id'             => '',
 
 			// デザイン（フロント予約フォームのブランドカラー）.
-			'smb_color_button'                 => '#f43f5e',
-			'smb_color_date_selected'          => '#374151',
-			'smb_color_time_selected'          => '#374151',
-			'smb_color_required_mark'          => '#ef4444',
-			'smb_color_focus'                  => '#3498db',
+			'smabo_color_button'                 => '#f43f5e',
+			'smabo_color_date_selected'          => '#374151',
+			'smabo_color_time_selected'          => '#374151',
+			'smabo_color_required_mark'          => '#ef4444',
+			'smabo_color_focus'                  => '#3498db',
 		);
 
 		foreach ( $defaults as $key => $value ) {
@@ -137,8 +137,8 @@ class Smart_Booking_Activator {
 		}
 
 		// JSON サービスアカウントは autoload=no で初期化（巨大化を避ける）.
-		if ( false === get_option( 'smb_google_calendar_credentials_json', false ) ) {
-			add_option( 'smb_google_calendar_credentials_json', '', '', 'no' );
+		if ( false === get_option( 'smabo_google_calendar_credentials_json', false ) ) {
+			add_option( 'smabo_google_calendar_credentials_json', '', '', 'no' );
 		}
 	}
 

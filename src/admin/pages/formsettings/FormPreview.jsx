@@ -10,11 +10,11 @@
 
 export default function FormPreview({ colors }) {
 	const style = {
-		'--smb-preview-button': colors.smb_color_button,
-		'--smb-preview-date': colors.smb_color_date_selected,
-		'--smb-preview-time': colors.smb_color_time_selected,
-		'--smb-preview-required': colors.smb_color_required_mark,
-		'--smb-preview-focus': colors.smb_color_focus,
+		'--smb-preview-button': colors.smabo_color_button,
+		'--smb-preview-date': colors.smabo_color_date_selected,
+		'--smb-preview-time': colors.smabo_color_time_selected,
+		'--smb-preview-required': colors.smabo_color_required_mark,
+		'--smb-preview-focus': colors.smabo_color_focus,
 	};
 
 	return (

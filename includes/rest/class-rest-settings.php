@@ -31,41 +31,41 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 	private function schema() {
 		return array(
 			// 基本設定.
-			'smb_booking_flow_order'               => 'text',
-			'smb_calendar_view_mode'               => 'text',
-			'smb_display_days'                     => 'int',
-			'smb_booking_deadline_days'            => 'int',
-			'smb_booking_deadline_hours'           => 'int',
-			'smb_show_store_front'                 => 'bool',
-			'smb_show_staff_front'                 => 'bool',
-			'smb_completion_message'               => 'html',
+			'smabo_booking_flow_order'               => 'text',
+			'smabo_calendar_view_mode'               => 'text',
+			'smabo_display_days'                     => 'int',
+			'smabo_booking_deadline_days'            => 'int',
+			'smabo_booking_deadline_hours'           => 'int',
+			'smabo_show_store_front'                 => 'bool',
+			'smabo_show_staff_front'                 => 'bool',
+			'smabo_completion_message'               => 'html',
 
 			// メール通知.
-			'smb_mail_from_name'                   => 'text',
-			'smb_mail_from_email'                  => 'email',
-			'smb_mail_admin_notify_enabled'        => 'bool',
-			'smb_mail_receipt_user_subject'        => 'text',
-			'smb_mail_receipt_user_body'           => 'html',
-			'smb_mail_receipt_admin_subject'       => 'text',
-			'smb_mail_receipt_admin_body'          => 'html',
-			'smb_mail_approval_user_subject'       => 'text',
-			'smb_mail_approval_user_body'          => 'html',
+			'smabo_mail_from_name'                   => 'text',
+			'smabo_mail_from_email'                  => 'email',
+			'smabo_mail_admin_notify_enabled'        => 'bool',
+			'smabo_mail_receipt_user_subject'        => 'text',
+			'smabo_mail_receipt_user_body'           => 'html',
+			'smabo_mail_receipt_admin_subject'       => 'text',
+			'smabo_mail_receipt_admin_body'          => 'html',
+			'smabo_mail_approval_user_subject'       => 'text',
+			'smabo_mail_approval_user_body'          => 'html',
 
 			// 外部連携.
-			'smb_google_calendar_enabled'          => 'bool',
-			'smb_google_calendar_id'               => 'text',
-			'smb_google_calendar_credentials_json' => 'json_credentials',
-			'smb_google_calendar_client_email'     => 'readonly_text',
-			'smb_chatwork_enabled'                 => 'bool',
-			'smb_chatwork_api_token'               => 'text',
-			'smb_chatwork_room_id'                 => 'text',
+			'smabo_google_calendar_enabled'          => 'bool',
+			'smabo_google_calendar_id'               => 'text',
+			'smabo_google_calendar_credentials_json' => 'json_credentials',
+			'smabo_google_calendar_client_email'     => 'readonly_text',
+			'smabo_chatwork_enabled'                 => 'bool',
+			'smabo_chatwork_api_token'               => 'text',
+			'smabo_chatwork_room_id'                 => 'text',
 
 			// デザイン.
-			'smb_color_button'                     => 'color',
-			'smb_color_date_selected'              => 'color',
-			'smb_color_time_selected'              => 'color',
-			'smb_color_required_mark'              => 'color',
-			'smb_color_focus'                      => 'color',
+			'smabo_color_button'                     => 'color',
+			'smabo_color_date_selected'              => 'color',
+			'smabo_color_time_selected'              => 'color',
+			'smabo_color_required_mark'              => 'color',
+			'smabo_color_focus'                      => 'color',
 		);
 	}
 
@@ -182,8 +182,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 				}
 				if ( '' === trim( $raw ) ) {
 					update_option( $key, '' );
-					if ( 'smb_google_calendar_credentials_json' === $key ) {
-						update_option( 'smb_google_calendar_client_email', '' );
+					if ( 'smabo_google_calendar_credentials_json' === $key ) {
+						update_option( 'smabo_google_calendar_client_email', '' );
 					}
 					$updated[ $key ] = '';
 					continue;
@@ -197,8 +197,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 					);
 				}
 				update_option( $key, $raw, false );
-				if ( 'smb_google_calendar_credentials_json' === $key ) {
-					update_option( 'smb_google_calendar_client_email', sanitize_email( (string) $decoded['client_email'] ) );
+				if ( 'smabo_google_calendar_credentials_json' === $key ) {
+					update_option( 'smabo_google_calendar_client_email', sanitize_email( (string) $decoded['client_email'] ) );
 				}
 				$updated[ $key ] = self::CREDENTIAL_SET_SENTINEL;
 				continue;

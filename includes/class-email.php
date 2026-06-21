@@ -49,8 +49,8 @@ class Smart_Booking_Email {
 
 		$this->send(
 			(string) $formatted['customer_email'],
-			(string) get_option( 'smb_mail_receipt_user_subject', '' ),
-			(string) get_option( 'smb_mail_receipt_user_body', '' ),
+			(string) get_option( 'smabo_mail_receipt_user_subject', '' ),
+			(string) get_option( 'smabo_mail_receipt_user_body', '' ),
 			$context,
 			array()
 		);
@@ -61,7 +61,7 @@ class Smart_Booking_Email {
 		//       担当者は CC（あれば）。
 		// OFF : admin_email は使わない。店舗があれば To。担当者があれば CC。
 		//       店舗が空のときは（担当者の有無に関わらず）何も送らない。
-		$admin_enabled = ( 1 === (int) get_option( 'smb_mail_admin_notify_enabled', 1 ) );
+		$admin_enabled = ( 1 === (int) get_option( 'smabo_mail_admin_notify_enabled', 1 ) );
 		$store_email   = (string) $formatted['store_email'];
 		$staff_email   = (string) $formatted['staff_email'];
 		$wp_admin_to   = (string) get_option( 'admin_email', '' );
@@ -99,8 +99,8 @@ class Smart_Booking_Email {
 
 		$this->send(
 			$to_list,
-			(string) get_option( 'smb_mail_receipt_admin_subject', '' ),
-			(string) get_option( 'smb_mail_receipt_admin_body', '' ),
+			(string) get_option( 'smabo_mail_receipt_admin_subject', '' ),
+			(string) get_option( 'smabo_mail_receipt_admin_body', '' ),
 			$context,
 			$cc_list
 		);
@@ -121,8 +121,8 @@ class Smart_Booking_Email {
 
 		$this->send(
 			(string) $formatted['customer_email'],
-			(string) get_option( 'smb_mail_approval_user_subject', '' ),
-			(string) get_option( 'smb_mail_approval_user_body', '' ),
+			(string) get_option( 'smabo_mail_approval_user_subject', '' ),
+			(string) get_option( 'smabo_mail_approval_user_body', '' ),
 			$context,
 			array()
 		);
@@ -190,11 +190,11 @@ class Smart_Booking_Email {
 	private function build_headers( $cc ) {
 		$headers = array();
 
-		$from_email = (string) get_option( 'smb_mail_from_email', '' );
+		$from_email = (string) get_option( 'smabo_mail_from_email', '' );
 		if ( '' === $from_email || ! is_email( $from_email ) ) {
 			$from_email = (string) get_option( 'admin_email', '' );
 		}
-		$from_name = (string) get_option( 'smb_mail_from_name', '' );
+		$from_name = (string) get_option( 'smabo_mail_from_name', '' );
 		if ( '' === $from_name ) {
 			$from_name = (string) get_option( 'blogname', '' );
 		}

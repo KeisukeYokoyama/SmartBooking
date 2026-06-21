@@ -35,15 +35,15 @@ const DAYS_OPTIONS = [
 ];
 
 const DEFAULT_VALUES = {
-	smb_booking_flow_order: 'date-first',
-	smb_calendar_view_mode: 'day_only',
-	smb_display_days: '30',
+	smabo_booking_flow_order: 'date-first',
+	smabo_calendar_view_mode: 'day_only',
+	smabo_display_days: '30',
 	smb_booking_deadline_type: 'hours', // 'hours' | 'days'
-	smb_booking_deadline_hours: '2',
-	smb_booking_deadline_days: '1',
-	smb_show_store_front: false,
-	smb_show_staff_front: false,
-	smb_completion_message: '',
+	smabo_booking_deadline_hours: '2',
+	smabo_booking_deadline_days: '1',
+	smabo_show_store_front: false,
+	smabo_show_staff_front: false,
+	smabo_completion_message: '',
 };
 
 // 旧スラッグから正準値への正規化（後方互換）。
@@ -62,7 +62,7 @@ function normalizeViewMode(raw) {
 	if (v === 'day_only' || v === 'month_only' || v === 'both') {
 		return v;
 	}
-	return DEFAULT_VALUES.smb_calendar_view_mode;
+	return DEFAULT_VALUES.smabo_calendar_view_mode;
 }
 
 /**
@@ -70,8 +70,8 @@ function normalizeViewMode(raw) {
  * 締切は「hours または days のうち大きい方を有効値とし、type を推定」する。
  */
 function hydrate(settings) {
-	const hours = Number(settings.smb_booking_deadline_hours || 0);
-	const days = Number(settings.smb_booking_deadline_days || 0);
+	const hours = Number(settings.smabo_booking_deadline_hours || 0);
+	const days = Number(settings.smabo_booking_deadline_days || 0);
 	let type = 'hours';
 	if (days > 0 && hours === 0) type = 'days';
 	else if (days > 0 && hours > 0) type = 'days';
@@ -79,24 +79,24 @@ function hydrate(settings) {
 
 	// 表示制御フラグ: 旧データ（未定義）はデフォルト OFF として扱う。
 	const showStore =
-		settings.smb_show_store_front === undefined
+		settings.smabo_show_store_front === undefined
 			? false
-			: !!Number(settings.smb_show_store_front);
+			: !!Number(settings.smabo_show_store_front);
 	const showStaff =
-		settings.smb_show_staff_front === undefined
+		settings.smabo_show_staff_front === undefined
 			? false
-			: !!Number(settings.smb_show_staff_front);
+			: !!Number(settings.smabo_show_staff_front);
 
 	return {
-		smb_booking_flow_order: settings.smb_booking_flow_order || 'date-first',
-		smb_calendar_view_mode: normalizeViewMode(settings.smb_calendar_view_mode),
-		smb_display_days: String(settings.smb_display_days || '30'),
+		smabo_booking_flow_order: settings.smabo_booking_flow_order || 'date-first',
+		smabo_calendar_view_mode: normalizeViewMode(settings.smabo_calendar_view_mode),
+		smabo_display_days: String(settings.smabo_display_days || '30'),
 		smb_booking_deadline_type: type,
-		smb_booking_deadline_hours: String(hours || 2),
-		smb_booking_deadline_days: String(days || 1),
-		smb_show_store_front: showStore,
-		smb_show_staff_front: showStaff,
-		smb_completion_message: settings.smb_completion_message || '',
+		smabo_booking_deadline_hours: String(hours || 2),
+		smabo_booking_deadline_days: String(days || 1),
+		smabo_show_store_front: showStore,
+		smabo_show_staff_front: showStaff,
+		smabo_completion_message: settings.smabo_completion_message || '',
 	};
 }
 
@@ -119,19 +119,19 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 
 	const handleSave = () => {
 		const patch = {
-			smb_booking_flow_order: values.smb_booking_flow_order,
-			smb_calendar_view_mode: values.smb_calendar_view_mode,
-			smb_display_days: Number(values.smb_display_days) || 30,
-			smb_completion_message: values.smb_completion_message,
-			smb_show_store_front: values.smb_show_store_front ? 1 : 0,
-			smb_show_staff_front: values.smb_show_staff_front ? 1 : 0,
+			smabo_booking_flow_order: values.smabo_booking_flow_order,
+			smabo_calendar_view_mode: values.smabo_calendar_view_mode,
+			smabo_display_days: Number(values.smabo_display_days) || 30,
+			smabo_completion_message: values.smabo_completion_message,
+			smabo_show_store_front: values.smabo_show_store_front ? 1 : 0,
+			smabo_show_staff_front: values.smabo_show_staff_front ? 1 : 0,
 		};
 		if (values.smb_booking_deadline_type === 'hours') {
-			patch.smb_booking_deadline_hours = Number(values.smb_booking_deadline_hours) || 0;
-			patch.smb_booking_deadline_days = 0;
+			patch.smabo_booking_deadline_hours = Number(values.smabo_booking_deadline_hours) || 0;
+			patch.smabo_booking_deadline_days = 0;
 		} else {
-			patch.smb_booking_deadline_days = Number(values.smb_booking_deadline_days) || 0;
-			patch.smb_booking_deadline_hours = 0;
+			patch.smabo_booking_deadline_days = Number(values.smabo_booking_deadline_days) || 0;
+			patch.smabo_booking_deadline_hours = 0;
 		}
 		onSave(patch);
 	};
@@ -154,10 +154,10 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 							<label key={opt.value} className="smb-radio-option">
 								<input
 									type="radio"
-									name="smb_booking_flow_order"
+									name="smabo_booking_flow_order"
 									value={opt.value}
-									checked={values.smb_booking_flow_order === opt.value}
-									onChange={() => update({ smb_booking_flow_order: opt.value })}
+									checked={values.smabo_booking_flow_order === opt.value}
+									onChange={() => update({ smabo_booking_flow_order: opt.value })}
 								/>
 								<span>{opt.label}</span>
 							</label>
@@ -171,10 +171,10 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 							<label key={opt.value} className="smb-radio-option">
 								<input
 									type="radio"
-									name="smb_calendar_view_mode"
+									name="smabo_calendar_view_mode"
 									value={opt.value}
-									checked={values.smb_calendar_view_mode === opt.value}
-									onChange={() => update({ smb_calendar_view_mode: opt.value })}
+									checked={values.smabo_calendar_view_mode === opt.value}
+									onChange={() => update({ smabo_calendar_view_mode: opt.value })}
 								/>
 								<span>{opt.label}</span>
 							</label>
@@ -185,8 +185,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 				<Select
 					label="表示期間"
 					options={DAYS_OPTIONS}
-					value={values.smb_display_days}
-					onChange={(e) => update({ smb_display_days: e.target.value })}
+					value={values.smabo_display_days}
+					onChange={(e) => update({ smabo_display_days: e.target.value })}
 					help="予約フォームで何日先まで選べるかを決めます。"
 				/>
 			</div>
@@ -233,9 +233,9 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						label="何時間前まで受け付けるか"
 						type="number"
 						min="0"
-						value={values.smb_booking_deadline_hours}
+						value={values.smabo_booking_deadline_hours}
 						onChange={(e) =>
-							update({ smb_booking_deadline_hours: e.target.value })
+							update({ smabo_booking_deadline_hours: e.target.value })
 						}
 						help="例: 2 と設定すると、14:00 の予約は 12:00 まで受付。"
 					/>
@@ -244,9 +244,9 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						label="何日前まで受け付けるか"
 						type="number"
 						min="0"
-						value={values.smb_booking_deadline_days}
+						value={values.smabo_booking_deadline_days}
 						onChange={(e) =>
-							update({ smb_booking_deadline_days: e.target.value })
+							update({ smabo_booking_deadline_days: e.target.value })
 						}
 						help="例: 3 と設定すると、4/27 の予約は 4/24 まで受付。"
 					/>
@@ -266,10 +266,10 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					<div className="smb-settings-row__label">店舗選択ステップ</div>
 					<div className="smb-settings-row__control">
 						<Switch
-							checked={values.smb_show_store_front}
-							onChange={(v) => update({ smb_show_store_front: v })}
+							checked={values.smabo_show_store_front}
+							onChange={(v) => update({ smabo_show_store_front: v })}
 							label={
-								values.smb_show_store_front
+								values.smabo_show_store_front
 									? '表示する（フロントに店舗選択ステップを出す）'
 									: '表示しない（デフォルト店舗を自動で割り当てる）'
 							}
@@ -285,10 +285,10 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					<div className="smb-settings-row__label">担当者選択ステップ</div>
 					<div className="smb-settings-row__control">
 						<Switch
-							checked={values.smb_show_staff_front}
-							onChange={(v) => update({ smb_show_staff_front: v })}
+							checked={values.smabo_show_staff_front}
+							onChange={(v) => update({ smabo_show_staff_front: v })}
 							label={
-								values.smb_show_staff_front
+								values.smabo_show_staff_front
 									? '表示する（フロントに担当者選択ステップを出す）'
 									: '表示しない（空いている担当者を自動で割り当てる）'
 							}
@@ -310,8 +310,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 				</div>
 				<Textarea
 					label="完了画面メッセージ"
-					value={values.smb_completion_message}
-					onChange={(e) => update({ smb_completion_message: e.target.value })}
+					value={values.smabo_completion_message}
+					onChange={(e) => update({ smabo_completion_message: e.target.value })}
 					rows={4}
 					placeholder="ご予約ありがとうございます。確認のメールをお送りしました。"
 					help="HTML タグも一部使用できます（a, br, strong など）。"
