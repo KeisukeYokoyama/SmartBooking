@@ -2,7 +2,7 @@
  * フォーム入力ステップ (Gen-C).
  *
  * 仕様:
- *   - smb_custom_fields から取得した全フィールドをフィールド種別に応じて描画。
+ *   - smabo_custom_fields から取得した全フィールドをフィールド種別に応じて描画。
  *     初期3フィールド (customer_name / customer_email / customer_phone) も同テーブルに格納されている。
  *   - 各フィールドのバリデーション:
  *       * is_required のフィールドが空 → 「この項目は必須です」

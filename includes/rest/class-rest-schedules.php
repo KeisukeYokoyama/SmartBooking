@@ -2,7 +2,7 @@
 /**
  * Smart Booking - REST: スケジュール (/schedules)
  *
- * smb_schedules テーブルに対する CRUD + コピー。
+ * smabo_schedules テーブルに対する CRUD + コピー。
  * POST /schedules は配列での一括登録にも対応する（スケジュール追加モーダルの「時間枠追加」対応）。
  *
  * @package Smart_Booking

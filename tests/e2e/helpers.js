@@ -68,7 +68,7 @@ function stripWpEnvNoise( out ) {
 }
 
 /**
- * DB のテーブル一覧から smb_ プレフィックスのみを抽出して返す（ソート済み）。
+ * DB のテーブル一覧から smabo_ プレフィックスのみを抽出して返す（ソート済み）。
  *
  * @return {string[]}
  */
@@ -84,7 +84,7 @@ function listSmbTables() {
 }
 
 /**
- * wp_options の smb_ プレフィックスのレコード件数。
+ * wp_options の smabo_ プレフィックスのレコード件数。
  *
  * @return {number}
  */
@@ -99,7 +99,7 @@ function countSmbOptions() {
 /**
  * 特定テーブルのレコード件数。
  *
- * @param {string} table テーブル名（例 'wp_smb_stores'）.
+ * @param {string} table テーブル名（例 'wp_smabo_stores'）.
  * @return {number}
  */
 function countRows( table ) {

@@ -36,7 +36,7 @@ class Smart_Booking_Activator {
 	/**
 	 * バージョン間マイグレーション。
 	 *
-	 * - 0.2.0: smb_stores / smb_staff に is_system カラムを追加し、既存のデフォルト
+	 * - 0.2.0: smabo_stores / smabo_staff に is_system カラムを追加し、既存のデフォルト
 	 *   エントリ（最も若い id のもの）に is_system=1 を設定する。
 	 *
 	 * dbDelta が ALTER TABLE を担うため、ここでは値の埋め直しのみを行う。
@@ -157,7 +157,7 @@ class Smart_Booking_Activator {
 		$charset_collate = $wpdb->get_charset_collate();
 		$prefix          = $wpdb->prefix . 'smabo_';
 
-		// smb_stores（店舗マスター）.
+		// smabo_stores（店舗マスター）.
 		$sql_stores = "CREATE TABLE {$prefix}stores (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL DEFAULT '',
@@ -180,7 +180,7 @@ class Smart_Booking_Activator {
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
-		// smb_staff（担当者マスター）.
+		// smabo_staff（担当者マスター）.
 		$sql_staff = "CREATE TABLE {$prefix}staff (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -201,7 +201,7 @@ class Smart_Booking_Activator {
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
-		// smb_schedules（予約枠）.
+		// smabo_schedules（予約枠）.
 		$sql_schedules = "CREATE TABLE {$prefix}schedules (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -220,7 +220,7 @@ class Smart_Booking_Activator {
 			KEY idx_is_active (is_active)
 		) {$charset_collate};";
 
-		// smb_reservations（予約データ）.
+		// smabo_reservations（予約データ）.
 		$sql_reservations = "CREATE TABLE {$prefix}reservations (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -243,7 +243,7 @@ class Smart_Booking_Activator {
 			KEY idx_staff_id (staff_id)
 		) {$charset_collate};";
 
-		// smb_reservation_meta（カスタムフィールド入力値）.
+		// smabo_reservation_meta（カスタムフィールド入力値）.
 		$sql_reservation_meta = "CREATE TABLE {$prefix}reservation_meta (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			reservation_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -254,7 +254,7 @@ class Smart_Booking_Activator {
 			KEY idx_meta_key (meta_key(191))
 		) {$charset_collate};";
 
-		// smb_custom_fields（フォームフィールド定義）.
+		// smabo_custom_fields（フォームフィールド定義）.
 		$sql_custom_fields = "CREATE TABLE {$prefix}custom_fields (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			field_key varchar(100) NOT NULL DEFAULT '',

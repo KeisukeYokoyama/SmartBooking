@@ -2,8 +2,8 @@
 /**
  * Smart Booking - REST: 予約 (/reservations)
  *
- * smb_reservations テーブルに対する CRUD + CSV エクスポート。
- * 予約作成時は smb_schedules へのアトミック UPDATE で空き枠確認＋更新を行う（spec 5.8）。
+ * smabo_reservations テーブルに対する CRUD + CSV エクスポート。
+ * 予約作成時は smabo_schedules へのアトミック UPDATE で空き枠確認＋更新を行う（spec 5.8）。
  *
  * @package Smart_Booking
  */

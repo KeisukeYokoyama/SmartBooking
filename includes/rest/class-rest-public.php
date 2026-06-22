@@ -672,8 +672,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 *     ボット側に検知方法を明かしたくない場合は 200 の静黙も選択肢だが、
 	 *     E2E テスト・管理者への可視性の観点から 400 を採用）。
 	 *   - customer_name / customer_email / customer_phone は必須。email は is_email() で検証。
-	 *   - smb_custom_fields の is_required=1 のフィールドが空なら 400。
-	 *   - smb_schedules に対しアトミック UPDATE (+1) を投げ、0 行影響なら 409 (満席).
+	 *   - smabo_custom_fields の is_required=1 のフィールドが空なら 400。
+	 *   - smabo_schedules に対しアトミック UPDATE (+1) を投げ、0 行影響なら 409 (満席).
 	 *   - INSERT 失敗時は booked_count を -1 でロールバック.
 	 *   - status は 'pending'（管理者承認運用）。
 	 *   - schedule_date / schedule_time は schedules から取得して非正規化保存.

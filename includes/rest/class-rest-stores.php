@@ -2,7 +2,7 @@
 /**
  * Smart Booking - REST: 店舗 (/stores)
  *
- * smb_stores テーブルに対する CRUD。
+ * smabo_stores テーブルに対する CRUD。
  * 予約が紐づいている店舗は削除不可（409 Conflict）。
  *
  * @package Smart_Booking

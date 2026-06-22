@@ -2,7 +2,7 @@
 /**
  * Smart Booking - REST: カスタムフィールド (/custom-fields)
  *
- * smb_custom_fields テーブルに対する CRUD + 並び替え。
+ * smabo_custom_fields テーブルに対する CRUD + 並び替え。
  * 初期フィールド (customer_name / customer_email / customer_phone) は削除禁止。
  *
  * @package Smart_Booking

@@ -73,7 +73,7 @@ function restoreBaseline() {
 	);
 	// オプションのリセット: テスト中に書き換える可能性のあるキーは全て delete し、
 	// 既定値（CLAUDE.md の class-activator.php と class-rest-public.php に基づく）に戻す.
-	// NOTE: phase6-visibility 等で smb_show_store_front / smb_show_staff_front を 0 に
+	// NOTE: phase6-visibility 等で smabo_show_store_front / smabo_show_staff_front を 0 に
 	// 上書きするテストがあるため、それらも必ずクリアする（残ると後続テストが
 	// 「show_store_front=false → 店舗ステップスキップ」になり予期せぬ失敗を起こす）。
 	const optionsToDelete = [

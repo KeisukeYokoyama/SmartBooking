@@ -2,7 +2,7 @@
 /**
  * Smart Booking - REST: 担当者 (/staff)
  *
- * smb_staff テーブルに対する CRUD。
+ * smabo_staff テーブルに対する CRUD。
  * 予約が紐づいている担当者は削除不可（409 Conflict）。
  *
  * @package Smart_Booking

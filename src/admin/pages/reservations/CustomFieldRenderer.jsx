@@ -1,7 +1,7 @@
 /**
  * カスタムフィールド動的レンダラ。
  *
- * smb_custom_fields の 1 レコードを受け取り、適切な入力要素を描画する。
+ * smabo_custom_fields の 1 レコードを受け取り、適切な入力要素を描画する。
  *
  * 対応種別: text / email / tel / textarea / select / radio / checkbox
  *

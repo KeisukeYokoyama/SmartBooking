@@ -273,7 +273,7 @@ class Smart_Booking_Google_Calendar {
 
 	/**
 	 * 予約コンテキストから ISO 形式の開始 / 終了時刻とタイムゾーンを抽出する。
-	 * end_time は wp_smb_schedules を schedule_id で JOIN して引く。
+	 * end_time は wp_smabo_schedules を schedule_id で JOIN して引く。
 	 *
 	 * @param array $context Reservation context。
 	 * @return array|null { start, end, timezone }

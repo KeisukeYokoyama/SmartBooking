@@ -3,7 +3,7 @@
  *
  * - REST API 呼び出しは `page.evaluate` で nonce 付き fetch を叩く
  *   （wp-env CLI コンテナの並列起動による race condition を回避）
- * - テストデータのクリーンアップは wp_smb_* テーブルを TRUNCATE/DELETE
+ * - テストデータのクリーンアップは wp_smabo_* テーブルを TRUNCATE/DELETE
  *   するのではなく、API 経由で個別削除するのが理想だが、高速化のため DB 直接も許容
  */
 const path = require( 'node:path' );

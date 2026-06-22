@@ -33,7 +33,7 @@ class Smart_Booking_Chatwork {
 	const API_BASE = 'https://api.chatwork.com/v2';
 
 	/**
-	 * 予約受付通知。`smb_reservation_received` から呼ばれる。
+	 * 予約受付通知。`smart_booking_reservation_received` から呼ばれる。
 	 *
 	 * @param array $context Smart_Booking_Reservation_Context::build() 戻り値。
 	 * @return void
