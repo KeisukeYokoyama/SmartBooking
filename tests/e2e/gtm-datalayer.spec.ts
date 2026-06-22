@@ -49,8 +49,8 @@ test.describe('GTM dataLayer 連携', () => {
 
 	test('予約フロー完走で全ステップのイベントが dataLayer に積まれる', async ({ page }) => {
 		// 店舗・担当者の選択ステップを表示させる（手動 ON/OFF トグルが必要）。
-		setOption('smb_show_store_front', 1);
-		setOption('smb_show_staff_front', 1);
+		setOption('smabo_show_store_front', 1);
+		setOption('smabo_show_staff_front', 1);
 		// 店舗 2・担当者 2 にして、store_select / staff_select を必ず経由させる。
 		const store2 = insertStore('店舗2');
 		insertStaff(store2, '担当者B');

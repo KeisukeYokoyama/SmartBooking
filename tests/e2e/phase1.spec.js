@@ -25,7 +25,7 @@ function loadDbSnapshot() {
 }
 
 /**
- * 期待される smb_ テーブル名（prefix 込み）。dbDelta の作成順は実装依存なのでソート済みで比較。
+ * 期待される smabo_ テーブル名（prefix 込み）。dbDelta の作成順は実装依存なのでソート済みで比較。
  */
 const EXPECTED_TABLES = [
 	'wp_smabo_custom_fields',
@@ -50,22 +50,22 @@ const ADMIN_PAGES = [
 // --- 1. DB: テーブル作成検証（WP-CLI） ----------------------------------------------------
 
 test.describe( 'Phase 1: DB スキーマ', () => {
-	test( '1-1. smb_ テーブル 6 つすべてが存在する', () => {
+	test( '1-1. smabo_ テーブル 6 つすべてが存在する', () => {
 		const snap = loadDbSnapshot();
 		expect( snap.tables.sort() ).toEqual( EXPECTED_TABLES );
 	} );
 
-	test( '1-2. デフォルト店舗 1 件が smb_stores に存在する', () => {
+	test( '1-2. デフォルト店舗 1 件が smabo_stores に存在する', () => {
 		const snap = loadDbSnapshot();
 		expect( snap.storesCount ).toBeGreaterThanOrEqual( 1 );
 	} );
 
-	test( '1-3. デフォルト担当者 1 件が smb_staff に存在する', () => {
+	test( '1-3. デフォルト担当者 1 件が smabo_staff に存在する', () => {
 		const snap = loadDbSnapshot();
 		expect( snap.staffCount ).toBeGreaterThanOrEqual( 1 );
 	} );
 
-	test( '1-4. 初期カスタムフィールド 3 件が smb_custom_fields に存在する', () => {
+	test( '1-4. 初期カスタムフィールド 3 件が smabo_custom_fields に存在する', () => {
 		const snap = loadDbSnapshot();
 		expect( snap.customFieldsCount ).toBeGreaterThanOrEqual( 3 );
 	} );
