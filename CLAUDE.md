@@ -274,7 +274,7 @@ Playwright テストファイル: `tests/e2e/phase1.spec.js`
 
 テストシナリオ:
 - プラグイン有効化でテーブル6つが作成される（WP-CLI で確認）
-- デフォルトの店舗1つ・担当者1つが `smb_stores` / `smb_staff` に存在する
+- デフォルトの店舗1つ・担当者1つが `smabo_stores` / `smabo_staff` に存在する
 - WordPress管理画面のサイドバーに「Smart Booking」メニューが表示される
 - REST APIエンドポイントがnonce付きリクエストに応答する（200 OK）
 - nonce無しリクエストが拒否される（401/403）
@@ -284,17 +284,17 @@ Playwright テストファイル: `tests/e2e/phase1.spec.js`
 
 ```bash
 # テーブル確認
-npx wp-env run cli wp db query "SHOW TABLES LIKE '%smb_%';"
+npx wp-env run cli wp db query "SHOW TABLES LIKE '%smabo_%';"
 
 # デフォルトデータ確認
-npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smb_stores;"
-npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smb_staff;"
+npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smabo_stores;"
+npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smabo_staff;"
 
 # ⚠️ アンインストール検証（uninstall.php の動作確認）
 # wp plugin delete は絶対に使わないこと（bind mount経由でホスト側ファイルが全削除される）
 # 代わりに uninstall.php を直接実行して、テーブル削除のみを検証する:
 npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/uninstall.php
-npx wp-env run cli wp db query "SHOW TABLES LIKE '%smb_%';"
+npx wp-env run cli wp db query "SHOW TABLES LIKE '%smabo_%';"
 # 検証後、テーブルを再作成するためにプラグインを再有効化:
 npx wp-env run cli wp plugin deactivate smart-booking
 npx wp-env run cli wp plugin activate smart-booking
