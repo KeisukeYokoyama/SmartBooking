@@ -2,8 +2,8 @@
  * Regression: 設定反映バグの修正検証.
  *
  * 修正前のバグ:
- *   - 管理画面は smb_booking_flow_order を 'date-first' / 'form-first',
- *     smb_calendar_view_mode を 'day-horizontal' / 'month-grid' / 'day-and-month' で保存する。
+ *   - 管理画面は smabo_booking_flow_order を 'date-first' / 'form-first',
+ *     smabo_calendar_view_mode を 'day-horizontal' / 'month-grid' / 'day-and-month' で保存する。
  *   - フロント React は 'A' / 'B' / 'day_only' / 'month_only' / 'toggle' しか理解しないため、
  *     公開 REST GET /public/settings が「未知の値」をデフォルトに正規化してしまい、
  *     管理画面の設定がフロントに反映されていなかった。
@@ -74,7 +74,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 	test( "A) flow_order='date-first' (admin 値) → 日付選択ステップが先に表示される", async ( {
 		page,
 	} ) => {
-		setOption( 'smb_booking_flow_order', 'date-first' );
+		setOption( 'smabo_booking_flow_order', 'date-first' );
 		seedWeekSlots();
 		await gotoFrontForm( page );
 
@@ -95,7 +95,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 	test( "B) flow_order='form-first' (admin 値) → フォーム入力ステップが先に表示される", async ( {
 		page,
 	} ) => {
-		setOption( 'smb_booking_flow_order', 'form-first' );
+		setOption( 'smabo_booking_flow_order', 'form-first' );
 		seedWeekSlots();
 		await gotoFrontForm( page );
 
@@ -122,7 +122,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 	test( "C) calendar_mode='day-horizontal' (admin 値) → DateSelect が日ストリップを描画する", async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'day-horizontal' );
+		setOption( 'smabo_calendar_view_mode', 'day-horizontal' );
 		seedWeekSlots();
 		await gotoFrontForm( page );
 
@@ -146,7 +146,7 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 	test( "D) calendar_mode='month-grid' (admin 値) → DateSelect が月グリッドを描画する", async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'month-grid' );
+		setOption( 'smabo_calendar_view_mode', 'month-grid' );
 		seedWeekSlots();
 		await gotoFrontForm( page );
 
@@ -188,13 +188,13 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 		// 予約フロー: フォーム → 日付・時間 (form-first を選択).
 		await page
 			.locator(
-				'input[name="smb_booking_flow_order"][value="form-first"]'
+				'input[name="smabo_booking_flow_order"][value="form-first"]'
 			)
 			.check();
 		// カレンダー表示モード: 月表示のみ (month_only を選択).
 		await page
 			.locator(
-				'input[name="smb_calendar_view_mode"][value="month_only"]'
+				'input[name="smabo_calendar_view_mode"][value="month_only"]'
 			)
 			.check();
 
@@ -205,10 +205,10 @@ test.describe( 'Regression: 設定反映バグ修正の検証', () => {
 
 		// 永続化されていることを管理 REST 経由で確認 (生の管理画面値が保存されている).
 		const adminGet = await restCall( page, 'GET', 'settings' );
-		expect( adminGet.data.settings.smb_booking_flow_order ).toBe(
+		expect( adminGet.data.settings.smabo_booking_flow_order ).toBe(
 			'form-first'
 		);
-		expect( adminGet.data.settings.smb_calendar_view_mode ).toBe(
+		expect( adminGet.data.settings.smabo_calendar_view_mode ).toBe(
 			'month_only'
 		);
 

@@ -59,7 +59,7 @@ test.describe( 'Phase 2: 店舗・担当者 管理', () => {
 		// [BUG-1] includes/rest/class-rest-stores.php create_item の get_item 呼び出しが
 		// WP_REST_Request の $attributes に id を誤セットしており、常に 404 を返す。
 		// 挿入自体は成功するため DB には 1 件増える。UI には「追加に失敗」のような誤メッセージが出る。
-		const before = countTable( 'wp_smb_stores' );
+		const before = countTable( 'wp_smabo_stores' );
 		await page
 			.getByRole( 'button', { name: /店舗を追加/ } )
 			.first()
@@ -83,7 +83,7 @@ test.describe( 'Phase 2: 店舗・担当者 管理', () => {
 		await expect(
 			page.locator( '.smb-toast--success' ).last()
 		).toContainText( '追加', { timeout: 6000 } );
-		const after = countTable( 'wp_smb_stores' );
+		const after = countTable( 'wp_smabo_stores' );
 		expect( after ).toBe( before + 1 );
 		await expect(
 			page.locator( '.smb-card__title', { hasText: 'E2E店舗A' } )

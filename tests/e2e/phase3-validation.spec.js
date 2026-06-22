@@ -53,7 +53,7 @@ test.describe.configure( { mode: 'serial' } );
 function addRequiredCustomField() {
 	const { execSync } = require( 'node:child_process' );
 	const path = require( 'node:path' );
-	const sql = `INSERT INTO wp_smb_custom_fields (field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, created_at) VALUES ('inquiry', 'お問い合わせ内容', 'textarea', '', '', 1, 100, NOW());`;
+	const sql = `INSERT INTO wp_smabo_custom_fields (field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, created_at) VALUES ('inquiry', 'お問い合わせ内容', 'textarea', '', '', 1, 100, NOW());`;
 	execSync( `npx wp-env run cli wp db query "${ sql }"`, {
 		cwd: path.resolve( __dirname, '..', '..' ),
 		encoding: 'utf8',
@@ -71,7 +71,7 @@ function setBookedCount( scheduleId, count ) {
 	const { execSync } = require( 'node:child_process' );
 	const path = require( 'node:path' );
 	execSync(
-		`npx wp-env run cli wp db query "UPDATE wp_smb_schedules SET booked_count = ${ count } WHERE id = ${ scheduleId };"`,
+		`npx wp-env run cli wp db query "UPDATE wp_smabo_schedules SET booked_count = ${ count } WHERE id = ${ scheduleId };"`,
 		{
 			cwd: path.resolve( __dirname, '..', '..' ),
 			encoding: 'utf8',
@@ -88,7 +88,7 @@ function deactivateSchedule( scheduleId ) {
 	const { execSync } = require( 'node:child_process' );
 	const path = require( 'node:path' );
 	execSync(
-		`npx wp-env run cli wp db query "UPDATE wp_smb_schedules SET is_active = 0 WHERE id = ${ scheduleId };"`,
+		`npx wp-env run cli wp db query "UPDATE wp_smabo_schedules SET is_active = 0 WHERE id = ${ scheduleId };"`,
 		{
 			cwd: path.resolve( __dirname, '..', '..' ),
 			encoding: 'utf8',
@@ -369,7 +369,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	test( '満席の時間枠ボタンは disabled でクリック不可', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'day_only' );
+		setOption( 'smabo_calendar_view_mode', 'day_only' );
 		const d = ymd( 1 );
 		const fullSchedId = insertSchedule( {
 			storeId: USER_STORE_ID,
@@ -441,7 +441,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		expect( res.data && res.data.code ).toBe( 'smb_reservation_full' );
 		// booked_count は 1 のまま、予約は増えていない.
 		expect( getScheduleBookedCount( fullSchedId ) ).toBe( 1 );
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 	} );
 
 	// ============================================================
@@ -451,8 +451,8 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	test( 'deadline_days=10: 1日後の枠タイルは disabled で「締切」バッジ', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'day_only' );
-		setOption( 'smb_booking_deadline_days', 10 );
+		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smabo_booking_deadline_days', 10 );
 		const d = ymd( 1 );
 		insertSchedule( {
 			storeId: USER_STORE_ID,
@@ -480,7 +480,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 	test( 'REST 直叩き: 締切超過の schedule に POST → 400 smb_reservation_deadline_passed', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_booking_deadline_days', 10 );
+		setOption( 'smabo_booking_deadline_days', 10 );
 		const d = ymd( 1 );
 		const sid = insertSchedule( {
 			storeId: USER_STORE_ID,
@@ -506,7 +506,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		expect( res.data && res.data.code ).toBe(
 			'smb_reservation_deadline_passed'
 		);
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 		expect( getScheduleBookedCount( sid ) ).toBe( 0 );
 	} );
 
@@ -576,7 +576,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		expect( conflict.code ).toBe( 'smb_reservation_full' );
 
 		// DB 状態: 予約 1 件、booked_count=1.
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 1 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 1 );
 		expect( getScheduleBookedCount( sid ) ).toBe( 1 );
 	} );
 
@@ -613,7 +613,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 			'smb_reservation_spam_rejected'
 		);
 		// 予約は作成されていない、booked_count も 0 のまま.
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 		expect( getScheduleBookedCount( sid ) ).toBe( 0 );
 	} );
 
@@ -695,7 +695,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		expect( res.data && res.data.code ).toBe(
 			'smb_reservation_schedule_not_found'
 		);
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 	} );
 
 	test( 'REST 直叩き: schedule_id 欠如 → 400 smb_reservation_schedule_required', async ( {
@@ -715,7 +715,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		expect( res.data && res.data.code ).toBe(
 			'smb_reservation_schedule_required'
 		);
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 	} );
 
 	test( 'REST 直叩き: is_active=0 の schedule → 400 smb_reservation_schedule_not_found', async ( {
@@ -747,7 +747,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		expect( res.data && res.data.code ).toBe(
 			'smb_reservation_schedule_not_found'
 		);
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 	} );
 
 	test( 'REST 直叩き: 必須3フィールド (氏名/メール/電話) のいずれか欠如 → 400', async ( {
@@ -813,7 +813,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		);
 
 		// すべて 0 件のまま.
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 		expect( getScheduleBookedCount( sid ) ).toBe( 0 );
 	} );
 
@@ -882,7 +882,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 		).toBeEnabled();
 
 		// DB 検証: 競合検出のためレコード追加されない.
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 	} );
 
 	test( '過去枠 (現在時刻より前) には POST できない: 400 smb_reservation_closed', async ( {
@@ -916,7 +916,7 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 			'smb_reservation_closed',
 			'smb_reservation_deadline_passed',
 		] ).toContain( res.data && res.data.code );
-		expect( countRows( 'wp_smb_reservations' ) ).toBe( 0 );
+		expect( countRows( 'wp_smabo_reservations' ) ).toBe( 0 );
 		expect( getScheduleBookedCount( sid ) ).toBe( 0 );
 	} );
 } );

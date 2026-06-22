@@ -28,12 +28,12 @@ function loadDbSnapshot() {
  * 期待される smb_ テーブル名（prefix 込み）。dbDelta の作成順は実装依存なのでソート済みで比較。
  */
 const EXPECTED_TABLES = [
-	'wp_smb_custom_fields',
-	'wp_smb_reservation_meta',
-	'wp_smb_reservations',
-	'wp_smb_schedules',
-	'wp_smb_staff',
-	'wp_smb_stores',
+	'wp_smabo_custom_fields',
+	'wp_smabo_reservation_meta',
+	'wp_smabo_reservations',
+	'wp_smabo_schedules',
+	'wp_smabo_staff',
+	'wp_smabo_stores',
 ].sort();
 
 /**
@@ -353,8 +353,8 @@ test.describe( 'Phase 1: REST API', () => {
 // --- 4. wp_options クリーンアップ前提（インストール時に不要な残骸がないこと） -------------
 
 test.describe( 'Phase 1: オプション初期状態', () => {
-	test( '4-1. smb_db_version オプションが保存されている', () => {
-		// 有効化時に Activator::activate が呼ばれて smb_db_version が記録される.
+	test( '4-1. smabo_db_version オプションが保存されている', () => {
+		// 有効化時に Activator::activate が呼ばれて smabo_db_version が記録される.
 		const snap = loadDbSnapshot();
 		expect( snap.smbOptionsCount ).toBeGreaterThanOrEqual( 1 );
 	} );

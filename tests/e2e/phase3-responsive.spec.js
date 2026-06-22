@@ -91,12 +91,12 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
 		// 店舗 / 担当者を増やして StoreSelect / StaffSelect が描画される状態にする.
-		// smb_show_store_front=1 を設定しないと複数店舗でもスキップされるため先に設定する.
-		setOption( 'smb_show_store_front', '1' );
+		// smabo_show_store_front=1 を設定しないと複数店舗でもスキップされるため先に設定する.
+		setOption( 'smabo_show_store_front', '1' );
 		const { execSync } = require( 'node:child_process' );
 		const path = require( 'node:path' );
 		execSync(
-			`npx wp-env run cli wp db query "INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('店舗B', '', '', '', '', '', '', 0, '#10b981', 1, 20, NOW(), NOW());"`,
+			`npx wp-env run cli wp db query "INSERT INTO wp_smabo_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('店舗B', '', '', '', '', '', '', 0, '#10b981', 1, 20, NOW(), NOW());"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -201,7 +201,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( '375px: 月グリッドが 7列で、セルが 32px 以上の最小幅を持つ', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'month_only' );
+		setOption( 'smabo_calendar_view_mode', 'month_only' );
 		await page.setViewportSize( { width: 375, height: 667 } );
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
@@ -427,8 +427,8 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( '375px: カラーカスタマイズ（デザイン設定）がモバイルでも反映される', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_color_button', '#ff0066' );
-		setOption( 'smb_color_focus', '#00aabb' );
+		setOption( 'smabo_color_button', '#ff0066' );
+		setOption( 'smabo_color_focus', '#00aabb' );
 		await page.setViewportSize( { width: 375, height: 667 } );
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
@@ -463,12 +463,12 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 768, height: 1024 } );
-		// smb_show_store_front=1 を設定しないと複数店舗でもスキップされるため先に設定する.
-		setOption( 'smb_show_store_front', '1' );
+		// smabo_show_store_front=1 を設定しないと複数店舗でもスキップされるため先に設定する.
+		setOption( 'smabo_show_store_front', '1' );
 		const { execSync } = require( 'node:child_process' );
 		const path = require( 'node:path' );
 		execSync(
-			`npx wp-env run cli wp db query "INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('店舗B', '', '', '', '', '', '', 0, '#10b981', 1, 20, NOW(), NOW());"`,
+			`npx wp-env run cli wp db query "INSERT INTO wp_smabo_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, sort_order, created_at, updated_at) VALUES ('店舗B', '', '', '', '', '', '', 0, '#10b981', 1, 20, NOW(), NOW());"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -684,14 +684,14 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 	test( 'a11y: 店舗・担当者・日付・時間枠の aria-label が日本語で意味のある形式', async ( {
 		page,
 	} ) => {
-		// smb_show_store_front=1 を設定しないと複数店舗でもスキップされるため先に設定する.
-		setOption( 'smb_show_store_front', '1' );
-		// smb_show_staff_front=1 も設定して担当者選択ステップを表示する.
-		setOption( 'smb_show_staff_front', '1' );
+		// smabo_show_store_front=1 を設定しないと複数店舗でもスキップされるため先に設定する.
+		setOption( 'smabo_show_store_front', '1' );
+		// smabo_show_staff_front=1 も設定して担当者選択ステップを表示する.
+		setOption( 'smabo_show_staff_front', '1' );
 		const { execSync } = require( 'node:child_process' );
 		const path = require( 'node:path' );
 		execSync(
-			`npx wp-env run cli wp db query "INSERT INTO wp_smb_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('銀座店', '', '', '', '', '', '', 0, '#10b981', 1, 0, 20, NOW(), NOW());"`,
+			`npx wp-env run cli wp db query "INSERT INTO wp_smabo_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('銀座店', '', '', '', '', '', '', 0, '#10b981', 1, 0, 20, NOW(), NOW());"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
@@ -701,7 +701,7 @@ test.describe( 'Phase 3 Eval-4: レスポンシブ + アクセシビリティ', 
 		// 「佐藤 美咲」をユーザー店舗 (USER_STORE_ID) に紐づけ。
 		// system エンティティ (id=1) に紐づけてもフロントには出ない。
 		execSync(
-			`npx wp-env run cli wp db query "INSERT INTO wp_smb_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STORE_ID }, '佐藤 美咲', '', '', '', 0, 20, 1, 0, NOW(), NOW());"`,
+			`npx wp-env run cli wp db query "INSERT INTO wp_smabo_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STORE_ID }, '佐藤 美咲', '', '', '', 0, 20, 1, 0, NOW(), NOW());"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',

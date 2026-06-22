@@ -4,8 +4,8 @@
  * 実 ChatWork API を相手にしたエンドツーエンド検証。
  *   - 設定の保存と読み戻し（token は raw のまま返る仕様）
  *   - 受付時に ChatWork ルームに通知メッセージが投稿される
- *   - smb_chatwork_enabled=0 のときは投稿されない
- *   - smb_chatwork_api_token が空のときは投稿されない
+ *   - smabo_chatwork_enabled=0 のときは投稿されない
+ *   - smabo_chatwork_api_token が空のときは投稿されない
  *   - 承認時には通知されない（受付時のみ）
  *
  * 認証情報は credentials/.env から実行時に読み込む。
@@ -157,25 +157,25 @@ async function pollForMessage( needle, maxWaitMs = 15_000 ) {
  */
 function setChatworkSettingsDirect( cfg ) {
 	if ( typeof cfg.enabled === 'number' ) {
-		wpCli( `option update smb_chatwork_enabled ${ cfg.enabled ? 1 : 0 }` );
+		wpCli( `option update smabo_chatwork_enabled ${ cfg.enabled ? 1 : 0 }` );
 	}
 	if ( typeof cfg.token === 'string' ) {
 		// option 行が無いと UPDATE が効かないので、まず add（既存なら失敗 → 無視）.
 		try {
 			const addSafe = cfg.token.replace( /"/g, '\\"' );
-			wpCli( `option add smb_chatwork_api_token "${ addSafe }"` );
+			wpCli( `option add smabo_chatwork_api_token "${ addSafe }"` );
 		} catch ( _e ) {
 			/* 既に存在する場合は SQL UPDATE 側で更新する */
 		}
 		// 空文字対応のため SQL UPDATE で確実に上書き（option update は空文字を弾くケースがあるため）.
 		const safe = cfg.token.replace( /'/g, "''" );
 		wpCli(
-			`db query "UPDATE wp_options SET option_value = '${ safe }' WHERE option_name = 'smb_chatwork_api_token';"`
+			`db query "UPDATE wp_options SET option_value = '${ safe }' WHERE option_name = 'smabo_chatwork_api_token';"`
 		);
 	}
 	if ( cfg.roomId !== undefined ) {
 		wpCli(
-			`option update smb_chatwork_room_id "${ String( cfg.roomId ) }"`
+			`option update smabo_chatwork_room_id "${ String( cfg.roomId ) }"`
 		);
 	}
 }
@@ -185,17 +185,17 @@ function setChatworkSettingsDirect( cfg ) {
  */
 function clearChatworkSettings() {
 	try {
-		wpCli( `option delete smb_chatwork_enabled` );
+		wpCli( `option delete smabo_chatwork_enabled` );
 	} catch ( _e ) {
 		/* noop */
 	}
 	try {
-		wpCli( `option delete smb_chatwork_api_token` );
+		wpCli( `option delete smabo_chatwork_api_token` );
 	} catch ( _e ) {
 		/* noop */
 	}
 	try {
-		wpCli( `option delete smb_chatwork_room_id` );
+		wpCli( `option delete smabo_chatwork_room_id` );
 	} catch ( _e ) {
 		/* noop */
 	}
@@ -383,9 +383,9 @@ test.describe( 'Phase 4 Eval-C: ChatWork 通知', () => {
 		);
 
 		const post = await postSettings( page, {
-			smb_chatwork_enabled: 1,
-			smb_chatwork_api_token: CHATWORK_API_TOKEN,
-			smb_chatwork_room_id: CHATWORK_ROOM_ID,
+			smabo_chatwork_enabled: 1,
+			smabo_chatwork_api_token: CHATWORK_API_TOKEN,
+			smabo_chatwork_room_id: CHATWORK_ROOM_ID,
 		} );
 		expect(
 			post.status,
@@ -395,9 +395,9 @@ test.describe( 'Phase 4 Eval-C: ChatWork 通知', () => {
 		const get = await getSettings( page );
 		expect( get.status ).toBe( 200 );
 		const settings = get.data?.settings || {};
-		expect( Number( settings.smb_chatwork_enabled ) ).toBe( 1 );
-		expect( settings.smb_chatwork_api_token ).toBe( CHATWORK_API_TOKEN );
-		expect( String( settings.smb_chatwork_room_id ) ).toBe(
+		expect( Number( settings.smabo_chatwork_enabled ) ).toBe( 1 );
+		expect( settings.smabo_chatwork_api_token ).toBe( CHATWORK_API_TOKEN );
+		expect( String( settings.smabo_chatwork_room_id ) ).toBe(
 			CHATWORK_ROOM_ID
 		);
 	} );

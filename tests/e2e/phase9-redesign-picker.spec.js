@@ -14,7 +14,7 @@
  *   7) calendar_mode='month_only' でフロント初期表示が月表示になる
  *
  * NOTE:
- *   - phase3-helpers の restoreBaseline は smb_calendar_view_mode を delete するため、
+ *   - phase3-helpers の restoreBaseline は smabo_calendar_view_mode を delete するため、
  *     option 変更後に他テストへ影響しない設計（毎テスト先頭で restoreBaseline）。
  *   - serial 実行 (workers=1 は playwright.config.js で強制済) を前提。
  */
@@ -91,7 +91,7 @@ test.describe( 'Phase 9 Eval-3: 日付・時間ピッカー検証', () => {
 	test( 'calendar_mode=toggle: 日/月トグルが表示され、クリックで日表示⇔月表示が切替わる', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'toggle' );
+		setOption( 'smabo_calendar_view_mode', 'toggle' );
 		seedSchedules();
 		await gotoFrontForm( page );
 
@@ -160,7 +160,7 @@ test.describe( 'Phase 9 Eval-3: 日付・時間ピッカー検証', () => {
 	test( '月表示: 7列グリッド・曜日ヘッダー（日月火水木金土）・前後月ナビボタン・日付選択', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'month_only' );
+		setOption( 'smabo_calendar_view_mode', 'month_only' );
 		seedSchedules();
 		await gotoFrontForm( page );
 
@@ -291,7 +291,7 @@ test.describe( 'Phase 9 Eval-3: 日付・時間ピッカー検証', () => {
 		] );
 		// 該当枠を満席状態にする (booked_count = capacity).
 		wpCli(
-			`wp db query "UPDATE wp_smb_schedules SET booked_count=1 WHERE schedule_date='${ dateStr }' AND start_time='10:00:00';"`
+			`wp db query "UPDATE wp_smabo_schedules SET booked_count=1 WHERE schedule_date='${ dateStr }' AND start_time='10:00:00';"`
 		);
 
 		try {
@@ -323,7 +323,7 @@ test.describe( 'Phase 9 Eval-3: 日付・時間ピッカー検証', () => {
 		} finally {
 			// fixture 復元（restoreBaseline でも消えるが念のため）.
 			wpCli(
-				`wp db query "DELETE FROM wp_smb_schedules WHERE schedule_date='${ dateStr }';"`
+				`wp db query "DELETE FROM wp_smabo_schedules WHERE schedule_date='${ dateStr }';"`
 			);
 		}
 	} );
@@ -333,7 +333,7 @@ test.describe( 'Phase 9 Eval-3: 日付・時間ピッカー検証', () => {
 	test( 'calendar_mode=month_only: フロント初期表示で月グリッドが表示される', async ( {
 		page,
 	} ) => {
-		setOption( 'smb_calendar_view_mode', 'month_only' );
+		setOption( 'smabo_calendar_view_mode', 'month_only' );
 		seedSchedules();
 		await gotoFrontForm( page );
 
@@ -343,6 +343,6 @@ test.describe( 'Phase 9 Eval-3: 日付・時間ピッカー検証', () => {
 		await expect( page.locator( '.smb-front-date-list' ) ).toHaveCount( 0 );
 		// トグルも出ない（toggle モードではないため）.
 		await expect( page.locator( '.smb-front-calendar-toggle' ) ).toHaveCount( 0 );
-		// afterEach の restoreBaseline で smb_calendar_view_mode は delete される.
+		// afterEach の restoreBaseline で smabo_calendar_view_mode は delete される.
 	} );
 } );

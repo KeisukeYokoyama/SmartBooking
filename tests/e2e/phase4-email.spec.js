@@ -60,7 +60,7 @@ function setOptionSql( key, sqlValue ) {
 function setStoreEmail( storeId, email ) {
 	const safe = String( email ).replace( /'/g, "''" );
 	wpCli(
-		`db query "UPDATE wp_smb_stores SET email = '${ safe }' WHERE id = ${ storeId };"`
+		`db query "UPDATE wp_smabo_stores SET email = '${ safe }' WHERE id = ${ storeId };"`
 	);
 }
 
@@ -71,7 +71,7 @@ function setStoreEmail( storeId, email ) {
 function setStaffEmail( staffId, email ) {
 	const safe = String( email ).replace( /'/g, "''" );
 	wpCli(
-		`db query "UPDATE wp_smb_staff SET email = '${ safe }' WHERE id = ${ staffId };"`
+		`db query "UPDATE wp_smabo_staff SET email = '${ safe }' WHERE id = ${ staffId };"`
 	);
 }
 
@@ -176,30 +176,30 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 		// 既定 OFF の理由: ローカルブラウザ操作時に MailPit (smb-mailpit-smtp.php) で実送信を確認したいケースがあるため。
 		setOptionRaw( 'smb_mail_capture_enabled', '1' );
 		// 受付/承認テンプレの既定値を確認するため、起動時の値で固定し直す。
-		setOptionRaw( 'smb_mail_from_name', 'Smart Booking Test' );
-		setOptionRaw( 'smb_mail_from_email', 'noreply@example.com' );
+		setOptionRaw( 'smabo_mail_from_name', 'Smart Booking Test' );
+		setOptionRaw( 'smabo_mail_from_email', 'noreply@example.com' );
 		setOptionRaw(
-			'smb_mail_receipt_user_subject',
+			'smabo_mail_receipt_user_subject',
 			'【{store_name}】ご予約を受け付けました'
 		);
 		setOptionRaw(
-			'smb_mail_receipt_user_body',
+			'smabo_mail_receipt_user_body',
 			'{customer_name} 様\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n予約番号: {reservation_id}'
 		);
 		setOptionRaw(
-			'smb_mail_receipt_admin_subject',
+			'smabo_mail_receipt_admin_subject',
 			'【新規予約】{customer_name}（{store_name}）'
 		);
 		setOptionRaw(
-			'smb_mail_receipt_admin_body',
+			'smabo_mail_receipt_admin_body',
 			'予約者: {customer_name}\nメール: {customer_email}\n電話: {customer_phone}\n日時: {schedule_date} {schedule_time}\n予約番号: {reservation_id}'
 		);
 		setOptionRaw(
-			'smb_mail_approval_user_subject',
+			'smabo_mail_approval_user_subject',
 			'【{store_name}】ご予約が確定しました'
 		);
 		setOptionRaw(
-			'smb_mail_approval_user_body',
+			'smabo_mail_approval_user_body',
 			'{customer_name} 様\n予約が確定しました。\n日時: {schedule_date} {schedule_time}\n予約番号: {reservation_id}'
 		);
 	} );
@@ -342,7 +342,7 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	// ----------------------------------------------------------------
 	// 3. 承認メール: PATCH で status=approved にすると 1 通追加で送られる
 	// ----------------------------------------------------------------
-	test( '承認時: ユーザー宛 1 通 (件名は smb_mail_approval_user_subject)', async ( {
+	test( '承認時: ユーザー宛 1 通 (件名は smabo_mail_approval_user_subject)', async ( {
 		page,
 	} ) => {
 		setStoreEmail( USER_STORE_ID, 'store-a@example.com' );
@@ -473,13 +473,13 @@ test.describe( 'Phase 4 Eval-A: Email 連携', () => {
 	// ----------------------------------------------------------------
 	// 5. From 系オプションが空でも送信は成功する（フォールバック確認）
 	// ----------------------------------------------------------------
-	test( 'smb_mail_from_name / smb_mail_from_email が空でも送信は成功する', async ( {
+	test( 'smabo_mail_from_name / smabo_mail_from_email が空でも送信は成功する', async ( {
 		page,
 	} ) => {
 		setStoreEmail( USER_STORE_ID, 'store-a@example.com' );
 		setStaffEmail( USER_STAFF_ID, '' );
-		setOptionSql( 'smb_mail_from_name', "''" );
-		setOptionSql( 'smb_mail_from_email', "''" );
+		setOptionSql( 'smabo_mail_from_name', "''" );
+		setOptionSql( 'smabo_mail_from_email', "''" );
 
 		const scheduleId = insertSchedule( {
 			storeId: USER_STORE_ID,

@@ -26,7 +26,7 @@ test.describe.configure( { mode: 'default' } );
 function restoreThemeColors() {
 	try {
 		execSync(
-			`npx wp-env run cli wp db query "DELETE FROM wp_options WHERE option_name IN ('smb_color_button','smb_color_date_selected','smb_color_time_selected','smb_color_required_mark','smb_color_focus');"`,
+			`npx wp-env run cli wp db query "DELETE FROM wp_options WHERE option_name IN ('smabo_color_button','smabo_color_date_selected','smabo_color_time_selected','smabo_color_required_mark','smabo_color_focus');"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				encoding: 'utf8',
