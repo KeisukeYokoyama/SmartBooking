@@ -26,7 +26,7 @@ class Smart_Booking_Google_Calendar {
 	const API_BASE        = 'https://www.googleapis.com/calendar/v3/calendars/';
 	const TOKEN_TRANSIENT = 'smabo_gcal_token';
 	const HTTP_TIMEOUT    = 15;
-	const META_KEY        = '_smb_gcal_event_id';
+	const META_KEY        = '_smabo_gcal_event_id';
 
 	/**
 	 * 予約承認時に Google カレンダーへイベントを作成する。

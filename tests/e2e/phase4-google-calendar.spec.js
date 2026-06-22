@@ -3,7 +3,7 @@
  *
  * 実 Google Calendar API を相手にしたエンドツーエンド検証。
  *   - 認証情報マスク（GET /settings は raw JSON を返さない）
- *   - 承認時にイベント作成（_smb_gcal_event_id meta が保存される）
+ *   - 承認時にイベント作成（_smabo_gcal_event_id meta が保存される）
  *   - キャンセル時にイベント削除（meta 行が消える）
  *   - 機能 OFF 時は no-op（meta が作られない）
  *   - 不正 JSON は 400 / smb_credentials_invalid
@@ -115,13 +115,13 @@ function clearGcalSettings() {
 }
 
 /**
- * 指定 reservation_id の _smb_gcal_event_id meta を取得する。
+ * 指定 reservation_id の _smabo_gcal_event_id meta を取得する。
  * @param {number} reservationId
  * @return {string} 見つからなければ空文字。
  */
 function getGcalEventIdMeta( reservationId ) {
 	const out = wpCli(
-		`db query "SELECT meta_value FROM wp_smabo_reservation_meta WHERE reservation_id=${ reservationId } AND meta_key='_smb_gcal_event_id' LIMIT 1;" --skip-column-names`
+		`db query "SELECT meta_value FROM wp_smabo_reservation_meta WHERE reservation_id=${ reservationId } AND meta_key='_smabo_gcal_event_id' LIMIT 1;" --skip-column-names`
 	);
 	const lines = out
 		.split( '\n' )
@@ -405,7 +405,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 		}
 		expect(
 			eventId,
-			`_smb_gcal_event_id meta が保存されない（API 失敗の可能性）`
+			`_smabo_gcal_event_id meta が保存されない（API 失敗の可能性）`
 		).not.toBe( '' );
 
 		// 3. キャンセル → meta 削除.
@@ -430,7 +430,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 			}
 			await new Promise( ( r ) => setTimeout( r, 500 ) );
 		}
-		expect( removed, `_smb_gcal_event_id meta がキャンセル後も残存` ).toBe(
+		expect( removed, `_smabo_gcal_event_id meta がキャンセル後も残存` ).toBe(
 			true
 		);
 	} );
@@ -438,7 +438,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 	// ----------------------------------------------------------------
 	// 4. 無効化時は no-op
 	// ----------------------------------------------------------------
-	test( 'enabled=0 のときは承認しても _smb_gcal_event_id meta が作られない', async ( {
+	test( 'enabled=0 のときは承認しても _smabo_gcal_event_id meta が作られない', async ( {
 		page,
 	} ) => {
 		// 認証情報は揃っているが、enabled=0.
