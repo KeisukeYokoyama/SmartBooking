@@ -2,6 +2,9 @@ node_modules/
 build/
 vendor/
 
+# Distribution artifact (built by `wp-scripts plugin-zip`)
+smart-booking.zip
+
 .DS_Store
 .vscode/
 .idea/

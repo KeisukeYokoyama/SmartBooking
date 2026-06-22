@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -138,6 +138,13 @@ This plugin may communicate with the following external services. **Both are off
 If neither integration is enabled, Smart Booking does not make any outbound requests to external services.
 
 == Changelog ==
+
+= 0.2.1 - 2026-06-22 =
+* Fixed: Corrected ChatWork URLs in readme.txt (terms and privacy pages).
+* Improved: Excluded development files (assets/) from the distribution package.
+* Added: Source code repository URL in readme.txt.
+* Improved: uninstall.php now uses an explicit option list instead of a LIKE wildcard to avoid affecting other plugins.
+* Renamed: Database prefix from `smb_` to `smabo_` to satisfy WordPress.org's 4-character prefix requirement.
 
 = 0.2.0 =
 * Front-end UI redesign for the booking form, confirmation screen, and completion screen.
