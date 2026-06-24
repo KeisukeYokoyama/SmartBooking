@@ -273,7 +273,7 @@ class Smart_Booking_Google_Calendar {
 
 	/**
 	 * 予約コンテキストから ISO 形式の開始 / 終了時刻とタイムゾーンを抽出する。
-	 * end_time は wp_smabo_schedules を schedule_id で JOIN して引く。
+	 * end_time は wp_smart_booking_schedules を schedule_id で JOIN して引く。
 	 *
 	 * @param array $context Reservation context。
 	 * @return array|null { start, end, timezone }
@@ -288,7 +288,7 @@ class Smart_Booking_Google_Calendar {
 		}
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$end_time = $wpdb->get_var( $wpdb->prepare( "SELECT end_time FROM {$wpdb->prefix}smabo_schedules WHERE id = %d", $schedule_id ) );
+		$end_time = $wpdb->get_var( $wpdb->prepare( "SELECT end_time FROM {$wpdb->prefix}smart_booking_schedules WHERE id = %d", $schedule_id ) );
 		if ( ! $end_time ) {
 			return null;
 		}
@@ -318,7 +318,7 @@ class Smart_Booking_Google_Calendar {
 		global $wpdb;
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		$wpdb->insert(
-			$wpdb->prefix . 'smabo_reservation_meta',
+			$wpdb->prefix . 'smart_booking_reservation_meta',
 			array(
 				'reservation_id' => (int) $reservation_id,
 				'meta_key'       => self::META_KEY,
@@ -338,7 +338,7 @@ class Smart_Booking_Google_Calendar {
 	private function load_event_id( $reservation_id ) {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-		$value = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->prefix}smabo_reservation_meta WHERE reservation_id = %d AND meta_key = %s LIMIT 1", (int) $reservation_id, self::META_KEY ) );
+		$value = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->prefix}smart_booking_reservation_meta WHERE reservation_id = %d AND meta_key = %s LIMIT 1", (int) $reservation_id, self::META_KEY ) );
 		return is_string( $value ) ? $value : '';
 	}
 
@@ -352,7 +352,7 @@ class Smart_Booking_Google_Calendar {
 		global $wpdb;
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 		$wpdb->delete(
-			$wpdb->prefix . 'smabo_reservation_meta',
+			$wpdb->prefix . 'smart_booking_reservation_meta',
 			array(
 				'reservation_id' => (int) $reservation_id,
 				'meta_key'       => self::META_KEY,

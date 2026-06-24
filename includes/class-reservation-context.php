@@ -32,7 +32,7 @@ class Smart_Booking_Reservation_Context {
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		$reservation = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smabo_reservations WHERE id = %d", $reservation_id ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smart_booking_reservations WHERE id = %d", $reservation_id ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
@@ -42,19 +42,19 @@ class Smart_Booking_Reservation_Context {
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		$store      = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smabo_stores WHERE id = %d", (int) $reservation['store_id'] ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smart_booking_stores WHERE id = %d", (int) $reservation['store_id'] ),
 			ARRAY_A
 		);
 		$staff      = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smabo_staff WHERE id = %d", (int) $reservation['staff_id'] ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smart_booking_staff WHERE id = %d", (int) $reservation['staff_id'] ),
 			ARRAY_A
 		);
 		$meta_rows  = $wpdb->get_results(
-			$wpdb->prepare( "SELECT meta_key, meta_value FROM {$wpdb->prefix}smabo_reservation_meta WHERE reservation_id = %d", $reservation_id ),
+			$wpdb->prepare( "SELECT meta_key, meta_value FROM {$wpdb->prefix}smart_booking_reservation_meta WHERE reservation_id = %d", $reservation_id ),
 			ARRAY_A
 		);
 		$field_defs = $wpdb->get_results(
-			"SELECT field_key, field_label, field_type FROM {$wpdb->prefix}smabo_custom_fields ORDER BY sort_order ASC, id ASC",
+			"SELECT field_key, field_label, field_type FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
@@ -122,7 +122,7 @@ class Smart_Booking_Reservation_Context {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$end_time = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT s.end_time FROM {$wpdb->prefix}smabo_schedules s INNER JOIN {$wpdb->prefix}smabo_reservations r ON r.schedule_id = s.id WHERE r.id = %d",
+				"SELECT s.end_time FROM {$wpdb->prefix}smart_booking_schedules s INNER JOIN {$wpdb->prefix}smart_booking_reservations r ON r.schedule_id = s.id WHERE r.id = %d",
 				(int) $reservation_id
 			)
 		);

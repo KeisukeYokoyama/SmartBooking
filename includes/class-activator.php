@@ -36,7 +36,7 @@ class Smart_Booking_Activator {
 	/**
 	 * バージョン間マイグレーション。
 	 *
-	 * - 0.2.0: smabo_stores / smabo_staff に is_system カラムを追加し、既存のデフォルト
+	 * - 0.2.0: smart_booking_stores / smart_booking_staff に is_system カラムを追加し、既存のデフォルト
 	 *   エントリ（最も若い id のもの）に is_system=1 を設定する。
 	 *
 	 * dbDelta が ALTER TABLE を担うため、ここでは値の埋め直しのみを行う。
@@ -52,14 +52,14 @@ class Smart_Booking_Activator {
 		if ( version_compare( $current, '0.2.0', '<' ) ) {
 			// 既存の is_system=1 エントリが既にある場合は no-op（新規環境/再マイグレーションでも安全）。
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$has_system_store = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_stores WHERE is_system = 1" );
+			$has_system_store = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_stores WHERE is_system = 1" );
 			if ( 0 === $has_system_store ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$first_store_id = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smabo_stores ORDER BY id ASC LIMIT 1" );
+				$first_store_id = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smart_booking_stores ORDER BY id ASC LIMIT 1" );
 				if ( $first_store_id > 0 ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					$wpdb->update(
-						$wpdb->prefix . 'smabo_stores',
+						$wpdb->prefix . 'smart_booking_stores',
 						array( 'is_system' => 1 ),
 						array( 'id' => $first_store_id ),
 						array( '%d' ),
@@ -69,14 +69,14 @@ class Smart_Booking_Activator {
 			}
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$has_system_staff = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_staff WHERE is_system = 1" );
+			$has_system_staff = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_staff WHERE is_system = 1" );
 			if ( 0 === $has_system_staff ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$first_staff_id = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smabo_staff ORDER BY id ASC LIMIT 1" );
+				$first_staff_id = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smart_booking_staff ORDER BY id ASC LIMIT 1" );
 				if ( $first_staff_id > 0 ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					$wpdb->update(
-						$wpdb->prefix . 'smabo_staff',
+						$wpdb->prefix . 'smart_booking_staff',
 						array( 'is_system' => 1 ),
 						array( 'id' => $first_staff_id ),
 						array( '%d' ),
@@ -155,9 +155,9 @@ class Smart_Booking_Activator {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		$charset_collate = $wpdb->get_charset_collate();
-		$prefix          = $wpdb->prefix . 'smabo_';
+		$prefix          = $wpdb->prefix . 'smart_booking_';
 
-		// smabo_stores（店舗マスター）.
+		// smart_booking_stores（店舗マスター）.
 		$sql_stores = "CREATE TABLE {$prefix}stores (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL DEFAULT '',
@@ -180,7 +180,7 @@ class Smart_Booking_Activator {
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
-		// smabo_staff（担当者マスター）.
+		// smart_booking_staff（担当者マスター）.
 		$sql_staff = "CREATE TABLE {$prefix}staff (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -201,7 +201,7 @@ class Smart_Booking_Activator {
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
-		// smabo_schedules（予約枠）.
+		// smart_booking_schedules（予約枠）.
 		$sql_schedules = "CREATE TABLE {$prefix}schedules (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -220,7 +220,7 @@ class Smart_Booking_Activator {
 			KEY idx_is_active (is_active)
 		) {$charset_collate};";
 
-		// smabo_reservations（予約データ）.
+		// smart_booking_reservations（予約データ）.
 		$sql_reservations = "CREATE TABLE {$prefix}reservations (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -243,7 +243,7 @@ class Smart_Booking_Activator {
 			KEY idx_staff_id (staff_id)
 		) {$charset_collate};";
 
-		// smabo_reservation_meta（カスタムフィールド入力値）.
+		// smart_booking_reservation_meta（カスタムフィールド入力値）.
 		$sql_reservation_meta = "CREATE TABLE {$prefix}reservation_meta (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			reservation_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -254,7 +254,7 @@ class Smart_Booking_Activator {
 			KEY idx_meta_key (meta_key(191))
 		) {$charset_collate};";
 
-		// smabo_custom_fields（フォームフィールド定義）.
+		// smart_booking_custom_fields（フォームフィールド定義）.
 		$sql_custom_fields = "CREATE TABLE {$prefix}custom_fields (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			field_key varchar(100) NOT NULL DEFAULT '',
@@ -289,12 +289,12 @@ class Smart_Booking_Activator {
 		// デフォルト店舗: 未登録の場合のみ投入.
 		// テーブル名は信頼できる内部生成値。プレースホルダでは識別子を扱えないため直接埋め込む。
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$stores_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_stores" );
+		$stores_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_stores" );
 		$store_id     = 0;
 		if ( 0 === $stores_count ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
-				$wpdb->prefix . 'smabo_stores',
+				$wpdb->prefix . 'smart_booking_stores',
 				array(
 					'name'           => 'デフォルト',
 					'phone'          => '',
@@ -316,16 +316,16 @@ class Smart_Booking_Activator {
 			$store_id = (int) $wpdb->insert_id;
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$store_id = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smabo_stores ORDER BY id ASC LIMIT 1" );
+			$store_id = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smart_booking_stores ORDER BY id ASC LIMIT 1" );
 		}
 
 		// デフォルト担当者: 未登録の場合のみ投入.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$staff_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_staff" );
+		$staff_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_staff" );
 		if ( 0 === $staff_count && $store_id > 0 ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
-				$wpdb->prefix . 'smabo_staff',
+				$wpdb->prefix . 'smart_booking_staff',
 				array(
 					'store_id'    => $store_id,
 					'name'        => 'デフォルト',
@@ -345,7 +345,7 @@ class Smart_Booking_Activator {
 
 		// デフォルトカスタムフィールド: 未登録の場合のみ投入.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$fields_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smabo_custom_fields" );
+		$fields_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields" );
 		if ( 0 === $fields_count ) {
 			$defaults = array(
 				array(
@@ -377,7 +377,7 @@ class Smart_Booking_Activator {
 			foreach ( $defaults as $field ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->insert(
-					$wpdb->prefix . 'smabo_custom_fields',
+					$wpdb->prefix . 'smart_booking_custom_fields',
 					array(
 						'field_key'     => $field['field_key'],
 						'field_label'   => $field['field_label'],

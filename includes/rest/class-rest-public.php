@@ -228,7 +228,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, name, description, image_id, calendar_color, prefecture, city, address_line, phone, sort_order
-			FROM {$wpdb->prefix}smabo_stores
+			FROM {$wpdb->prefix}smart_booking_stores
 			WHERE is_active = 1 AND is_system = 0
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
@@ -282,7 +282,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT id, store_id, name, description, image_id, sort_order
-					FROM {$wpdb->prefix}smabo_staff
+					FROM {$wpdb->prefix}smart_booking_staff
 					WHERE is_active = 1 AND is_system = 0 AND store_id = %d
 					ORDER BY sort_order ASC, id ASC",
 					$store_id
@@ -292,7 +292,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		} else {
 			$rows = $wpdb->get_results(
 				"SELECT id, store_id, name, description, image_id, sort_order
-				FROM {$wpdb->prefix}smabo_staff
+				FROM {$wpdb->prefix}smart_booking_staff
 				WHERE is_active = 1 AND is_system = 0
 				ORDER BY sort_order ASC, id ASC",
 				ARRAY_A
@@ -394,7 +394,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			"SELECT id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order
-			FROM {$wpdb->prefix}smabo_custom_fields
+			FROM {$wpdb->prefix}smart_booking_custom_fields
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
@@ -488,7 +488,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		$sql = "SELECT id, store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count
-			FROM {$wpdb->prefix}smabo_schedules
+			FROM {$wpdb->prefix}smart_booking_schedules
 			WHERE " . implode( ' AND ', $where ) . '
 			ORDER BY schedule_date ASC, start_time ASC';
 
@@ -672,8 +672,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 *     ボット側に検知方法を明かしたくない場合は 200 の静黙も選択肢だが、
 	 *     E2E テスト・管理者への可視性の観点から 400 を採用）。
 	 *   - customer_name / customer_email / customer_phone は必須。email は is_email() で検証。
-	 *   - smabo_custom_fields の is_required=1 のフィールドが空なら 400。
-	 *   - smabo_schedules に対しアトミック UPDATE (+1) を投げ、0 行影響なら 409 (満席).
+	 *   - smart_booking_custom_fields の is_required=1 のフィールドが空なら 400。
+	 *   - smart_booking_schedules に対しアトミック UPDATE (+1) を投げ、0 行影響なら 409 (満席).
 	 *   - INSERT 失敗時は booked_count を -1 でロールバック.
 	 *   - status は 'pending'（管理者承認運用）。
 	 *   - schedule_date / schedule_time は schedules から取得して非正規化保存.
@@ -701,7 +701,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$schedule = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smabo_schedules WHERE id = %d", $schedule_id ),
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smart_booking_schedules WHERE id = %d", $schedule_id ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -754,7 +754,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_defs = $wpdb->get_results(
-			"SELECT field_key, field_label, field_type, is_required FROM {$wpdb->prefix}smabo_custom_fields ORDER BY sort_order ASC, id ASC",
+			"SELECT field_key, field_label, field_type, is_required FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -812,8 +812,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$candidates = $wpdb->get_col(
 				$wpdb->prepare(
-					"SELECT s.id FROM {$wpdb->prefix}smabo_schedules s
-					INNER JOIN {$wpdb->prefix}smabo_staff st ON s.staff_id = st.id
+					"SELECT s.id FROM {$wpdb->prefix}smart_booking_schedules s
+					INNER JOIN {$wpdb->prefix}smart_booking_staff st ON s.staff_id = st.id
 					WHERE s.store_id = %d
 						AND s.schedule_date = %s
 						AND s.start_time = %s
@@ -838,7 +838,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$try = $wpdb->query(
 					$wpdb->prepare(
-						"UPDATE {$wpdb->prefix}smabo_schedules SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+						"UPDATE {$wpdb->prefix}smart_booking_schedules SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
 						$now,
 						$cand_id
 					)
@@ -851,7 +851,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 						// 採用枠の詳細を取り直す（store_id / schedule_date / start_time は同じだが staff_id が変わる）。
 						// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 						$booked_schedule = $wpdb->get_row(
-							$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smabo_schedules WHERE id = %d", $cand_id ),
+							$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smart_booking_schedules WHERE id = %d", $cand_id ),
 							ARRAY_A
 						);
 						// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -864,7 +864,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$affected = (int) $wpdb->query(
 				$wpdb->prepare(
-					"UPDATE {$wpdb->prefix}smabo_schedules SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
+					"UPDATE {$wpdb->prefix}smart_booking_schedules SET booked_count = booked_count + 1, updated_at = %s WHERE id = %d AND booked_count < capacity AND is_active = 1",
 					$now,
 					$schedule_id
 				)
@@ -885,7 +885,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->query(
 				$wpdb->prepare(
-					"UPDATE {$wpdb->prefix}smabo_schedules SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
+					"UPDATE {$wpdb->prefix}smart_booking_schedules SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
 					$booked_id
 				)
 			);
@@ -896,7 +896,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// 予約 INSERT.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$ok = $wpdb->insert(
-			$wpdb->prefix . 'smabo_reservations',
+			$wpdb->prefix . 'smart_booking_reservations',
 			array(
 				'store_id'       => (int) $booked_schedule['store_id'],
 				'staff_id'       => (int) $booked_schedule['staff_id'],
@@ -919,7 +919,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->query(
 				$wpdb->prepare(
-					"UPDATE {$wpdb->prefix}smabo_schedules SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
+					"UPDATE {$wpdb->prefix}smart_booking_schedules SET booked_count = booked_count - 1 WHERE id = %d AND booked_count > 0",
 					$booked_id
 				)
 			);
@@ -953,7 +953,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			}
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			$wpdb->insert(
-				$wpdb->prefix . 'smabo_reservation_meta',
+				$wpdb->prefix . 'smart_booking_reservation_meta',
 				array(
 					'reservation_id' => $reservation_id,
 					'meta_key'       => $key_clean,
@@ -968,11 +968,11 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// システムエンティティ（is_system=1）はユーザーに見えないため空文字で返す。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$store_row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT name, is_system FROM {$wpdb->prefix}smabo_stores WHERE id = %d", (int) $booked_schedule['store_id'] ),
+			$wpdb->prepare( "SELECT name, is_system FROM {$wpdb->prefix}smart_booking_stores WHERE id = %d", (int) $booked_schedule['store_id'] ),
 			ARRAY_A
 		);
 		$staff_row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT name, is_system FROM {$wpdb->prefix}smabo_staff WHERE id = %d", (int) $booked_schedule['staff_id'] ),
+			$wpdb->prepare( "SELECT name, is_system FROM {$wpdb->prefix}smart_booking_staff WHERE id = %d", (int) $booked_schedule['staff_id'] ),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
