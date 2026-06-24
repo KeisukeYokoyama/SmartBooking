@@ -4,7 +4,7 @@
  *
  * 予約受付時に ChatWork ルームへ通知メッセージを投稿する。
  *
- * - 設定 `smabo_chatwork_enabled` が無効なら何もしない。
+ * - 設定 `smart_booking_chatwork_enabled` が無効なら何もしない。
  * - APIトークン or ルームIDが未設定なら何もしない。
  * - 通信エラーや非 2xx 応答はサイレントに無視（予約処理を阻害しない）。
  * - error_log は使わない。
@@ -39,12 +39,12 @@ class Smart_Booking_Chatwork {
 	 * @return void
 	 */
 	public function notify_received( $context ) {
-		if ( '1' !== (string) get_option( 'smabo_chatwork_enabled', '0' ) ) {
+		if ( '1' !== (string) get_option( 'smart_booking_chatwork_enabled', '0' ) ) {
 			return;
 		}
 
-		$token   = trim( (string) get_option( 'smabo_chatwork_api_token', '' ) );
-		$room_id = (int) get_option( 'smabo_chatwork_room_id', 0 );
+		$token   = trim( (string) get_option( 'smart_booking_chatwork_api_token', '' ) );
+		$room_id = (int) get_option( 'smart_booking_chatwork_room_id', 0 );
 		if ( '' === $token || $room_id <= 0 ) {
 			return;
 		}

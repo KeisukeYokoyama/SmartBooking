@@ -24,9 +24,9 @@ class Smart_Booking_Google_Calendar {
 
 	const TOKEN_URL       = 'https://oauth2.googleapis.com/token';
 	const API_BASE        = 'https://www.googleapis.com/calendar/v3/calendars/';
-	const TOKEN_TRANSIENT = 'smabo_gcal_token';
+	const TOKEN_TRANSIENT = 'smart_booking_gcal_token';
 	const HTTP_TIMEOUT    = 15;
-	const META_KEY        = '_smabo_gcal_event_id';
+	const META_KEY        = '_smart_booking_gcal_event_id';
 
 	/**
 	 * 予約承認時に Google カレンダーへイベントを作成する。
@@ -35,7 +35,7 @@ class Smart_Booking_Google_Calendar {
 	 * @return void
 	 */
 	public function create_event( $context ) {
-		if ( 1 !== (int) get_option( 'smabo_google_calendar_enabled', 0 ) ) {
+		if ( 1 !== (int) get_option( 'smart_booking_google_calendar_enabled', 0 ) ) {
 			return;
 		}
 		$config = $this->load_config();
@@ -127,7 +127,7 @@ class Smart_Booking_Google_Calendar {
 	 * @return void
 	 */
 	public function delete_event( $context ) {
-		if ( 1 !== (int) get_option( 'smabo_google_calendar_enabled', 0 ) ) {
+		if ( 1 !== (int) get_option( 'smart_booking_google_calendar_enabled', 0 ) ) {
 			return;
 		}
 		$config = $this->load_config();
@@ -168,8 +168,8 @@ class Smart_Booking_Google_Calendar {
 	 * @return array|null { calendar_id, client_email, private_key } もしくは不足時 null。
 	 */
 	private function load_config() {
-		$calendar_id = trim( (string) get_option( 'smabo_google_calendar_id', '' ) );
-		$json        = (string) get_option( 'smabo_google_calendar_credentials_json', '' );
+		$calendar_id = trim( (string) get_option( 'smart_booking_google_calendar_id', '' ) );
+		$json        = (string) get_option( 'smart_booking_google_calendar_credentials_json', '' );
 		if ( '' === $calendar_id || '' === $json ) {
 			return null;
 		}

@@ -30,67 +30,67 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 */
 	private function public_settings_schema() {
 		return array(
-			'smabo_booking_flow_order'     => array(
+			'smart_booking_booking_flow_order'     => array(
 				'key'     => 'flow_order',
 				'default' => 'A',
 				'type'    => 'text',
 			),
-			'smabo_calendar_view_mode'     => array(
+			'smart_booking_calendar_view_mode'     => array(
 				'key'     => 'calendar_mode',
 				'default' => 'day_only',
 				'type'    => 'text',
 			),
-			'smabo_display_days'           => array(
+			'smart_booking_display_days'           => array(
 				'key'     => 'display_period_days',
 				'default' => 7,
 				'type'    => 'int',
 			),
-			'smabo_booking_deadline_days'  => array(
+			'smart_booking_booking_deadline_days'  => array(
 				'key'     => 'deadline_days',
 				'default' => 0,
 				'type'    => 'int',
 			),
-			'smabo_booking_deadline_hours' => array(
+			'smart_booking_booking_deadline_hours' => array(
 				'key'     => 'deadline_hours',
 				'default' => 0,
 				'type'    => 'int',
 			),
-			'smabo_show_store_front'       => array(
+			'smart_booking_show_store_front'       => array(
 				'key'     => 'show_store_front',
 				'default' => 0,
 				'type'    => 'bool',
 			),
-			'smabo_show_staff_front'       => array(
+			'smart_booking_show_staff_front'       => array(
 				'key'     => 'show_staff_front',
 				'default' => 0,
 				'type'    => 'bool',
 			),
-			'smabo_completion_message'     => array(
+			'smart_booking_completion_message'     => array(
 				'key'     => 'completion_message',
 				'default' => '',
 				'type'    => 'html',
 			),
-			'smabo_color_button'           => array(
+			'smart_booking_color_button'           => array(
 				'key'     => 'color_button',
 				'default' => '',
 				'type'    => 'color',
 			),
-			'smabo_color_date_selected'    => array(
+			'smart_booking_color_date_selected'    => array(
 				'key'     => 'color_date_selected',
 				'default' => '',
 				'type'    => 'color',
 			),
-			'smabo_color_time_selected'    => array(
+			'smart_booking_color_time_selected'    => array(
 				'key'     => 'color_time_selected',
 				'default' => '',
 				'type'    => 'color',
 			),
-			'smabo_color_required_mark'    => array(
+			'smart_booking_color_required_mark'    => array(
 				'key'     => 'color_required_mark',
 				'default' => '',
 				'type'    => 'color',
 			),
-			'smabo_color_focus'            => array(
+			'smart_booking_color_focus'            => array(
 				'key'     => 'color_focus',
 				'default' => '',
 				'type'    => 'color',
@@ -431,7 +431,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 *
 	 * - `is_active = 1` のスケジュールのみ。
 	 * - `date_from` / `date_to` 未指定時は today 〜 today + `display_period_days` 日後まで。
-	 * - 締切（`smabo_booking_deadline_days` / `smabo_booking_deadline_hours`）を超過した枠は `closed`。
+	 * - 締切（`smart_booking_booking_deadline_days` / `smart_booking_booking_deadline_hours`）を超過した枠は `closed`。
 	 * - 空き状況の判定:
 	 *     closed    : 締切超過
 	 *     full      : booked_count >= capacity
@@ -450,10 +450,10 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		$staff_id = absint( $request->get_param( 'staff_id' ) );
 
 		// 担当者非表示モード: staff_id 未指定なら同一時刻枠を統合する。
-		$show_staff_front = ( (int) get_option( 'smabo_show_staff_front', 0 ) ) ? 1 : 0;
+		$show_staff_front = ( (int) get_option( 'smart_booking_show_staff_front', 0 ) ) ? 1 : 0;
 		$aggregate_staff  = ( 0 === $show_staff_front && $staff_id <= 0 );
 
-		$display_days = (int) get_option( 'smabo_display_days', 7 );
+		$display_days = (int) get_option( 'smart_booking_display_days', 7 );
 		if ( $display_days <= 0 ) {
 			$display_days = 7;
 		}
@@ -498,8 +498,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$rows = array();
 		}
 
-		$deadline_days  = max( 0, (int) get_option( 'smabo_booking_deadline_days', 0 ) );
-		$deadline_hours = max( 0, (int) get_option( 'smabo_booking_deadline_hours', 0 ) );
+		$deadline_days  = max( 0, (int) get_option( 'smart_booking_booking_deadline_days', 0 ) );
+		$deadline_hours = max( 0, (int) get_option( 'smart_booking_booking_deadline_hours', 0 ) );
 
 		// 締切判定用にサイトタイムゾーンの「現在時刻」を取得する。
 		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- サイトTZ基準の Unix 秒で日時計算するため明示的に timestamp を要求。
@@ -716,8 +716,8 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		if ( false === $slot_ts || $slot_ts <= $now_ts ) {
 			return $this->error( 'smb_reservation_closed', 'この時間枠は予約受付を終了しました。', 400 );
 		}
-		$deadline_days  = max( 0, (int) get_option( 'smabo_booking_deadline_days', 0 ) );
-		$deadline_hours = max( 0, (int) get_option( 'smabo_booking_deadline_hours', 0 ) );
+		$deadline_days  = max( 0, (int) get_option( 'smart_booking_booking_deadline_days', 0 ) );
+		$deadline_hours = max( 0, (int) get_option( 'smart_booking_booking_deadline_hours', 0 ) );
 		if ( $deadline_days > 0 || $deadline_hours > 0 ) {
 			$deadlines = array();
 			if ( $deadline_days > 0 ) {
@@ -799,7 +799,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		}
 
 		// 担当者非表示モード判定。OFF のときは同一時刻枠の他担当者にも空きを探しに行く。
-		$show_staff_front = ( (int) get_option( 'smabo_show_staff_front', 0 ) ) ? 1 : 0;
+		$show_staff_front = ( (int) get_option( 'smart_booking_show_staff_front', 0 ) ) ? 1 : 0;
 
 		// アトミック UPDATE 対象の schedule_id を決定する。
 		$now             = $this->now_mysql();

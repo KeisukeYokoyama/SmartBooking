@@ -31,41 +31,41 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 	private function schema() {
 		return array(
 			// 基本設定.
-			'smabo_booking_flow_order'               => 'text',
-			'smabo_calendar_view_mode'               => 'text',
-			'smabo_display_days'                     => 'int',
-			'smabo_booking_deadline_days'            => 'int',
-			'smabo_booking_deadline_hours'           => 'int',
-			'smabo_show_store_front'                 => 'bool',
-			'smabo_show_staff_front'                 => 'bool',
-			'smabo_completion_message'               => 'html',
+			'smart_booking_booking_flow_order'               => 'text',
+			'smart_booking_calendar_view_mode'               => 'text',
+			'smart_booking_display_days'                     => 'int',
+			'smart_booking_booking_deadline_days'            => 'int',
+			'smart_booking_booking_deadline_hours'           => 'int',
+			'smart_booking_show_store_front'                 => 'bool',
+			'smart_booking_show_staff_front'                 => 'bool',
+			'smart_booking_completion_message'               => 'html',
 
 			// メール通知.
-			'smabo_mail_from_name'                   => 'text',
-			'smabo_mail_from_email'                  => 'email',
-			'smabo_mail_admin_notify_enabled'        => 'bool',
-			'smabo_mail_receipt_user_subject'        => 'text',
-			'smabo_mail_receipt_user_body'           => 'html',
-			'smabo_mail_receipt_admin_subject'       => 'text',
-			'smabo_mail_receipt_admin_body'          => 'html',
-			'smabo_mail_approval_user_subject'       => 'text',
-			'smabo_mail_approval_user_body'          => 'html',
+			'smart_booking_mail_from_name'                   => 'text',
+			'smart_booking_mail_from_email'                  => 'email',
+			'smart_booking_mail_admin_notify_enabled'        => 'bool',
+			'smart_booking_mail_receipt_user_subject'        => 'text',
+			'smart_booking_mail_receipt_user_body'           => 'html',
+			'smart_booking_mail_receipt_admin_subject'       => 'text',
+			'smart_booking_mail_receipt_admin_body'          => 'html',
+			'smart_booking_mail_approval_user_subject'       => 'text',
+			'smart_booking_mail_approval_user_body'          => 'html',
 
 			// 外部連携.
-			'smabo_google_calendar_enabled'          => 'bool',
-			'smabo_google_calendar_id'               => 'text',
-			'smabo_google_calendar_credentials_json' => 'json_credentials',
-			'smabo_google_calendar_client_email'     => 'readonly_text',
-			'smabo_chatwork_enabled'                 => 'bool',
-			'smabo_chatwork_api_token'               => 'text',
-			'smabo_chatwork_room_id'                 => 'text',
+			'smart_booking_google_calendar_enabled'          => 'bool',
+			'smart_booking_google_calendar_id'               => 'text',
+			'smart_booking_google_calendar_credentials_json' => 'json_credentials',
+			'smart_booking_google_calendar_client_email'     => 'readonly_text',
+			'smart_booking_chatwork_enabled'                 => 'bool',
+			'smart_booking_chatwork_api_token'               => 'text',
+			'smart_booking_chatwork_room_id'                 => 'text',
 
 			// デザイン.
-			'smabo_color_button'                     => 'color',
-			'smabo_color_date_selected'              => 'color',
-			'smabo_color_time_selected'              => 'color',
-			'smabo_color_required_mark'              => 'color',
-			'smabo_color_focus'                      => 'color',
+			'smart_booking_color_button'                     => 'color',
+			'smart_booking_color_date_selected'              => 'color',
+			'smart_booking_color_time_selected'              => 'color',
+			'smart_booking_color_required_mark'              => 'color',
+			'smart_booking_color_focus'                      => 'color',
 		);
 	}
 
@@ -182,8 +182,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 				}
 				if ( '' === trim( $raw ) ) {
 					update_option( $key, '' );
-					if ( 'smabo_google_calendar_credentials_json' === $key ) {
-						update_option( 'smabo_google_calendar_client_email', '' );
+					if ( 'smart_booking_google_calendar_credentials_json' === $key ) {
+						update_option( 'smart_booking_google_calendar_client_email', '' );
 					}
 					$updated[ $key ] = '';
 					continue;
@@ -197,8 +197,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 					);
 				}
 				update_option( $key, $raw, false );
-				if ( 'smabo_google_calendar_credentials_json' === $key ) {
-					update_option( 'smabo_google_calendar_client_email', sanitize_email( (string) $decoded['client_email'] ) );
+				if ( 'smart_booking_google_calendar_credentials_json' === $key ) {
+					update_option( 'smart_booking_google_calendar_client_email', sanitize_email( (string) $decoded['client_email'] ) );
 				}
 				$updated[ $key ] = self::CREDENTIAL_SET_SENTINEL;
 				continue;

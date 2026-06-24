@@ -41,40 +41,40 @@ function smart_booking_run_uninstall() {
 	// 広域削除（LIKE 'smb_%'）ではなく明示リストにすることで、削除範囲を限定する。
 	$smart_booking_option_names = array(
 		// 基本設定.
-		'smabo_booking_flow_order',
-		'smabo_calendar_view_mode',
-		'smabo_display_days',
-		'smabo_booking_deadline_days',
-		'smabo_booking_deadline_hours',
-		'smabo_show_store_front',
-		'smabo_show_staff_front',
-		'smabo_completion_message',
+		'smart_booking_booking_flow_order',
+		'smart_booking_calendar_view_mode',
+		'smart_booking_display_days',
+		'smart_booking_booking_deadline_days',
+		'smart_booking_booking_deadline_hours',
+		'smart_booking_show_store_front',
+		'smart_booking_show_staff_front',
+		'smart_booking_completion_message',
 		// メール通知.
-		'smabo_mail_from_name',
-		'smabo_mail_from_email',
-		'smabo_mail_admin_notify_enabled',
-		'smabo_mail_receipt_user_subject',
-		'smabo_mail_receipt_user_body',
-		'smabo_mail_receipt_admin_subject',
-		'smabo_mail_receipt_admin_body',
-		'smabo_mail_approval_user_subject',
-		'smabo_mail_approval_user_body',
+		'smart_booking_mail_from_name',
+		'smart_booking_mail_from_email',
+		'smart_booking_mail_admin_notify_enabled',
+		'smart_booking_mail_receipt_user_subject',
+		'smart_booking_mail_receipt_user_body',
+		'smart_booking_mail_receipt_admin_subject',
+		'smart_booking_mail_receipt_admin_body',
+		'smart_booking_mail_approval_user_subject',
+		'smart_booking_mail_approval_user_body',
 		// 外部連携.
-		'smabo_google_calendar_enabled',
-		'smabo_google_calendar_id',
-		'smabo_google_calendar_credentials_json',
-		'smabo_google_calendar_client_email',
-		'smabo_chatwork_enabled',
-		'smabo_chatwork_api_token',
-		'smabo_chatwork_room_id',
+		'smart_booking_google_calendar_enabled',
+		'smart_booking_google_calendar_id',
+		'smart_booking_google_calendar_credentials_json',
+		'smart_booking_google_calendar_client_email',
+		'smart_booking_chatwork_enabled',
+		'smart_booking_chatwork_api_token',
+		'smart_booking_chatwork_room_id',
 		// デザイン.
-		'smabo_color_button',
-		'smabo_color_date_selected',
-		'smabo_color_time_selected',
-		'smabo_color_required_mark',
-		'smabo_color_focus',
+		'smart_booking_color_button',
+		'smart_booking_color_date_selected',
+		'smart_booking_color_time_selected',
+		'smart_booking_color_required_mark',
+		'smart_booking_color_focus',
 		// DB バージョン.
-		'smabo_db_version',
+		'smart_booking_db_version',
 	);
 
 	foreach ( $smart_booking_option_names as $smart_booking_option_name ) {
@@ -82,7 +82,7 @@ function smart_booking_run_uninstall() {
 	}
 
 	// Transient 削除（現行コードでは LIKE 'smb_%' で取りこぼしていた）.
-	delete_transient( 'smabo_gcal_token' );
+	delete_transient( 'smart_booking_gcal_token' );
 }
 
 smart_booking_run_uninstall();
