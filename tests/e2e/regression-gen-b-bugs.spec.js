@@ -135,7 +135,7 @@ test.describe( 'Gen-B リグレッション: 重複登録防止 + 隣月対応 +
 
 		// DB: 1 行のみ存在。capacity が 5 に上書きされている。
 		const out = dbQuery(
-			`SELECT COUNT(*), MAX(capacity) FROM wp_smabo_schedules WHERE schedule_date='${ targetDate }' AND start_time='10:00:00';`
+			`SELECT COUNT(*), MAX(capacity) FROM wp_smart_booking_schedules WHERE schedule_date='${ targetDate }' AND start_time='10:00:00';`
 		);
 		const m = out.match( /(\d+)\s+(\d+)/ );
 		expect( m ).not.toBeNull();
@@ -153,7 +153,7 @@ test.describe( 'Gen-B リグレッション: 重複登録防止 + 隣月対応 +
 
 		// セットアップ: capacity=1 の枠を 1 件作る → booked_count=1 にする.
 		dbQuery(
-			`INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ USER_STAFF_ID }, '${ targetDate }', '14:00:00', '15:00:00', 1, 1, 1, NOW(), NOW());`
+			`INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ USER_STAFF_ID }, '${ targetDate }', '14:00:00', '15:00:00', 1, 1, 1, NOW(), NOW());`
 		);
 
 		// 同じ枠を再 POST.
@@ -176,7 +176,7 @@ test.describe( 'Gen-B リグレッション: 重複登録防止 + 隣月対応 +
 
 		// DB: capacity も booked_count も変わっていないこと.
 		const out = dbQuery(
-			`SELECT capacity, booked_count FROM wp_smabo_schedules WHERE schedule_date='${ targetDate }' AND start_time='14:00:00';`
+			`SELECT capacity, booked_count FROM wp_smart_booking_schedules WHERE schedule_date='${ targetDate }' AND start_time='14:00:00';`
 		);
 		const m = out.match( /(\d+)\s+(\d+)/ );
 		expect( m ).not.toBeNull();
@@ -279,14 +279,14 @@ test.describe( 'Gen-B リグレッション: 重複登録防止 + 隣月対応 +
 
 		// DB: 10:00 はそのまま (capacity=2)、11:00 が新規追加で計 2 行.
 		const out = dbQuery(
-			`SELECT COUNT(*) FROM wp_smabo_schedules WHERE schedule_date='${ targetDate }';`
+			`SELECT COUNT(*) FROM wp_smart_booking_schedules WHERE schedule_date='${ targetDate }';`
 		);
 		const m = out.match( /(\d+)/ );
 		expect( m ).not.toBeNull();
 		expect( Number( m[ 1 ] ) ).toBe( 2 );
 
 		const cap10 = dbQuery(
-			`SELECT capacity FROM wp_smabo_schedules WHERE schedule_date='${ targetDate }' AND start_time='10:00:00';`
+			`SELECT capacity FROM wp_smart_booking_schedules WHERE schedule_date='${ targetDate }' AND start_time='10:00:00';`
 		);
 		expect( Number( cap10.match( /(\d+)/ )[ 1 ] ) ).toBe( 2 );
 	} );
@@ -352,7 +352,7 @@ test.describe( 'Gen-B リグレッション: 重複登録防止 + 隣月対応 +
 		// 翌月初の日付に直接スケジュールを 1 件 INSERT.
 		const otherYmd = nextMonthFirstYmd();
 		dbQuery(
-			`INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ USER_STAFF_ID }, '${ otherYmd }', '13:00:00', '14:00:00', 3, 0, 1, NOW(), NOW());`
+			`INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ USER_STAFF_ID }, '${ otherYmd }', '13:00:00', '14:00:00', 3, 0, 1, NOW(), NOW());`
 		);
 
 		// ページをリロード.

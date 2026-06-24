@@ -69,27 +69,27 @@ const USER_STAFF_ID = 2;
 
 function restoreBaseline() {
 	wpCli(
-		`wp db query "DELETE FROM wp_smabo_reservation_meta; DELETE FROM wp_smabo_reservations; DELETE FROM wp_smabo_schedules; DELETE FROM wp_smabo_staff WHERE id > 1; DELETE FROM wp_smabo_stores WHERE id > 1; UPDATE wp_smabo_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smabo_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smabo_stores AUTO_INCREMENT=2; ALTER TABLE wp_smabo_staff AUTO_INCREMENT=2; INSERT INTO wp_smabo_stores (id, name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES (${ USER_STORE_ID }, '店舗1', '', '', '', '', '', '', 0, '#3B82F6', 1, 0, 10, NOW(), NOW()); INSERT INTO wp_smabo_staff (id, store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STAFF_ID }, ${ USER_STORE_ID }, '担当者1', '', '', '', 0, 10, 1, 0, NOW(), NOW()); ALTER TABLE wp_smabo_stores AUTO_INCREMENT=3; ALTER TABLE wp_smabo_staff AUTO_INCREMENT=3; DELETE FROM wp_smabo_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smabo_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smabo_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smabo_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
+		`wp db query "DELETE FROM wp_smart_booking_reservation_meta; DELETE FROM wp_smart_booking_reservations; DELETE FROM wp_smart_booking_schedules; DELETE FROM wp_smart_booking_staff WHERE id > 1; DELETE FROM wp_smart_booking_stores WHERE id > 1; UPDATE wp_smart_booking_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smart_booking_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smart_booking_stores AUTO_INCREMENT=2; ALTER TABLE wp_smart_booking_staff AUTO_INCREMENT=2; INSERT INTO wp_smart_booking_stores (id, name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES (${ USER_STORE_ID }, '店舗1', '', '', '', '', '', '', 0, '#3B82F6', 1, 0, 10, NOW(), NOW()); INSERT INTO wp_smart_booking_staff (id, store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ USER_STAFF_ID }, ${ USER_STORE_ID }, '担当者1', '', '', '', 0, 10, 1, 0, NOW(), NOW()); ALTER TABLE wp_smart_booking_stores AUTO_INCREMENT=3; ALTER TABLE wp_smart_booking_staff AUTO_INCREMENT=3; DELETE FROM wp_smart_booking_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smart_booking_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smart_booking_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smart_booking_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
 	);
 	// オプションのリセット: テスト中に書き換える可能性のあるキーは全て delete し、
 	// 既定値（CLAUDE.md の class-activator.php と class-rest-public.php に基づく）に戻す.
-	// NOTE: phase6-visibility 等で smabo_show_store_front / smabo_show_staff_front を 0 に
+	// NOTE: phase6-visibility 等で smart_booking_show_store_front / smart_booking_show_staff_front を 0 に
 	// 上書きするテストがあるため、それらも必ずクリアする（残ると後続テストが
 	// 「show_store_front=false → 店舗ステップスキップ」になり予期せぬ失敗を起こす）。
 	const optionsToDelete = [
-		'smabo_booking_flow_order',
-		'smabo_completion_message',
-		'smabo_booking_deadline_days',
-		'smabo_booking_deadline_hours',
-		'smabo_calendar_view_mode',
-		'smabo_display_days',
-		'smabo_color_button',
-		'smabo_color_date_selected',
-		'smabo_color_time_selected',
-		'smabo_color_required_mark',
-		'smabo_color_focus',
-		'smabo_show_store_front',
-		'smabo_show_staff_front',
+		'smart_booking_booking_flow_order',
+		'smart_booking_completion_message',
+		'smart_booking_booking_deadline_days',
+		'smart_booking_booking_deadline_hours',
+		'smart_booking_calendar_view_mode',
+		'smart_booking_display_days',
+		'smart_booking_color_button',
+		'smart_booking_color_date_selected',
+		'smart_booking_color_time_selected',
+		'smart_booking_color_required_mark',
+		'smart_booking_color_focus',
+		'smart_booking_show_store_front',
+		'smart_booking_show_staff_front',
 	];
 	optionsToDelete.forEach( ( k ) => {
 		try {
@@ -106,7 +106,7 @@ function restoreBaseline() {
  */
 function restoreBaselineSystemOnly() {
 	wpCli(
-		`wp db query "DELETE FROM wp_smabo_reservation_meta; DELETE FROM wp_smabo_reservations; DELETE FROM wp_smabo_schedules; DELETE FROM wp_smabo_staff WHERE id > 1; DELETE FROM wp_smabo_stores WHERE id > 1; UPDATE wp_smabo_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smabo_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smabo_stores AUTO_INCREMENT=2; ALTER TABLE wp_smabo_staff AUTO_INCREMENT=2; DELETE FROM wp_smabo_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smabo_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smabo_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smabo_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
+		`wp db query "DELETE FROM wp_smart_booking_reservation_meta; DELETE FROM wp_smart_booking_reservations; DELETE FROM wp_smart_booking_schedules; DELETE FROM wp_smart_booking_staff WHERE id > 1; DELETE FROM wp_smart_booking_stores WHERE id > 1; UPDATE wp_smart_booking_stores SET name='デフォルト', is_active=1, is_system=1, calendar_color='#3B82F6' WHERE id = 1; UPDATE wp_smart_booking_staff SET name='デフォルト', is_active=1, is_system=1, store_id=1 WHERE id = 1; ALTER TABLE wp_smart_booking_stores AUTO_INCREMENT=2; ALTER TABLE wp_smart_booking_staff AUTO_INCREMENT=2; DELETE FROM wp_smart_booking_custom_fields WHERE field_key NOT IN ('customer_name','customer_email','customer_phone'); UPDATE wp_smart_booking_custom_fields SET field_label='お名前', field_type='text', is_required=1 WHERE field_key='customer_name'; UPDATE wp_smart_booking_custom_fields SET field_label='メールアドレス', field_type='email', is_required=1 WHERE field_key='customer_email'; UPDATE wp_smart_booking_custom_fields SET field_label='電話番号', field_type='tel', is_required=1 WHERE field_key='customer_phone';"`
 	);
 }
 
@@ -133,13 +133,13 @@ function insertStore(
 	name,
 	{ is_active = 1, sort_order = 20, calendar_color = '#2271b1' } = {}
 ) {
-	const sql = `INSERT INTO wp_smabo_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('${ name.replace(
+	const sql = `INSERT INTO wp_smart_booking_stores (name, phone, email, prefecture, city, address_line, description, image_id, calendar_color, is_active, is_system, sort_order, created_at, updated_at) VALUES ('${ name.replace(
 		/'/g,
 		"''"
 	) }', '', '', '', '', '', '', 0, '${ calendar_color }', ${ is_active }, 0, ${ sort_order }, NOW(), NOW());`;
 	wpCli( `wp db query "${ sql }"` );
 	const out = wpCli(
-		`wp db query "SELECT MAX(id) FROM wp_smabo_stores;" --skip-column-names`
+		`wp db query "SELECT MAX(id) FROM wp_smart_booking_stores;" --skip-column-names`
 	);
 	const m = /(\d+)/.exec( out );
 	return m ? parseInt( m[ 1 ], 10 ) : 0;
@@ -154,13 +154,13 @@ function insertStore(
  * @param root0.sort_order
  */
 function insertStaff( storeId, name, { is_active = 1, sort_order = 20 } = {} ) {
-	const sql = `INSERT INTO wp_smabo_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ storeId }, '${ name.replace(
+	const sql = `INSERT INTO wp_smart_booking_staff (store_id, name, email, phone, description, image_id, sort_order, is_active, is_system, created_at, updated_at) VALUES (${ storeId }, '${ name.replace(
 		/'/g,
 		"''"
 	) }', '', '', '', 0, ${ sort_order }, ${ is_active }, 0, NOW(), NOW());`;
 	wpCli( `wp db query "${ sql }"` );
 	const out = wpCli(
-		`wp db query "SELECT MAX(id) FROM wp_smabo_staff;" --skip-column-names`
+		`wp db query "SELECT MAX(id) FROM wp_smart_booking_staff;" --skip-column-names`
 	);
 	const m = /(\d+)/.exec( out );
 	return m ? parseInt( m[ 1 ], 10 ) : 0;
@@ -185,10 +185,10 @@ function insertSchedule( {
 	end,
 	capacity = 3,
 } ) {
-	const sql = `INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ storeId }, ${ staffId }, '${ date }', '${ start }', '${ end }', ${ capacity }, 0, 1, NOW(), NOW());`;
+	const sql = `INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ storeId }, ${ staffId }, '${ date }', '${ start }', '${ end }', ${ capacity }, 0, 1, NOW(), NOW());`;
 	wpCli( `wp db query "${ sql }"` );
 	const out = wpCli(
-		`wp db query "SELECT MAX(id) FROM wp_smabo_schedules;" --skip-column-names`
+		`wp db query "SELECT MAX(id) FROM wp_smart_booking_schedules;" --skip-column-names`
 	);
 	const m = /(\d+)/.exec( out );
 	return m ? parseInt( m[ 1 ], 10 ) : 0;
@@ -211,7 +211,7 @@ function insertSchedulesBulk( rows ) {
 				}', '${ r.end }', ${ r.capacity || 3 }, 0, 1, NOW(), NOW())`
 		)
 		.join( ', ' );
-	const sql = `INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES ${ values };`;
+	const sql = `INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES ${ values };`;
 	wpCli( `wp db query "${ sql }"` );
 }
 
@@ -233,7 +233,7 @@ function countRows( table ) {
  */
 function getScheduleBookedCount( scheduleId ) {
 	const out = wpCli(
-		`wp db query "SELECT booked_count FROM wp_smabo_schedules WHERE id = ${ scheduleId };" --skip-column-names`
+		`wp db query "SELECT booked_count FROM wp_smart_booking_schedules WHERE id = ${ scheduleId };" --skip-column-names`
 	);
 	const m = /(\d+)/.exec( out );
 	return m ? parseInt( m[ 1 ], 10 ) : -1;
@@ -244,7 +244,7 @@ function getScheduleBookedCount( scheduleId ) {
  */
 function getLatestReservation() {
 	const out = wpCli(
-		`wp db query "SELECT id, status, customer_name, schedule_id FROM wp_smabo_reservations ORDER BY id DESC LIMIT 1;" --skip-column-names`
+		`wp db query "SELECT id, status, customer_name, schedule_id FROM wp_smart_booking_reservations ORDER BY id DESC LIMIT 1;" --skip-column-names`
 	);
 	const line = out
 		.split( '\n' )

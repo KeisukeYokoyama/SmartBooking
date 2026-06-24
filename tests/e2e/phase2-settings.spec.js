@@ -21,30 +21,30 @@ const { bootstrapAdmin, restCall } = require( './phase2-helpers' );
 test.describe.configure( { mode: 'default' } );
 
 const SETTINGS_KEYS = [
-	'smabo_booking_flow_order',
-	'smabo_calendar_view_mode',
-	'smabo_display_days',
-	'smabo_booking_deadline_days',
-	'smabo_booking_deadline_hours',
-	'smabo_completion_message',
-	'smabo_mail_from_name',
-	'smabo_mail_from_email',
-	'smabo_mail_receipt_user_subject',
-	'smabo_mail_receipt_user_body',
-	'smabo_mail_receipt_admin_subject',
-	'smabo_mail_receipt_admin_body',
-	'smabo_mail_approval_user_subject',
-	'smabo_mail_approval_user_body',
-	'smabo_google_calendar_enabled',
-	'smabo_google_calendar_id',
-	'smabo_chatwork_enabled',
-	'smabo_chatwork_api_token',
-	'smabo_chatwork_room_id',
-	'smabo_color_button',
-	'smabo_color_date_selected',
-	'smabo_color_time_selected',
-	'smabo_color_required_mark',
-	'smabo_color_focus',
+	'smart_booking_booking_flow_order',
+	'smart_booking_calendar_view_mode',
+	'smart_booking_display_days',
+	'smart_booking_booking_deadline_days',
+	'smart_booking_booking_deadline_hours',
+	'smart_booking_completion_message',
+	'smart_booking_mail_from_name',
+	'smart_booking_mail_from_email',
+	'smart_booking_mail_receipt_user_subject',
+	'smart_booking_mail_receipt_user_body',
+	'smart_booking_mail_receipt_admin_subject',
+	'smart_booking_mail_receipt_admin_body',
+	'smart_booking_mail_approval_user_subject',
+	'smart_booking_mail_approval_user_body',
+	'smart_booking_google_calendar_enabled',
+	'smart_booking_google_calendar_id',
+	'smart_booking_chatwork_enabled',
+	'smart_booking_chatwork_api_token',
+	'smart_booking_chatwork_room_id',
+	'smart_booking_color_button',
+	'smart_booking_color_date_selected',
+	'smart_booking_color_time_selected',
+	'smart_booking_color_required_mark',
+	'smart_booking_color_focus',
 ];
 
 /**
@@ -149,13 +149,13 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		// 予約フロー: フォーム → 日付・時間.
 		await page
 			.locator(
-				'input[name="smabo_booking_flow_order"][value="form-first"]'
+				'input[name="smart_booking_booking_flow_order"][value="form-first"]'
 			)
 			.check();
 		// カレンダー表示モード: 月表示のみ.
 		await page
 			.locator(
-				'input[name="smabo_calendar_view_mode"][value="month_only"]'
+				'input[name="smart_booking_calendar_view_mode"][value="month_only"]'
 			)
 			.check();
 		// 表示期間: 60.
@@ -171,9 +171,9 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		// API 経由で確認.
 		const res = await restCall( page, 'GET', 'settings' );
 		expect( res.ok ).toBe( true );
-		expect( res.data.settings.smabo_booking_flow_order ).toBe( 'form-first' );
-		expect( res.data.settings.smabo_calendar_view_mode ).toBe( 'month_only' );
-		expect( String( res.data.settings.smabo_display_days ) ).toBe( '60' );
+		expect( res.data.settings.smart_booking_booking_flow_order ).toBe( 'form-first' );
+		expect( res.data.settings.smart_booking_calendar_view_mode ).toBe( 'month_only' );
+		expect( String( res.data.settings.smart_booking_display_days ) ).toBe( '60' );
 	} );
 
 	test( '基本設定: 予約締切（時間前）を保存すると days=0 として永続化される', async ( {
@@ -189,10 +189,10 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		} );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( String( res.data.settings.smabo_booking_deadline_hours ) ).toBe(
+		expect( String( res.data.settings.smart_booking_booking_deadline_hours ) ).toBe(
 			'5'
 		);
-		expect( String( res.data.settings.smabo_booking_deadline_days ) ).toBe(
+		expect( String( res.data.settings.smart_booking_booking_deadline_days ) ).toBe(
 			'0'
 		);
 	} );
@@ -213,10 +213,10 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		} );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( String( res.data.settings.smabo_booking_deadline_days ) ).toBe(
+		expect( String( res.data.settings.smart_booking_booking_deadline_days ) ).toBe(
 			'3'
 		);
-		expect( String( res.data.settings.smabo_booking_deadline_hours ) ).toBe(
+		expect( String( res.data.settings.smart_booking_booking_deadline_hours ) ).toBe(
 			'0'
 		);
 	} );
@@ -235,8 +235,8 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		} );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( res.data.settings.smabo_completion_message ).toContain( '<br>' );
-		expect( res.data.settings.smabo_completion_message ).toContain(
+		expect( res.data.settings.smart_booking_completion_message ).toContain( '<br>' );
+		expect( res.data.settings.smart_booking_completion_message ).toContain(
 			'ご予約ありがとうございます'
 		);
 	} );
@@ -278,11 +278,11 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		} );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( res.data.settings.smabo_mail_from_name ).toBe( 'テスト予約受付' );
-		expect( res.data.settings.smabo_mail_from_email ).toBe(
+		expect( res.data.settings.smart_booking_mail_from_name ).toBe( 'テスト予約受付' );
+		expect( res.data.settings.smart_booking_mail_from_email ).toBe(
 			'noreply@example.com'
 		);
-		expect( res.data.settings.smabo_mail_receipt_user_subject ).toBe(
+		expect( res.data.settings.smart_booking_mail_receipt_user_subject ).toBe(
 			'受付メールの件名'
 		);
 	} );
@@ -301,7 +301,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 
 		// REST のサニタイザ（is_email false なら空文字）で empty string が返る.
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( res.data.settings.smabo_mail_from_email ).toBe( '' );
+		expect( res.data.settings.smart_booking_mail_from_email ).toBe( '' );
 	} );
 
 	test( 'メール通知: テンプレート変数チップで {customer_name} が本文に挿入される', async ( {
@@ -350,7 +350,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		).toBeVisible( { timeout: 6000 } );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( res.data.settings.smabo_mail_receipt_user_body ).toContain(
+		expect( res.data.settings.smart_booking_mail_receipt_user_body ).toContain(
 			'{customer_name}'
 		);
 	} );
@@ -446,10 +446,10 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 
 		const res = await restCall( page, 'GET', 'settings' );
 		// bool は 1/0 で返る.
-		expect( String( res.data.settings.smabo_google_calendar_enabled ) ).toBe(
+		expect( String( res.data.settings.smart_booking_google_calendar_enabled ) ).toBe(
 			'1'
 		);
-		expect( res.data.settings.smabo_google_calendar_id ).toBe(
+		expect( res.data.settings.smart_booking_google_calendar_id ).toBe(
 			'test@group.calendar.google.com'
 		);
 	} );
@@ -460,8 +460,8 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		// まず ON で保存（REST 直接）.
 		await restCall( page, 'POST', 'settings', {
 			settings: {
-				smabo_google_calendar_enabled: 1,
-				smabo_google_calendar_id: 'test@example.com',
+				smart_booking_google_calendar_enabled: 1,
+				smart_booking_google_calendar_id: 'test@example.com',
 			},
 		} );
 		await page.reload();
@@ -494,7 +494,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		).toBeVisible( { timeout: 6000 } );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( String( res.data.settings.smabo_google_calendar_enabled ) ).toBe(
+		expect( String( res.data.settings.smart_booking_google_calendar_enabled ) ).toBe(
 			'0'
 		);
 	} );
@@ -528,11 +528,11 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		).toBeVisible( { timeout: 6000 } );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( String( res.data.settings.smabo_chatwork_enabled ) ).toBe( '1' );
-		expect( res.data.settings.smabo_chatwork_api_token ).toBe(
+		expect( String( res.data.settings.smart_booking_chatwork_enabled ) ).toBe( '1' );
+		expect( res.data.settings.smart_booking_chatwork_api_token ).toBe(
 			'test-api-token-xxxx'
 		);
-		expect( res.data.settings.smabo_chatwork_room_id ).toBe( '123456789' );
+		expect( res.data.settings.smart_booking_chatwork_room_id ).toBe( '123456789' );
 	} );
 
 	// -------------------------
@@ -557,7 +557,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		).toBeVisible( { timeout: 6000 } );
 
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( res.data.settings.smabo_color_button ).toBe( '#ff5733' );
+		expect( res.data.settings.smart_booking_color_button ).toBe( '#ff5733' );
 	} );
 
 	test( 'デザイン: 不正な HEX 形式はクライアント側で拒否される', async ( {
@@ -577,7 +577,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 
 		// 値は保存されない.
 		const res = await restCall( page, 'GET', 'settings' );
-		expect( res.data.settings.smabo_color_button ).not.toBe( 'not-a-hex' );
+		expect( res.data.settings.smart_booking_color_button ).not.toBe( 'not-a-hex' );
 	} );
 
 	// -------------------------
@@ -633,7 +633,7 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		// 基本設定タブで値を変更（ダーティに）.
 		await page
 			.locator(
-				'input[name="smabo_booking_flow_order"][value="form-first"]'
+				'input[name="smart_booking_booking_flow_order"][value="form-first"]'
 			)
 			.check();
 
@@ -660,17 +660,17 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		page,
 	} ) => {
 		const res = await restCall( page, 'POST', 'settings', {
-			settings: { smabo_display_days: -5 },
+			settings: { smart_booking_display_days: -5 },
 		} );
 		expect( res.ok ).toBe( true );
 		// サーバ側は (int) キャストのみ。負数がそのまま保存される挙動を検証する.
 		const get = await restCall( page, 'GET', 'settings' );
-		expect( Number( get.data.settings.smabo_display_days ) ).toBe( -5 );
+		expect( Number( get.data.settings.smart_booking_display_days ) ).toBe( -5 );
 	} );
 
 	test( 'REST: ホワイトリスト外のキーは無視される', async ( { page } ) => {
 		const res = await restCall( page, 'POST', 'settings', {
-			settings: { smb_unknown_key: 'evil', smabo_display_days: 14 },
+			settings: { smb_unknown_key: 'evil', smart_booking_display_days: 14 },
 		} );
 		expect( res.ok ).toBe( true );
 		expect( res.data.updated ).toBe( 1 );
@@ -684,20 +684,20 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 		page,
 	} ) => {
 		const res = await restCall( page, 'POST', 'settings', {
-			settings: { smabo_color_button: 'not-a-color' },
+			settings: { smart_booking_color_button: 'not-a-color' },
 		} );
 		expect( res.ok ).toBe( true );
-		expect( res.data.settings.smabo_color_button ).toBe( '' );
+		expect( res.data.settings.smart_booking_color_button ).toBe( '' );
 	} );
 
 	test( 'REST: 不正メール（差出人）はサーバで空に正規化される', async ( {
 		page,
 	} ) => {
 		const res = await restCall( page, 'POST', 'settings', {
-			settings: { smabo_mail_from_email: 'not-an-email' },
+			settings: { smart_booking_mail_from_email: 'not-an-email' },
 		} );
 		expect( res.ok ).toBe( true );
-		expect( res.data.settings.smabo_mail_from_email ).toBe( '' );
+		expect( res.data.settings.smart_booking_mail_from_email ).toBe( '' );
 	} );
 
 	test( 'REST: settings が配列でない POST は 400 エラー', async ( {
@@ -727,30 +727,30 @@ test.describe( 'Phase 2: 設定画面（5タブ）', () => {
 	} ) => {
 		const body = 'hello <script>alert(1)</script> world';
 		const res = await restCall( page, 'POST', 'settings', {
-			settings: { smabo_mail_receipt_user_body: body },
+			settings: { smart_booking_mail_receipt_user_body: body },
 		} );
 		expect( res.ok ).toBe( true );
-		expect( res.data.settings.smabo_mail_receipt_user_body ).not.toContain(
+		expect( res.data.settings.smart_booking_mail_receipt_user_body ).not.toContain(
 			'<script>'
 		);
-		expect( res.data.settings.smabo_mail_receipt_user_body ).toContain(
+		expect( res.data.settings.smart_booking_mail_receipt_user_body ).toContain(
 			'hello'
 		);
 	} );
 
 	test( 'REST: bool 切替（1 <-> 0）が永続化される', async ( { page } ) => {
 		await restCall( page, 'POST', 'settings', {
-			settings: { smabo_google_calendar_enabled: 1 },
+			settings: { smart_booking_google_calendar_enabled: 1 },
 		} );
 		let get = await restCall( page, 'GET', 'settings' );
-		expect( String( get.data.settings.smabo_google_calendar_enabled ) ).toBe(
+		expect( String( get.data.settings.smart_booking_google_calendar_enabled ) ).toBe(
 			'1'
 		);
 		await restCall( page, 'POST', 'settings', {
-			settings: { smabo_google_calendar_enabled: 0 },
+			settings: { smart_booking_google_calendar_enabled: 0 },
 		} );
 		get = await restCall( page, 'GET', 'settings' );
-		expect( String( get.data.settings.smabo_google_calendar_enabled ) ).toBe(
+		expect( String( get.data.settings.smart_booking_google_calendar_enabled ) ).toBe(
 			'0'
 		);
 	} );
@@ -791,7 +791,7 @@ test.describe( 'Phase 2: 設定画面 - レスポンシブ（375px）', () => {
 			.click();
 		await page
 			.locator(
-				'input[name="smabo_calendar_view_mode"][value="month_only"]'
+				'input[name="smart_booking_calendar_view_mode"][value="month_only"]'
 			)
 			.check();
 		await page.getByRole( 'button', { name: '基本設定を保存' } ).click();

@@ -70,7 +70,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'mode=day_only: 日ストリップだけ表示、月グリッド・トグル無し', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
@@ -93,7 +93,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'mode=month_only: 月グリッドだけ表示、日ストリップ・トグル無し', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'month_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'month_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
@@ -112,7 +112,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'mode=toggle: 日/月を切替できる、初期は日表示', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'toggle' );
+		setOption( 'smart_booking_calendar_view_mode', 'toggle' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
@@ -152,8 +152,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '日表示: display_period_days=7 で 7 タイル表示、横スクロール (overflow-x:auto)', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 7 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 7 );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
@@ -173,8 +173,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '日表示: display_period_days=10 でタイルが 10 個表示される（月跨ぎでも連続）', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 10 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 10 );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID, 9 );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
@@ -186,8 +186,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '日表示: 曜日・日付・状態バッジが表示される（few_left は「残りわずか」、full は「満席」）', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 7 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 7 );
 
 		// few_left: capacity=3 / booked=2 (>= 3*0.7=2.1 → ceil=3 だが、実装は ceil(0.7*3)=3 → 3 で full の境界)
 		// 実装: booked_count >= ceil(capacity*0.7) → ceil(3*0.7)=3 だが capacity も 3 なので full と一致してしまう。
@@ -216,7 +216,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		const { execSync } = require( 'node:child_process' );
 		const path = require( 'node:path' );
 		execSync(
-			`npx wp-env run cli wp db query "UPDATE wp_smabo_schedules SET booked_count = 7 WHERE schedule_date = '${ fewDate }';"`,
+			`npx wp-env run cli wp db query "UPDATE wp_smart_booking_schedules SET booked_count = 7 WHERE schedule_date = '${ fewDate }';"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				stdio: [ 'ignore', 'pipe', 'pipe' ],
@@ -224,7 +224,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		);
 		// full の枠を booked=1 (capacity=1 と一致 → full).
 		execSync(
-			`npx wp-env run cli wp db query "UPDATE wp_smabo_schedules SET booked_count = 1 WHERE schedule_date = '${ fullDate }';"`,
+			`npx wp-env run cli wp db query "UPDATE wp_smart_booking_schedules SET booked_count = 1 WHERE schedule_date = '${ fullDate }';"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				stdio: [ 'ignore', 'pipe', 'pipe' ],
@@ -275,8 +275,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '月表示: 月ヘッダ + 7×N グリッド + 月ナビボタン', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'month_only' );
-		setOption( 'smabo_display_days', 7 );
+		setOption( 'smart_booking_calendar_view_mode', 'month_only' );
+		setOption( 'smart_booking_display_days', 7 );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
@@ -311,8 +311,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '月表示: 範囲外の月ナビは disabled、範囲内なら有効', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'month_only' );
-		setOption( 'smabo_display_days', 7 );
+		setOption( 'smart_booking_calendar_view_mode', 'month_only' );
+		setOption( 'smart_booking_display_days', 7 );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
@@ -326,7 +326,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '月表示: 隣月セル (is-other-month) は disabled でクリック不可', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'month_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'month_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
@@ -344,7 +344,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	} );
 
 	test( '月表示: 当日セルに is-today クラスが付く', async ( { page } ) => {
-		setOption( 'smabo_calendar_view_mode', 'month_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'month_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-month', { timeout: 10_000 } );
@@ -360,7 +360,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '日付選択後: カレンダー直下に時間枠 region が現れる（次ステップに遷移しない）', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		// 同じ日に 2 枠 (10:00 / 14:00).
 		const d = ymd( 1 );
 		insertSchedulesBulk( [
@@ -413,7 +413,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '異なる日付を選び直すと時間枠リストが切り替わる', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		const d1 = ymd( 1 );
 		const d2 = ymd( 2 );
 		insertSchedulesBulk( [
@@ -458,7 +458,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '時間枠ボタンクリックで form ステップへ遷移する', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
@@ -485,7 +485,7 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '時間枠: available/few_left/full/closed の各状態でラベルと disabled が正しい', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		// 4 枠を同じ日に作る (capacity=10 で few_left を出しやすくする).
 		const d = ymd( 1 );
 		insertSchedulesBulk( [
@@ -521,14 +521,14 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 		const { execSync } = require( 'node:child_process' );
 		const path = require( 'node:path' );
 		execSync(
-			`npx wp-env run cli wp db query "UPDATE wp_smabo_schedules SET booked_count = 7 WHERE schedule_date='${ d }' AND start_time='10:00:00';"`,
+			`npx wp-env run cli wp db query "UPDATE wp_smart_booking_schedules SET booked_count = 7 WHERE schedule_date='${ d }' AND start_time='10:00:00';"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				stdio: [ 'ignore', 'pipe', 'pipe' ],
 			}
 		);
 		execSync(
-			`npx wp-env run cli wp db query "UPDATE wp_smabo_schedules SET booked_count = 2 WHERE schedule_date='${ d }' AND start_time='11:00:00';"`,
+			`npx wp-env run cli wp db query "UPDATE wp_smart_booking_schedules SET booked_count = 2 WHERE schedule_date='${ d }' AND start_time='11:00:00';"`,
 			{
 				cwd: path.resolve( __dirname, '..', '..' ),
 				stdio: [ 'ignore', 'pipe', 'pipe' ],
@@ -584,9 +584,9 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'deadline_days=3: 4日後の枠は available、2日後の枠は closed (締切超過)', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 7 );
-		setOption( 'smabo_booking_deadline_days', 3 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 7 );
+		setOption( 'smart_booking_booking_deadline_days', 3 );
 
 		const d4 = ymd( 4 ); // 4日後 → 締切まだ来ていない.
 		const d2 = ymd( 2 ); // 2日後 → 締切超過 (now >= slot - 3*DAY).
@@ -639,9 +639,9 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'deadline_hours=2: 当日から1時間後の枠は closed (実時間で過去枠を毎日 02:00 へ作る検証)', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 7 );
-		setOption( 'smabo_booking_deadline_hours', 2 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 7 );
+		setOption( 'smart_booking_booking_deadline_hours', 2 );
 
 		// 当日 (offset=0) の 00:30 などとても早い時刻に枠を入れる → 現在時刻が常に超過するので closed.
 		// テスト実行時刻 > 00:30 + (slot-2H) と仮定 (CI が 00:00-00:30 の極狭時間にあたるリスクは無視).
@@ -672,10 +672,10 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( '両方設定: deadline_days=5 と deadline_hours=2 → 厳しい方 (5日) が適用され3日後は closed', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 7 );
-		setOption( 'smabo_booking_deadline_days', 5 ); // 5日前まで.
-		setOption( 'smabo_booking_deadline_hours', 2 ); // 2時間前まで (緩い).
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 7 );
+		setOption( 'smart_booking_booking_deadline_days', 5 ); // 5日前まで.
+		setOption( 'smart_booking_booking_deadline_hours', 2 ); // 2時間前まで (緩い).
 
 		// 3日後の枠: 5日前デッドラインを既に過ぎている (now > slot-5day) ので closed.
 		// 2時間前デッドラインだけなら問題なくOKだが、両方設定では min が採用される.
@@ -714,8 +714,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'display_period_days=14: 日表示で 14 タイル、月表示で 8日目以降も範囲内', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 14 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 14 );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID, 13 );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
@@ -727,8 +727,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'display_period_days=3: 日表示で 4日目以降は表示されない', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
-		setOption( 'smabo_display_days', 3 );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_display_days', 3 );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID, 5 ); // DB には 5 日分入れる.
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
@@ -745,8 +745,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'color_date_selected: CSS カスタムプロパティが root に適用される', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_color_date_selected', '#ff00ff' );
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_color_date_selected', '#ff00ff' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {
@@ -764,8 +764,8 @@ test.describe( 'Phase 3 Eval-2: カレンダーUI 詳細', () => {
 	test( 'color_time_selected: CSS カスタムプロパティが root に適用される', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_color_time_selected', '#00ff00' );
-		setOption( 'smabo_calendar_view_mode', 'day_only' );
+		setOption( 'smart_booking_color_time_selected', '#00ff00' );
+		setOption( 'smart_booking_calendar_view_mode', 'day_only' );
 		seedDailySlots( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 		await page.waitForSelector( '.smb-front-day-tile', {

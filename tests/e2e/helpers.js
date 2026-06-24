@@ -68,29 +68,29 @@ function stripWpEnvNoise( out ) {
 }
 
 /**
- * DB のテーブル一覧から smabo_ プレフィックスのみを抽出して返す（ソート済み）。
+ * DB のテーブル一覧から smart_booking_ プレフィックスのみを抽出して返す（ソート済み）。
  *
  * @return {string[]}
  */
 function listSmbTables() {
 	const out = wpCli(
-		`db query "SHOW TABLES LIKE '%smabo\\_%';" --skip-column-names`
+		`db query "SHOW TABLES LIKE '%smart_booking\\_%';" --skip-column-names`
 	);
 	return out
 		.split( '\n' )
 		.map( ( s ) => s.trim() )
-		.filter( ( s ) => s.length > 0 && s.toLowerCase().includes( 'smabo_' ) )
+		.filter( ( s ) => s.length > 0 && s.toLowerCase().includes( 'smart_booking_' ) )
 		.sort();
 }
 
 /**
- * wp_options の smabo_ プレフィックスのレコード件数。
+ * wp_options の smart_booking_ プレフィックスのレコード件数。
  *
  * @return {number}
  */
 function countSmbOptions() {
 	const out = wpCli(
-		`db query "SELECT COUNT(*) FROM wp_options WHERE option_name LIKE 'smabo\\_%';" --skip-column-names`
+		`db query "SELECT COUNT(*) FROM wp_options WHERE option_name LIKE 'smart_booking\\_%';" --skip-column-names`
 	);
 	const n = parseInt( out.trim(), 10 );
 	return Number.isFinite( n ) ? n : -1;
@@ -99,7 +99,7 @@ function countSmbOptions() {
 /**
  * 特定テーブルのレコード件数。
  *
- * @param {string} table テーブル名（例 'wp_smabo_stores'）.
+ * @param {string} table テーブル名（例 'wp_smart_booking_stores'）.
  * @return {number}
  */
 function countRows( table ) {

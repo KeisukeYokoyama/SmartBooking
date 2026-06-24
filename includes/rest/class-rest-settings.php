@@ -2,7 +2,7 @@
 /**
  * Smart Booking - REST: 設定 (/settings)
  *
- * wp_options に smabo_* プレフィックスで保存される設定値を取得・更新する。
+ * wp_options に smart_booking_* プレフィックスで保存される設定値を取得・更新する。
  * ホワイトリストされたキー以外は受け付けない。
  *
  * @package Smart_Booking

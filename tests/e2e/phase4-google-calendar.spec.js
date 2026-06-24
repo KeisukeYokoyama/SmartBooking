@@ -3,7 +3,7 @@
  *
  * 実 Google Calendar API を相手にしたエンドツーエンド検証。
  *   - 認証情報マスク（GET /settings は raw JSON を返さない）
- *   - 承認時にイベント作成（_smabo_gcal_event_id meta が保存される）
+ *   - 承認時にイベント作成（_smart_booking_gcal_event_id meta が保存される）
  *   - キャンセル時にイベント削除（meta 行が消える）
  *   - 機能 OFF 時は no-op（meta が作られない）
  *   - 不正 JSON は 400 / smb_credentials_invalid
@@ -75,11 +75,11 @@ try {
  */
 function setGcalSettingsDirect( cfg ) {
 	wpCli(
-		`option update smabo_google_calendar_enabled ${ cfg.enabled ? 1 : 0 }`
+		`option update smart_booking_google_calendar_enabled ${ cfg.enabled ? 1 : 0 }`
 	);
 	if ( typeof cfg.calendarId === 'string' ) {
 		wpCli(
-			`option update smabo_google_calendar_id "${ cfg.calendarId.replace(
+			`option update smart_booking_google_calendar_id "${ cfg.calendarId.replace(
 				/"/g,
 				'\\"'
 			) }"`
@@ -89,12 +89,12 @@ function setGcalSettingsDirect( cfg ) {
 		// base64 経由で安全に PHP に渡す.
 		const b64 = Buffer.from( cfg.json, 'utf8' ).toString( 'base64' );
 		// wp eval にシングルクォートで囲んだ PHP コードを渡す（base64 文字列はクォート不要）.
-		const php = `update_option('smabo_google_calendar_credentials_json', base64_decode('${ b64 }'), false);`;
+		const php = `update_option('smart_booking_google_calendar_credentials_json', base64_decode('${ b64 }'), false);`;
 		wpCli( `eval "${ php }"` );
 	}
 	if ( typeof cfg.clientEmail === 'string' ) {
 		wpCli(
-			`option update smabo_google_calendar_client_email "${ cfg.clientEmail.replace(
+			`option update smart_booking_google_calendar_client_email "${ cfg.clientEmail.replace(
 				/"/g,
 				'\\"'
 			) }"`
@@ -106,22 +106,22 @@ function setGcalSettingsDirect( cfg ) {
  * Google カレンダー連携設定を全削除する（クリーンアップ用）.
  */
 function clearGcalSettings() {
-	wpCli( `option delete smabo_google_calendar_enabled` );
-	wpCli( `option delete smabo_google_calendar_id` );
-	wpCli( `option delete smabo_google_calendar_credentials_json` );
-	wpCli( `option delete smabo_google_calendar_client_email` );
+	wpCli( `option delete smart_booking_google_calendar_enabled` );
+	wpCli( `option delete smart_booking_google_calendar_id` );
+	wpCli( `option delete smart_booking_google_calendar_credentials_json` );
+	wpCli( `option delete smart_booking_google_calendar_client_email` );
 	// トークン transient もクリア（前回テストの残存トークンが期限内に再利用されるのを避ける）.
-	wpCli( `transient delete smabo_gcal_token` );
+	wpCli( `transient delete smart_booking_gcal_token` );
 }
 
 /**
- * 指定 reservation_id の _smabo_gcal_event_id meta を取得する。
+ * 指定 reservation_id の _smart_booking_gcal_event_id meta を取得する。
  * @param {number} reservationId
  * @return {string} 見つからなければ空文字。
  */
 function getGcalEventIdMeta( reservationId ) {
 	const out = wpCli(
-		`db query "SELECT meta_value FROM wp_smabo_reservation_meta WHERE reservation_id=${ reservationId } AND meta_key='_smabo_gcal_event_id' LIMIT 1;" --skip-column-names`
+		`db query "SELECT meta_value FROM wp_smart_booking_reservation_meta WHERE reservation_id=${ reservationId } AND meta_key='_smart_booking_gcal_event_id' LIMIT 1;" --skip-column-names`
 	);
 	const lines = out
 		.split( '\n' )
@@ -310,33 +310,33 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 
 		// 1) 保存.
 		const post = await postSettings( page, {
-			smabo_google_calendar_enabled: 1,
-			smabo_google_calendar_id: CALENDAR_ID,
-			smabo_google_calendar_credentials_json: CREDS_JSON_RAW,
+			smart_booking_google_calendar_enabled: 1,
+			smart_booking_google_calendar_id: CALENDAR_ID,
+			smart_booking_google_calendar_credentials_json: CREDS_JSON_RAW,
 		} );
 		expect(
 			post.status,
 			`POST /settings: ${ JSON.stringify( post ) }`
 		).toBe( 200 );
 		expect(
-			post.data?.settings?.smabo_google_calendar_credentials_json
+			post.data?.settings?.smart_booking_google_calendar_credentials_json
 		).toBe( '***configured***' );
 
 		// 2) GET でマスク確認.
 		const get = await getSettings( page );
 		expect( get.status ).toBe( 200 );
 		const settings = get.data?.settings || {};
-		expect( settings.smabo_google_calendar_credentials_json ).toBe(
+		expect( settings.smart_booking_google_calendar_credentials_json ).toBe(
 			'***configured***'
 		);
-		expect( settings.smabo_google_calendar_credentials_json ).not.toContain(
+		expect( settings.smart_booking_google_calendar_credentials_json ).not.toContain(
 			'private_key'
 		);
-		expect( settings.smabo_google_calendar_client_email ).toBe(
+		expect( settings.smart_booking_google_calendar_client_email ).toBe(
 			CLIENT_EMAIL
 		);
-		expect( Number( settings.smabo_google_calendar_enabled ) ).toBe( 1 );
-		expect( settings.smabo_google_calendar_id ).toBe( CALENDAR_ID );
+		expect( Number( settings.smart_booking_google_calendar_enabled ) ).toBe( 1 );
+		expect( settings.smart_booking_google_calendar_id ).toBe( CALENDAR_ID );
 	} );
 
 	// ----------------------------------------------------------------
@@ -405,7 +405,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 		}
 		expect(
 			eventId,
-			`_smabo_gcal_event_id meta が保存されない（API 失敗の可能性）`
+			`_smart_booking_gcal_event_id meta が保存されない（API 失敗の可能性）`
 		).not.toBe( '' );
 
 		// 3. キャンセル → meta 削除.
@@ -430,7 +430,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 			}
 			await new Promise( ( r ) => setTimeout( r, 500 ) );
 		}
-		expect( removed, `_smabo_gcal_event_id meta がキャンセル後も残存` ).toBe(
+		expect( removed, `_smart_booking_gcal_event_id meta がキャンセル後も残存` ).toBe(
 			true
 		);
 	} );
@@ -438,7 +438,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 	// ----------------------------------------------------------------
 	// 4. 無効化時は no-op
 	// ----------------------------------------------------------------
-	test( 'enabled=0 のときは承認しても _smabo_gcal_event_id meta が作られない', async ( {
+	test( 'enabled=0 のときは承認しても _smart_booking_gcal_event_id meta が作られない', async ( {
 		page,
 	} ) => {
 		// 認証情報は揃っているが、enabled=0.
@@ -505,7 +505,7 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 			{ timeout: 10_000 }
 		);
 		const res = await postSettings( page, {
-			smabo_google_calendar_credentials_json: '{"foo":"bar"}',
+			smart_booking_google_calendar_credentials_json: '{"foo":"bar"}',
 		} );
 		expect( res.status ).toBe( 400 );
 		expect( res.data?.code ).toBe( 'smb_credentials_invalid' );
@@ -527,40 +527,40 @@ test.describe( 'Phase 4 Eval-B: Google Calendar 連携', () => {
 			{ timeout: 10_000 }
 		);
 		const initialPost = await postSettings( page, {
-			smabo_google_calendar_enabled: 1,
-			smabo_google_calendar_id: CALENDAR_ID,
-			smabo_google_calendar_credentials_json: CREDS_JSON_RAW,
+			smart_booking_google_calendar_enabled: 1,
+			smart_booking_google_calendar_id: CALENDAR_ID,
+			smart_booking_google_calendar_credentials_json: CREDS_JSON_RAW,
 		} );
 		expect( initialPost.status ).toBe( 200 );
 
 		// client_email が保存されたことを確認.
 		const before = await getSettings( page );
-		expect( before.data?.settings?.smabo_google_calendar_client_email ).toBe(
+		expect( before.data?.settings?.smart_booking_google_calendar_client_email ).toBe(
 			CLIENT_EMAIL
 		);
 
 		// 改めてセンチネルだけを送る（あわせて calendar_id も別の値に変更してみる）.
 		const newCalendarId = 'rotation-test-' + CALENDAR_ID;
 		const second = await postSettings( page, {
-			smabo_google_calendar_id: newCalendarId,
-			smabo_google_calendar_credentials_json: '***configured***',
+			smart_booking_google_calendar_id: newCalendarId,
+			smart_booking_google_calendar_credentials_json: '***configured***',
 		} );
 		expect( second.status ).toBe( 200 );
 
 		// GET 後: client_email は維持、credentials_json は依然マスクで返る.
 		const after = await getSettings( page );
 		const settingsAfter = after.data?.settings || {};
-		expect( settingsAfter.smabo_google_calendar_credentials_json ).toBe(
+		expect( settingsAfter.smart_booking_google_calendar_credentials_json ).toBe(
 			'***configured***'
 		);
-		expect( settingsAfter.smabo_google_calendar_client_email ).toBe(
+		expect( settingsAfter.smart_booking_google_calendar_client_email ).toBe(
 			CLIENT_EMAIL
 		);
-		expect( settingsAfter.smabo_google_calendar_id ).toBe( newCalendarId );
+		expect( settingsAfter.smart_booking_google_calendar_id ).toBe( newCalendarId );
 
 		// DB 直接クエリで raw JSON が壊されていないことを確認.
 		const out = wpCli(
-			`db query "SELECT LENGTH(option_value) FROM wp_options WHERE option_name='smabo_google_calendar_credentials_json';" --skip-column-names`
+			`db query "SELECT LENGTH(option_value) FROM wp_options WHERE option_name='smart_booking_google_calendar_credentials_json';" --skip-column-names`
 		);
 		const lenLine = out
 			.split( '\n' )

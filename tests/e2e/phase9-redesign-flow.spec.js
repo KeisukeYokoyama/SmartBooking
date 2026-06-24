@@ -233,7 +233,7 @@ test.describe( 'Phase 9 Eval-1: 画面構成（リデザイン）検証', () => 
 	test( 'flow_order=B: フォームセクションが日付セクションより上に来る', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_booking_flow_order', 'B' );
+		setOption( 'smart_booking_booking_flow_order', 'B' );
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 

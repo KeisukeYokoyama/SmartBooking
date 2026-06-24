@@ -66,7 +66,7 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 			capacity: 3,
 		} );
 		wpDb(
-			`UPDATE wp_smabo_schedules SET booked_count = 1 WHERE id = ${ sid };`
+			`UPDATE wp_smart_booking_schedules SET booked_count = 1 WHERE id = ${ sid };`
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
@@ -96,7 +96,7 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 			capacity: 2,
 		} );
 		wpDb(
-			`UPDATE wp_smabo_schedules SET booked_count = 1 WHERE id = ${ sid };`
+			`UPDATE wp_smart_booking_schedules SET booked_count = 1 WHERE id = ${ sid };`
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
@@ -126,7 +126,7 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 			capacity: 10,
 		} );
 		wpDb(
-			`UPDATE wp_smabo_schedules SET booked_count = 7 WHERE id = ${ sid };`
+			`UPDATE wp_smart_booking_schedules SET booked_count = 7 WHERE id = ${ sid };`
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
@@ -156,7 +156,7 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 			capacity: 10,
 		} );
 		wpDb(
-			`UPDATE wp_smabo_schedules SET booked_count = 6 WHERE id = ${ sid };`
+			`UPDATE wp_smart_booking_schedules SET booked_count = 6 WHERE id = ${ sid };`
 		);
 		await gotoFrontForm( page );
 		const res = await publicRest( page, 'public/availability', {
@@ -179,7 +179,7 @@ test.describe( 'Phase 5 UX 修正 5 件 ピンポイント検証', () => {
 	test( 'UX-3: calendar_mode=toggle で「日表示に切り替え」「月表示に切り替え」aria-label が取得できる', async ( {
 		page,
 	} ) => {
-		setOption( 'smabo_calendar_view_mode', 'toggle' );
+		setOption( 'smart_booking_calendar_view_mode', 'toggle' );
 		insertSchedule( {
 			storeId: USER_STORE_ID,
 			staffId: USER_STAFF_ID,

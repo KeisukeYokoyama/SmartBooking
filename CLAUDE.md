@@ -129,7 +129,7 @@ npm -v
 
 ### 命名規約（接頭辞）
 
-- DBテーブル名・option/transientキーは、他プラグインとの名前空間衝突を避けるため接頭辞を `smabo_` に統一する（例: `{$wpdb->prefix}smabo_stores`、`smabo_db_version`、`smabo_gcal_token`）。
+- DBテーブル名・option/transientキーは、他プラグインとの名前空間衝突を避けるため接頭辞を `smart_booking_` に統一する（例: `{$wpdb->prefix}smart_booking_stores`、`smart_booking_db_version`、`smart_booking_gcal_token`）。
 - 一方、REST APIのエラーコード（例: `smb_reservation_full`、`smb_staff_not_found`）は名前空間ではなく**識別子**であり、安定性を優先して接頭辞 `smb_` を維持する。
 - **エラーコードの `smb_` は移行漏れではなく意図的な設計判断。一括置換しないこと。**
 
@@ -274,7 +274,7 @@ Playwright テストファイル: `tests/e2e/phase1.spec.js`
 
 テストシナリオ:
 - プラグイン有効化でテーブル6つが作成される（WP-CLI で確認）
-- デフォルトの店舗1つ・担当者1つが `smabo_stores` / `smabo_staff` に存在する
+- デフォルトの店舗1つ・担当者1つが `smart_booking_stores` / `smart_booking_staff` に存在する
 - WordPress管理画面のサイドバーに「Smart Booking」メニューが表示される
 - REST APIエンドポイントがnonce付きリクエストに応答する（200 OK）
 - nonce無しリクエストが拒否される（401/403）
@@ -284,17 +284,17 @@ Playwright テストファイル: `tests/e2e/phase1.spec.js`
 
 ```bash
 # テーブル確認
-npx wp-env run cli wp db query "SHOW TABLES LIKE '%smabo_%';"
+npx wp-env run cli wp db query "SHOW TABLES LIKE '%smart_booking_%';"
 
 # デフォルトデータ確認
-npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smabo_stores;"
-npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smabo_staff;"
+npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smart_booking_stores;"
+npx wp-env run cli wp db query "SELECT id, name FROM $(npx wp-env run cli wp db prefix 2>/dev/null)smart_booking_staff;"
 
 # ⚠️ アンインストール検証（uninstall.php の動作確認）
 # wp plugin delete は絶対に使わないこと（bind mount経由でホスト側ファイルが全削除される）
 # 代わりに uninstall.php を直接実行して、テーブル削除のみを検証する:
 npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/uninstall.php
-npx wp-env run cli wp db query "SHOW TABLES LIKE '%smabo_%';"
+npx wp-env run cli wp db query "SHOW TABLES LIKE '%smart_booking_%';"
 # 検証後、テーブルを再作成するためにプラグインを再有効化:
 npx wp-env run cli wp plugin deactivate smart-booking
 npx wp-env run cli wp plugin activate smart-booking

@@ -26,13 +26,13 @@ test.describe( 'Phase 2: 予約一覧 - スモーク', () => {
 		// 各テスト前にクリーン状態にする（スケジュール・予約・メタを削除）.
 		try {
 			wpCli(
-				'db query "DELETE FROM wp_smabo_reservation_meta;" --skip-column-names'
+				'db query "DELETE FROM wp_smart_booking_reservation_meta;" --skip-column-names'
 			);
 			wpCli(
-				'db query "DELETE FROM wp_smabo_reservations;" --skip-column-names'
+				'db query "DELETE FROM wp_smart_booking_reservations;" --skip-column-names'
 			);
 			wpCli(
-				'db query "DELETE FROM wp_smabo_schedules;" --skip-column-names'
+				'db query "DELETE FROM wp_smart_booking_schedules;" --skip-column-names'
 			);
 		} catch ( _e ) {
 			// noop.

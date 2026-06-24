@@ -236,7 +236,7 @@ test.describe( 'Phase 8: UI/UX 修正検証', () => {
 			// store_id=USER_STORE_ID, staff_id=USER_STAFF_ID にスケジュールを INSERT
 			const date = ymd( 7 );
 			dbQuery(
-				`INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ USER_STAFF_ID }, '${ date }', '10:00:00', '11:00:00', 5, 0, 1, NOW(), NOW())`
+				`INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ USER_STAFF_ID }, '${ date }', '10:00:00', '11:00:00', 5, 0, 1, NOW(), NOW())`
 			);
 
 			const res = await restCall(
@@ -253,7 +253,7 @@ test.describe( 'Phase 8: UI/UX 修正検証', () => {
 
 			// DB 上 まだ店舗が残っている
 			const out = dbQuery(
-				`SELECT COUNT(*) FROM wp_smabo_stores WHERE id=${ USER_STORE_ID }`
+				`SELECT COUNT(*) FROM wp_smart_booking_stores WHERE id=${ USER_STORE_ID }`
 			);
 			expect( /1/.test( out ) ).toBe( true );
 		} );
@@ -269,12 +269,12 @@ test.describe( 'Phase 8: UI/UX 修正検証', () => {
 
 			const date = ymd( 8 );
 			dbQuery(
-				`INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ newStaffId }, '${ date }', '14:00:00', '15:00:00', 3, 0, 1, NOW(), NOW())`
+				`INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ newStaffId }, '${ date }', '14:00:00', '15:00:00', 3, 0, 1, NOW(), NOW())`
 			);
 
 			// この時点でこの staff のスケジュールは 1 件
 			const beforeOut = dbQuery(
-				`SELECT COUNT(*) FROM wp_smabo_schedules WHERE staff_id=${ newStaffId }`
+				`SELECT COUNT(*) FROM wp_smart_booking_schedules WHERE staff_id=${ newStaffId }`
 			);
 			expect( /1/.test( beforeOut ) ).toBe( true );
 
@@ -288,13 +288,13 @@ test.describe( 'Phase 8: UI/UX 修正検証', () => {
 
 			// 担当者が削除されている
 			const staffOut = dbQuery(
-				`SELECT COUNT(*) FROM wp_smabo_staff WHERE id=${ newStaffId }`
+				`SELECT COUNT(*) FROM wp_smart_booking_staff WHERE id=${ newStaffId }`
 			);
 			expect( /0/.test( staffOut ) ).toBe( true );
 
 			// スケジュールも削除されている
 			const schedOut = dbQuery(
-				`SELECT COUNT(*) FROM wp_smabo_schedules WHERE staff_id=${ newStaffId }`
+				`SELECT COUNT(*) FROM wp_smart_booking_schedules WHERE staff_id=${ newStaffId }`
 			);
 			expect( /0/.test( schedOut ) ).toBe( true );
 		} );
@@ -308,17 +308,17 @@ test.describe( 'Phase 8: UI/UX 修正検証', () => {
 
 			const date = ymd( 9 );
 			dbQuery(
-				`INSERT INTO wp_smabo_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ newStaffId }, '${ date }', '10:00:00', '11:00:00', 5, 1, 1, NOW(), NOW())`
+				`INSERT INTO wp_smart_booking_schedules (store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at) VALUES (${ USER_STORE_ID }, ${ newStaffId }, '${ date }', '10:00:00', '11:00:00', 5, 1, 1, NOW(), NOW())`
 			);
 			const schedIdOut = dbQuery(
-				`SELECT MAX(id) FROM wp_smabo_schedules WHERE staff_id=${ newStaffId }`
+				`SELECT MAX(id) FROM wp_smart_booking_schedules WHERE staff_id=${ newStaffId }`
 			);
 			const schedId = parseInt(
 				( /(\d+)/.exec( schedIdOut ) || [ , 0 ] )[ 1 ],
 				10
 			);
 			dbQuery(
-				`INSERT INTO wp_smabo_reservations (schedule_id, store_id, staff_id, schedule_date, schedule_time, customer_name, customer_email, customer_phone, status, created_at, updated_at) VALUES (${ schedId }, ${ USER_STORE_ID }, ${ newStaffId }, '${ date }', '10:00:00', 'TestUser', 'test@example.com', '03-0000-0000', 'pending', NOW(), NOW())`
+				`INSERT INTO wp_smart_booking_reservations (schedule_id, store_id, staff_id, schedule_date, schedule_time, customer_name, customer_email, customer_phone, status, created_at, updated_at) VALUES (${ schedId }, ${ USER_STORE_ID }, ${ newStaffId }, '${ date }', '10:00:00', 'TestUser', 'test@example.com', '03-0000-0000', 'pending', NOW(), NOW())`
 			);
 
 			const res = await restCall(

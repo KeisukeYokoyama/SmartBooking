@@ -11,7 +11,7 @@
  *   - wp-env が起動し、テストデータ (店舗 渋谷店/新宿店, 担当者 田中/鈴木,
  *     スケジュール 7日 × 4枠 × 2セット, 予約 3件, ご相談内容フィールド)
  *     が seed 済みであること。
- *   - smabo_show_store_front=1, smabo_show_staff_front=1
+ *   - smart_booking_show_store_front=1, smart_booking_show_staff_front=1
  *   - フロント予約ページは page_id=7
  */
 const { test, expect } = require( '@playwright/test' );

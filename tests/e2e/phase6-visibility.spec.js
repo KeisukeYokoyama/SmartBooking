@@ -1,7 +1,7 @@
 /**
  * Phase 6 Eval: 店舗・担当者フロント表示制御 E2E。
  *
- * 仕様: smabo_show_store_front / smabo_show_staff_front の手動 ON/OFF トグルで
+ * 仕様: smart_booking_show_store_front / smart_booking_show_staff_front の手動 ON/OFF トグルで
  * フロントの店舗選択・担当者選択ステップ表示を制御する（デフォルト OFF）。
  *   - ON  → ステップを表示する（1 件しかない場合でも自動スキップしない）
  *   - OFF → ステップをスキップし、デフォルト店舗・デフォルト担当者を自動選択
@@ -70,12 +70,12 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		restoreBaseline();
 		// option 系も明示的にデフォルトへ戻す（restoreBaseline は visibility option を消さないため）。
 		try {
-			wpCli( 'option delete smabo_show_store_front' );
+			wpCli( 'option delete smart_booking_show_store_front' );
 		} catch ( _e ) {
 			// noop.
 		}
 		try {
-			wpCli( 'option delete smabo_show_staff_front' );
+			wpCli( 'option delete smart_booking_show_staff_front' );
 		} catch ( _e ) {
 			// noop.
 		}
@@ -84,12 +84,12 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 	test.afterAll( async () => {
 		restoreBaseline();
 		try {
-			wpCli( 'option delete smabo_show_store_front' );
+			wpCli( 'option delete smart_booking_show_store_front' );
 		} catch ( _e ) {
 			// noop.
 		}
 		try {
-			wpCli( 'option delete smabo_show_staff_front' );
+			wpCli( 'option delete smart_booking_show_staff_front' );
 		} catch ( _e ) {
 			// noop.
 		}
@@ -110,8 +110,8 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 1 );
 		seedWeekSchedules( USER_STORE_ID, staffB, 1 );
 
-		setOption( 'smabo_show_store_front', 0 );
-		setOption( 'smabo_show_staff_front', 1 );
+		setOption( 'smart_booking_show_store_front', 0 );
+		setOption( 'smart_booking_show_staff_front', 1 );
 
 		await gotoFrontForm( page );
 
@@ -198,7 +198,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 			},
 		] );
 
-		setOption( 'smabo_show_staff_front', 0 );
+		setOption( 'smart_booking_show_staff_front', 0 );
 
 		await gotoFrontForm( page );
 
@@ -268,7 +268,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		expect( r1.status ).toBe( 'pending' );
 		// schedule_id が staffA の枠であること。
 		const cnt = wpCli(
-			`db query "SELECT staff_id FROM wp_smabo_schedules WHERE id = ${ r1.schedule_id };" --skip-column-names`
+			`db query "SELECT staff_id FROM wp_smart_booking_schedules WHERE id = ${ r1.schedule_id };" --skip-column-names`
 		)
 			.split( '\n' )
 			.map( ( s ) => s.trim() )
@@ -305,7 +305,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		const r2 = getLatestReservation();
 		expect( r2, '2件目 reservation 作成' ).not.toBeNull();
 		const cnt2 = wpCli(
-			`db query "SELECT staff_id FROM wp_smabo_schedules WHERE id = ${ r2.schedule_id };" --skip-column-names`
+			`db query "SELECT staff_id FROM wp_smart_booking_schedules WHERE id = ${ r2.schedule_id };" --skip-column-names`
 		)
 			.split( '\n' )
 			.map( ( s ) => s.trim() )
@@ -314,7 +314,7 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 
 		// 3 件目: capacity=2 / booked=2 になっているはず → DB レベルで満席を確認。
 		const aggregateAvail = wpCli(
-			`db query "SELECT SUM(capacity), SUM(booked_count) FROM wp_smabo_schedules WHERE store_id = ${ USER_STORE_ID } AND schedule_date = '${ d }' AND start_time = '10:00:00';" --skip-column-names`
+			`db query "SELECT SUM(capacity), SUM(booked_count) FROM wp_smart_booking_schedules WHERE store_id = ${ USER_STORE_ID } AND schedule_date = '${ d }' AND start_time = '10:00:00';" --skip-column-names`
 		);
 		const numbers = aggregateAvail
 			.split( /\s+/ )
@@ -337,8 +337,8 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		insertStaff( store2, '梅田担当', { sort_order: 30 } );
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
 
-		setOption( 'smabo_show_store_front', 0 );
-		setOption( 'smabo_show_staff_front', 0 );
+		setOption( 'smart_booking_show_store_front', 0 );
+		setOption( 'smart_booking_show_staff_front', 0 );
 
 		await gotoFrontForm( page );
 
@@ -406,8 +406,8 @@ test.describe( 'Phase 6 (Gen-C): 店舗・担当者フロント表示制御', ()
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID, 3 );
 
 		// 新仕様ではデフォルト OFF のため、必ず明示的に ON を設定する。
-		setOption( 'smabo_show_store_front', 1 );
-		setOption( 'smabo_show_staff_front', 1 );
+		setOption( 'smart_booking_show_store_front', 1 );
+		setOption( 'smart_booking_show_staff_front', 1 );
 
 		await gotoFrontForm( page );
 

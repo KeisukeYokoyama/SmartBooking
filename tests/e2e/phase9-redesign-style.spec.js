@@ -9,12 +9,12 @@
  *   - CSS は `getComputedStyle` で実測する。`page.evaluate` で実際のレンダリング結果を取得し、
  *     `rgb(R, G, B)` 形式で比較する（hex 直比較は使わない）。
  *   - 設定が初期状態（`smb_color_*` オプション未設定）の状態で各デフォルトカラーを検証。
- *   - 5番（管理画面で色変更 → フロント反映）は `wp option update` で smabo_color_button を上書きし、
+ *   - 5番（管理画面で色変更 → フロント反映）は `wp option update` で smart_booking_color_button を上書きし、
  *     ブラウザ側で reload して反映を確認。テスト後は必ず `wp option delete` で復元（try/finally）。
  *
  * NOTE:
  *   - phase3-helpers.js の `restoreBaseline` / `gotoFrontForm` / `insertSchedulesBulk` を流用。
- *   - `restoreBaseline` は `smabo_color_button` 等を `wp option delete` するため、毎テスト前に
+ *   - `restoreBaseline` は `smart_booking_color_button` 等を `wp option delete` するため、毎テスト前に
  *     呼び出すことで「初期状態 = CSS 既定値が使われる」という前提を担保できる。
  */
 const { test, expect } = require( '@playwright/test' );
@@ -166,11 +166,11 @@ test.describe( 'Phase 9 Eval-2: デザイントークン / コンポーネント
 		page,
 	} ) => {
 		seedFewSchedules();
-		// restoreBaseline が smabo_calendar_view_mode を delete するため、
+		// restoreBaseline が smart_booking_calendar_view_mode を delete するため、
 		// REST 側のデフォルト 'day_only' が返ってトグルが描画されない。
 		// 明示的に 'day-and-month'（= REST が 'toggle' に正規化する値）をセットして
 		// 日/月トグルが描画される状態を作る。afterAll の restoreBaseline で復元される。
-		wpCli( `wp option update smabo_calendar_view_mode "day-and-month"` );
+		wpCli( `wp option update smart_booking_calendar_view_mode "day-and-month"` );
 
 		await gotoFrontForm( page );
 
@@ -259,13 +259,13 @@ test.describe( 'Phase 9 Eval-2: デザイントークン / コンポーネント
 
 	// ---- 5) 管理画面で色変更 → フロント反映 ----
 
-	test( 'smabo_color_button を変更するとフロントの送信ボタン背景色に反映される', async ( {
+	test( 'smart_booking_color_button を変更するとフロントの送信ボタン背景色に反映される', async ( {
 		page,
 	} ) => {
 		seedFewSchedules();
 		// オプション直接更新 → ブラウザ reload で反映確認 → テスト後に必ずクリーンアップ.
 		try {
-			wpCli( `wp option update smabo_color_button "#00ff00"` );
+			wpCli( `wp option update smart_booking_color_button "#00ff00"` );
 
 			await gotoFrontForm( page );
 			// ブラウザ側 fetch キャッシュ対策で networkidle まで待機.
@@ -278,7 +278,7 @@ test.describe( 'Phase 9 Eval-2: デザイントークン / コンポーネント
 		} finally {
 			// 復元: option を削除して CSS 既定値（#f43f5e）に戻す.
 			try {
-				wpCli( `wp option delete smabo_color_button` );
+				wpCli( `wp option delete smart_booking_color_button` );
 			} catch ( _e ) {
 				// 既に未設定なら無視.
 			}
