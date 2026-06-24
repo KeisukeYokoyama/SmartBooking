@@ -15,18 +15,18 @@ import Textarea from '../../components/Textarea';
 import TemplateVariableHelper from './TemplateVariableHelper';
 
 const MAIL_KEYS = [
-	'smabo_mail_from_name',
-	'smabo_mail_from_email',
-	'smabo_mail_admin_notify_enabled',
-	'smabo_mail_receipt_user_subject',
-	'smabo_mail_receipt_user_body',
-	'smabo_mail_receipt_admin_subject',
-	'smabo_mail_receipt_admin_body',
-	'smabo_mail_approval_user_subject',
-	'smabo_mail_approval_user_body',
+	'smart_booking_mail_from_name',
+	'smart_booking_mail_from_email',
+	'smart_booking_mail_admin_notify_enabled',
+	'smart_booking_mail_receipt_user_subject',
+	'smart_booking_mail_receipt_user_body',
+	'smart_booking_mail_receipt_admin_subject',
+	'smart_booking_mail_receipt_admin_body',
+	'smart_booking_mail_approval_user_subject',
+	'smart_booking_mail_approval_user_body',
 ];
 
-const BOOL_KEYS = new Set(['smabo_mail_admin_notify_enabled']);
+const BOOL_KEYS = new Set(['smart_booking_mail_admin_notify_enabled']);
 
 function hydrate(settings) {
 	const out = {};
@@ -115,7 +115,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 
 	const handleAdminNotifyChange = (next) => {
 		if (next) {
-			update({ smabo_mail_admin_notify_enabled: 1 });
+			update({ smart_booking_mail_admin_notify_enabled: 1 });
 		} else {
 			// OFF にする際は確認ダイアログ。確定するまで値は変えない。
 			setAdminToggleConfirmOpen(true);
@@ -123,7 +123,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 	};
 
 	const confirmAdminNotifyOff = () => {
-		update({ smabo_mail_admin_notify_enabled: 0 });
+		update({ smart_booking_mail_admin_notify_enabled: 0 });
 		setAdminToggleConfirmOpen(false);
 	};
 
@@ -134,7 +134,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 	const handleSave = () => onSave({ ...values });
 
 	const isDirty = MAIL_KEYS.some((k) => values[k] !== initial[k]);
-	const adminNotifyOn = 1 === Number(values.smabo_mail_admin_notify_enabled);
+	const adminNotifyOn = 1 === Number(values.smart_booking_mail_admin_notify_enabled);
 
 	return (
 		<div className="smb-settings-form">
@@ -148,15 +148,15 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				<div className="smb-field-group smb-field-group--contact">
 					<Input
 						label="差出人名"
-						value={values.smabo_mail_from_name}
-						onChange={(e) => update({ smabo_mail_from_name: e.target.value })}
+						value={values.smart_booking_mail_from_name}
+						onChange={(e) => update({ smart_booking_mail_from_name: e.target.value })}
 						placeholder="例：〇〇予約受付"
 					/>
 					<Input
 						label="差出人メールアドレス"
 						type="email"
-						value={values.smabo_mail_from_email}
-						onChange={(e) => update({ smabo_mail_from_email: e.target.value })}
+						value={values.smart_booking_mail_from_email}
+						onChange={(e) => update({ smart_booking_mail_from_email: e.target.value })}
 						placeholder="noreply@example.com"
 					/>
 				</div>
@@ -171,16 +171,16 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				</div>
 				<Input
 					label="件名"
-					value={values.smabo_mail_receipt_user_subject}
+					value={values.smart_booking_mail_receipt_user_subject}
 					onChange={(e) =>
-						update({ smabo_mail_receipt_user_subject: e.target.value })
+						update({ smart_booking_mail_receipt_user_subject: e.target.value })
 					}
 					placeholder="ご予約を受け付けました（{store_name}）"
 				/>
 				<BodyFieldWithHelper
 					label="本文"
-					value={values.smabo_mail_receipt_user_body}
-					onChange={(v) => update({ smabo_mail_receipt_user_body: v })}
+					value={values.smart_booking_mail_receipt_user_body}
+					onChange={(v) => update({ smart_booking_mail_receipt_user_body: v })}
 					helperId="helper-receipt-user"
 				/>
 			</div>
@@ -205,16 +205,16 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				</div>
 				<Input
 					label="件名"
-					value={values.smabo_mail_receipt_admin_subject}
+					value={values.smart_booking_mail_receipt_admin_subject}
 					onChange={(e) =>
-						update({ smabo_mail_receipt_admin_subject: e.target.value })
+						update({ smart_booking_mail_receipt_admin_subject: e.target.value })
 					}
 					placeholder="新しい予約が入りました（{customer_name}様）"
 				/>
 				<BodyFieldWithHelper
 					label="本文"
-					value={values.smabo_mail_receipt_admin_body}
-					onChange={(v) => update({ smabo_mail_receipt_admin_body: v })}
+					value={values.smart_booking_mail_receipt_admin_body}
+					onChange={(v) => update({ smart_booking_mail_receipt_admin_body: v })}
 					helperId="helper-receipt-admin"
 				/>
 			</div>
@@ -228,16 +228,16 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				</div>
 				<Input
 					label="件名"
-					value={values.smabo_mail_approval_user_subject}
+					value={values.smart_booking_mail_approval_user_subject}
 					onChange={(e) =>
-						update({ smabo_mail_approval_user_subject: e.target.value })
+						update({ smart_booking_mail_approval_user_subject: e.target.value })
 					}
 					placeholder="ご予約が確定しました（{store_name}）"
 				/>
 				<BodyFieldWithHelper
 					label="本文"
-					value={values.smabo_mail_approval_user_body}
-					onChange={(v) => update({ smabo_mail_approval_user_body: v })}
+					value={values.smart_booking_mail_approval_user_body}
+					onChange={(v) => update({ smart_booking_mail_approval_user_body: v })}
 					helperId="helper-approval-user"
 				/>
 			</div>

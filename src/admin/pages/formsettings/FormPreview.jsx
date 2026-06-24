@@ -10,11 +10,11 @@
 
 export default function FormPreview({ colors }) {
 	const style = {
-		'--smb-preview-button': colors.smabo_color_button,
-		'--smb-preview-date': colors.smabo_color_date_selected,
-		'--smb-preview-time': colors.smabo_color_time_selected,
-		'--smb-preview-required': colors.smabo_color_required_mark,
-		'--smb-preview-focus': colors.smabo_color_focus,
+		'--smb-preview-button': colors.smart_booking_color_button,
+		'--smb-preview-date': colors.smart_booking_color_date_selected,
+		'--smb-preview-time': colors.smart_booking_color_time_selected,
+		'--smb-preview-required': colors.smart_booking_color_required_mark,
+		'--smb-preview-focus': colors.smart_booking_color_focus,
 	};
 
 	return (

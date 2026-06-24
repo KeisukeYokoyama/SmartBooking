@@ -19,20 +19,20 @@ import Switch from '../../components/Switch';
 const SENTINEL = '***configured***';
 
 const KEYS = [
-	'smabo_google_calendar_enabled',
-	'smabo_google_calendar_id',
-	'smabo_chatwork_enabled',
-	'smabo_chatwork_api_token',
-	'smabo_chatwork_room_id',
+	'smart_booking_google_calendar_enabled',
+	'smart_booking_google_calendar_id',
+	'smart_booking_chatwork_enabled',
+	'smart_booking_chatwork_api_token',
+	'smart_booking_chatwork_room_id',
 ];
 
 function hydrate(settings) {
 	return {
-		smabo_google_calendar_enabled: !!Number(settings.smabo_google_calendar_enabled || 0),
-		smabo_google_calendar_id: settings.smabo_google_calendar_id || '',
-		smabo_chatwork_enabled: !!Number(settings.smabo_chatwork_enabled || 0),
-		smabo_chatwork_api_token: settings.smabo_chatwork_api_token || '',
-		smabo_chatwork_room_id: settings.smabo_chatwork_room_id || '',
+		smart_booking_google_calendar_enabled: !!Number(settings.smart_booking_google_calendar_enabled || 0),
+		smart_booking_google_calendar_id: settings.smart_booking_google_calendar_id || '',
+		smart_booking_chatwork_enabled: !!Number(settings.smart_booking_chatwork_enabled || 0),
+		smart_booking_chatwork_api_token: settings.smart_booking_chatwork_api_token || '',
+		smart_booking_chatwork_room_id: settings.smart_booking_chatwork_room_id || '',
 	};
 }
 
@@ -50,9 +50,9 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 	const [credentialsError, setCredentialsError] = useState('');
 	const fileInputRef = useRef(null);
 
-	const rawCredentials = (settings && settings.smabo_google_calendar_credentials_json) || '';
+	const rawCredentials = (settings && settings.smart_booking_google_calendar_credentials_json) || '';
 	const isConfigured = rawCredentials === SENTINEL;
-	const clientEmail = (settings && settings.smabo_google_calendar_client_email) || '';
+	const clientEmail = (settings && settings.smart_booking_google_calendar_client_email) || '';
 
 	useEffect(() => {
 		const next = hydrate(settings || {});
@@ -130,22 +130,22 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 
 	const handleSave = () => {
 		const patch = {
-			smabo_google_calendar_enabled: values.smabo_google_calendar_enabled ? 1 : 0,
-			smabo_google_calendar_id: values.smabo_google_calendar_id,
-			smabo_chatwork_enabled: values.smabo_chatwork_enabled ? 1 : 0,
-			smabo_chatwork_api_token: values.smabo_chatwork_api_token,
-			smabo_chatwork_room_id: values.smabo_chatwork_room_id,
+			smart_booking_google_calendar_enabled: values.smart_booking_google_calendar_enabled ? 1 : 0,
+			smart_booking_google_calendar_id: values.smart_booking_google_calendar_id,
+			smart_booking_chatwork_enabled: values.smart_booking_chatwork_enabled ? 1 : 0,
+			smart_booking_chatwork_api_token: values.smart_booking_chatwork_api_token,
+			smart_booking_chatwork_room_id: values.smart_booking_chatwork_room_id,
 		};
 		if (credentialsAction === 'upload') {
-			patch.smabo_google_calendar_credentials_json = credentialsJson;
+			patch.smart_booking_google_calendar_credentials_json = credentialsJson;
 		} else if (credentialsAction === 'clear') {
-			patch.smabo_google_calendar_credentials_json = '';
+			patch.smart_booking_google_calendar_credentials_json = '';
 		}
 		// credentialsAction === 'none' の場合はキーを送らない（バックエンド側でも no-op だが念のため）。
 		onSave(patch);
 	};
 
-	const credentialsDisabled = !values.smabo_google_calendar_enabled;
+	const credentialsDisabled = !values.smart_booking_google_calendar_enabled;
 	const showUploadedBadge = isConfigured && credentialsAction !== 'clear';
 	const showStagedUpload = credentialsAction === 'upload';
 	const showClearedNotice = credentialsAction === 'clear';
@@ -165,12 +165,12 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 					<div className="smb-settings-row__label">有効/無効</div>
 					<div className="smb-settings-row__control">
 						<Switch
-							checked={values.smabo_google_calendar_enabled}
+							checked={values.smart_booking_google_calendar_enabled}
 							onChange={(v) =>
-								update({ smabo_google_calendar_enabled: v })
+								update({ smart_booking_google_calendar_enabled: v })
 							}
 							label={
-								values.smabo_google_calendar_enabled
+								values.smart_booking_google_calendar_enabled
 									? '有効（予約確定時に連携）'
 									: '無効（連携しない）'
 							}
@@ -180,8 +180,8 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 
 				<Input
 					label="カレンダーID"
-					value={values.smabo_google_calendar_id}
-					onChange={(e) => update({ smabo_google_calendar_id: e.target.value })}
+					value={values.smart_booking_google_calendar_id}
+					onChange={(e) => update({ smart_booking_google_calendar_id: e.target.value })}
 					placeholder="xxxxxxxxxxxxxxxxxxxx@group.calendar.google.com"
 					help="イベントを登録する Google カレンダーの ID を入力してください。"
 					disabled={credentialsDisabled}
@@ -267,10 +267,10 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 					<div className="smb-settings-row__label">有効/無効</div>
 					<div className="smb-settings-row__control">
 						<Switch
-							checked={values.smabo_chatwork_enabled}
-							onChange={(v) => update({ smabo_chatwork_enabled: v })}
+							checked={values.smart_booking_chatwork_enabled}
+							onChange={(v) => update({ smart_booking_chatwork_enabled: v })}
 							label={
-								values.smabo_chatwork_enabled
+								values.smart_booking_chatwork_enabled
 									? '有効（予約受付時に通知）'
 									: '無効（通知しない）'
 							}
@@ -281,18 +281,18 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 				<Input
 					label="APIトークン"
 					type="password"
-					value={values.smabo_chatwork_api_token}
-					onChange={(e) => update({ smabo_chatwork_api_token: e.target.value })}
+					value={values.smart_booking_chatwork_api_token}
+					onChange={(e) => update({ smart_booking_chatwork_api_token: e.target.value })}
 					placeholder="ChatWork の APIトークン"
-					disabled={!values.smabo_chatwork_enabled}
+					disabled={!values.smart_booking_chatwork_enabled}
 					help="画面の下部に表示されないようパスワード形式で入力します。"
 				/>
 				<Input
 					label="ルームID"
-					value={values.smabo_chatwork_room_id}
-					onChange={(e) => update({ smabo_chatwork_room_id: e.target.value })}
+					value={values.smart_booking_chatwork_room_id}
+					onChange={(e) => update({ smart_booking_chatwork_room_id: e.target.value })}
 					placeholder="例：123456789"
-					disabled={!values.smabo_chatwork_enabled}
+					disabled={!values.smart_booking_chatwork_enabled}
 				/>
 				<div className="smb-notice smb-notice--warning">
 					<p>
