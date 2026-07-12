@@ -470,8 +470,11 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 	 *   store_id?: int,      // 指定なしなら同日の全店舗・全担当者をコピー対象
 	 *   staff_id?: int,
 	 *   target_dates: ['YYYY-MM-DD', ...],
-	 *   overwrite: bool      // true の場合、同日の既存スケジュールを削除してから挿入
+	 *   overwrite: bool      // true の場合、コピー元と同じ (store_id, staff_id) の未予約枠のみ削除してから挿入
 	 * }
+	 *
+	 * 既存チェック・上書き削除・カウントは「コピー元に含まれる (store_id, staff_id) の集合」に限定し、
+	 * それ以外の店舗/担当者の枠には一切触れない（BUG-1/2 対策）。
 	 *
 	 * @param WP_REST_Request $request リクエスト.
 	 * @return WP_REST_Response|WP_Error
@@ -521,56 +524,94 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_copy_no_source', 'コピー元のスケジュールが見つかりません。', 404 );
 		}
 
+		// コピー元に含まれる (store_id, staff_id) スコープの集合ごとに source をまとめる。
+		// 既存チェック・上書き DELETE・カウントは、この集合に対してのみ実行し、
+		// それ以外の店舗/担当者の枠には一切触れない（日付一括の COUNT/DELETE は禁止）。
+		$scopes = array();
+		foreach ( $sources as $src ) {
+			$store_id = (int) $src['store_id'];
+			$staff_id = (int) $src['staff_id'];
+			$key      = $store_id . ':' . $staff_id;
+			if ( ! isset( $scopes[ $key ] ) ) {
+				$scopes[ $key ] = array(
+					'store_id' => $store_id,
+					'staff_id' => $staff_id,
+					'items'    => array(),
+				);
+			}
+			$scopes[ $key ]['items'][] = $src;
+		}
+
 		$now               = $this->now_mysql();
 		$inserted_total    = 0;
 		$skipped_total     = 0;
 		$overwritten_total = 0;
 
 		foreach ( $target_dates as $date ) {
-			// 既存確認.
-			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$existing = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_schedules WHERE schedule_date = %s", $date )
-			);
-			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			foreach ( $scopes as $scope ) {
+				$store_id = $scope['store_id'];
+				$staff_id = $scope['staff_id'];
 
-			if ( $existing > 0 && ! $overwrite ) {
-				$skipped_total += $existing;
-				continue;
-			}
-
-			if ( $existing > 0 && $overwrite ) {
-				// 既存の booked_count > 0 の枠は保護。
-				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$wpdb->query(
+				// 既存確認は対象 (store_id, staff_id, schedule_date) スコープに限定。
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$existing = (int) $wpdb->get_var(
 					$wpdb->prepare(
-						"DELETE FROM {$wpdb->prefix}smart_booking_schedules WHERE schedule_date = %s AND booked_count = 0",
+						"SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_schedules WHERE store_id = %d AND staff_id = %d AND schedule_date = %s",
+						$store_id,
+						$staff_id,
 						$date
 					)
 				);
-				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$overwritten_total += $existing;
-			}
 
-			foreach ( $sources as $src ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->insert(
-					$wpdb->prefix . 'smart_booking_schedules',
-					array(
-						'store_id'      => (int) $src['store_id'],
-						'staff_id'      => (int) $src['staff_id'],
-						'schedule_date' => $date,
-						'start_time'    => $src['start_time'],
-						'end_time'      => $src['end_time'],
-						'capacity'      => (int) $src['capacity'],
-						'booked_count'  => 0,
-						'is_active'     => (int) $src['is_active'],
-						'created_at'    => $now,
-						'updated_at'    => $now,
-					),
-					array( '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
-				);
-				++$inserted_total;
+				if ( $existing > 0 && ! $overwrite ) {
+					$skipped_total += $existing;
+					continue;
+				}
+
+				if ( $existing > 0 && $overwrite ) {
+					// 対象スコープの未予約枠のみ削除（booked_count > 0 の予約済み枠は保護）。
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$deleted = $wpdb->query(
+						$wpdb->prepare(
+							"DELETE FROM {$wpdb->prefix}smart_booking_schedules WHERE store_id = %d AND staff_id = %d AND schedule_date = %s AND booked_count = 0",
+							$store_id,
+							$staff_id,
+							$date
+						)
+					);
+					$overwritten_total += (int) $deleted;
+				}
+
+				foreach ( $scope['items'] as $src ) {
+					// UNIQUE(store_id, staff_id, schedule_date, start_time) と衝突し得る
+					// （保護された予約済み枠と同一 start_time の source 等）。
+					// ON DUPLICATE KEY UPDATE で吸収し、予約済み枠の booked_count は絶対に触らない。
+					// capacity は既存の予約数を割らないよう GREATEST で下げない。
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$wpdb->query(
+						$wpdb->prepare(
+							"INSERT INTO {$wpdb->prefix}smart_booking_schedules
+								(store_id, staff_id, schedule_date, start_time, end_time, capacity, booked_count, is_active, created_at, updated_at)
+							VALUES (%d, %d, %s, %s, %s, %d, %d, %d, %s, %s)
+							ON DUPLICATE KEY UPDATE
+								end_time = VALUES(end_time),
+								capacity = GREATEST(capacity, VALUES(capacity)),
+								is_active = VALUES(is_active),
+								updated_at = VALUES(updated_at)",
+							$store_id,
+							$staff_id,
+							$date,
+							$src['start_time'],
+							$src['end_time'],
+							(int) $src['capacity'],
+							0,
+							(int) $src['is_active'],
+							$now,
+							$now
+						)
+					);
+					++$inserted_total;
+				}
 			}
 		}
 

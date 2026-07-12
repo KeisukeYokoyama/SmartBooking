@@ -35,6 +35,12 @@ require_once SMART_BOOKING_PLUGIN_DIR . 'includes/class-integrations.php';
 // 有効化フック: テーブル作成 + 初期データ投入（init ではなくここでのみ実行）.
 register_activation_hook( __FILE__, array( 'Smart_Booking_Activator', 'activate' ) );
 
+// 自動更新ギャップ対策: 有効化フックが発火しない自動更新でも、スキーマ移行
+// （0.2.3 の UNIQUE 追加）を一度だけ実行する。maybe_upgrade 内のバージョン
+// ゲート（< 0.2.3）で発火を絞るため無条件実行ではない。init での無条件
+// テーブル作成ではなく、管理コンテキスト限定の冪等な移行再利用に留める。
+add_action( 'admin_init', array( 'Smart_Booking_Activator', 'maybe_upgrade' ) );
+
 /**
  * プラグインの各コンポーネントを初期化する。
  *
