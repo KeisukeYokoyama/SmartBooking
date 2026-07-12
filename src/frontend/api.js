@@ -11,8 +11,17 @@
 
 const globalCtx =
 	typeof window !== 'undefined' ? window.smartBookingFrontend || {} : {};
-const REST_URL = globalCtx.restUrl || '/wp-json/smart-booking/v1/';
+const REST_URL = globalCtx.restUrl || '';
 const NONCE = globalCtx.nonce || '';
+
+if ( ! REST_URL && typeof console !== 'undefined' ) {
+	// wp_localize_script で restUrl が渡っていない異常系。
+	// パーマリンク固有のハードコードにフォールバックせず、気付けるように警告のみ行う。
+	// eslint-disable-next-line no-console
+	console.warn(
+		'Smart Booking: restUrl が取得できませんでした。REST API 呼び出しが失敗する可能性があります。'
+	);
+}
 
 /**
  * REST ベース URL とサブパスを結合してクエリ文字列を付与する。
@@ -34,7 +43,13 @@ function buildUrl( path, params ) {
 				encodeURIComponent( k ) + '=' + encodeURIComponent( v )
 		)
 		.join( '&' );
-	return qs ? base + '?' + qs : base;
+	if ( ! qs ) {
+		return base;
+	}
+	// Plain パーマリンクでは REST_URL が `?rest_route=...` 形式（既にクエリ文字列を含む）
+	// になるため、base に既存のクエリ文字列がある場合は `&` で連結する（二重 `?` 防止）。
+	const sep = base.indexOf( '?' ) === -1 ? '?' : '&';
+	return base + sep + qs;
 }
 
 /**
