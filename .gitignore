@@ -8,7 +8,11 @@ smart-booking.zip
 .DS_Store
 .vscode/
 .idea/
-.claude/
+# .claude は無視のまま、サブエージェント定義 (.claude/agents/) だけ追跡する。
+# 親ディレクトリ全体を無視すると中身を !再包含できないため、`.claude/*` にしてから除外解除する。
+.claude/*
+!.claude/agents/
+!.claude/agents/**
 *.log
 
 .wp-env.override.json
