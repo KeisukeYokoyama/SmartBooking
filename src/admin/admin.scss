@@ -1159,6 +1159,17 @@
 		border: 1px solid var(--smb-color-danger);
 		color: var(--smb-color-danger);
 	}
+
+	&--warning {
+		background: rgba(219, 166, 23, 0.08);
+		border: 1px solid var(--smb-color-warning);
+		color: var(--smb-color-text);
+
+		.smb-alert__icon {
+			color: var(--smb-color-warning);
+			border-color: var(--smb-color-warning);
+		}
+	}
 }
 
 .smb-alert__icon {
@@ -1176,6 +1187,17 @@
 
 .smb-alert__message {
 	flex: 1;
+}
+
+.smb-alert__title {
+	display: block;
+}
+
+.smb-alert__meta {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	color: var(--smb-color-text-muted);
 }
 
 .smb-alert__actions {

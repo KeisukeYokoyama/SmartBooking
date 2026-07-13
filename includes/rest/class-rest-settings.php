@@ -91,6 +91,57 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 				),
 			)
 		);
+
+		// 直近のメール送信失敗 / 無言スキップの読み取り・破棄（診断用・読み取り専用の別経路）。
+		// 既存 /settings の req/res 形には一切混ぜない。
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/mail-error',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_mail_error' ),
+					'permission_callback' => array( $this, 'permission_check' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_mail_error' ),
+					'permission_callback' => array( $this, 'permission_check' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * 直近のメール送信失敗 / 無言スキップを返す。
+	 *
+	 * Smart_Booking_Email が transient `smart_booking_last_mail_error` に記録した 1 件を
+	 * 正規化して返す。記録がなければ null。
+	 *
+	 * @return WP_REST_Response  array{ error: array{time:int,category:string,reason:string,to_type:string}|null }
+	 */
+	public function get_mail_error() {
+		$raw   = get_transient( 'smart_booking_last_mail_error' );
+		$error = null;
+		if ( is_array( $raw ) ) {
+			$error = array(
+				'time'     => isset( $raw['time'] ) ? (int) $raw['time'] : 0,
+				'category' => isset( $raw['category'] ) ? (string) $raw['category'] : '',
+				'reason'   => isset( $raw['reason'] ) ? (string) $raw['reason'] : '',
+				'to_type'  => isset( $raw['to_type'] ) ? (string) $raw['to_type'] : '',
+			);
+		}
+		return rest_ensure_response( array( 'error' => $error ) );
+	}
+
+	/**
+	 * 記録済みの直近メール失敗を破棄する（管理者が dismiss したとき）。
+	 *
+	 * @return WP_REST_Response  array{ error: null }
+	 */
+	public function delete_mail_error() {
+		delete_transient( 'smart_booking_last_mail_error' );
+		return rest_ensure_response( array( 'error' => null ) );
 	}
 
 	/**

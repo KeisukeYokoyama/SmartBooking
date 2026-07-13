@@ -243,4 +243,8 @@ export const API = {
 		get: () => apiGet( 'settings' ),
 		update: ( settings ) => apiPost( 'settings', { settings } ),
 	},
+	mailError: {
+		get: () => apiGet( 'mail-error' ),
+		clear: () => apiDelete( 'mail-error' ),
+	},
 };
