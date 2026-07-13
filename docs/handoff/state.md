@@ -4,31 +4,28 @@
 
 ## 現在地
 - 公開済み: v0.2.2（WordPress.org）。次バージョン: v0.2.3（不具合修正）。**未リリース**（実装は未コミット作業ツリー）。
-- **【クローズ】BUG-1/2＋BUG-4＋自動更新フック(b)**: 実装完了・全固有ゲート Green。変更: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`。ledger 第1〜3報。
-- **【クローズ】BUG-A（REST パーマリンク依存）**: Plain/pretty 両動作 Green・回帰新規失敗ゼロ・契約非破壊。変更: `src/admin/api.js` / `src/frontend/api.js` / `tests/e2e/bug-a-plain-repro.spec.js`(skip化)。ledger 第4報。
-- **【クローズ】BUG-3（メール未達）(iii) 両方**: (i) 失敗可視化＝実装完了・全ゲート Green（A Red→Green PASS=18／B 回帰 新規失敗ゼロ／C Plugin Check 0／D 契約非破壊／ux Green）。(ii) docs 整備＝完了。変更: `includes/class-email.php` / `includes/rest/class-rest-settings.php` / `src/admin/api.js` / `src/admin/pages/settings/MailSettingsTab.jsx` / `src/admin/admin.scss` ＋ `docs/ops/email-deliverability.md`。ledger 第5〜6報。主因（到達性）は環境側対処＝人間対応（docs 提供済み）。
-- **回帰ゲート定義を改訂**（人間 (C) 選択）: 正本 `docs/decisions/0001-regression-gate-baseline-diff.md`。**CLAUDE.md / `.claude/agents/logic-evaluator.md` への実反映はユーザー確認待ち**（提案差分は decision に記載）。
+- **v0.2.3 対象バグ＝全てクローズ・未リリース**:
+  - **BUG-1/2＋BUG-4＋自動更新フック(b)**（ledger 第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`。
+  - **BUG-A（Plain パーマリンク REST 依存）**（第4報）: `src/admin/api.js` / `src/frontend/api.js` / `tests/e2e/bug-a-plain-repro.spec.js`(skip化)。
+  - **BUG-3（メール未達）(iii)**（第5〜6報）: (i) 失敗可視化＝`includes/class-email.php` / `includes/rest/class-rest-settings.php` / `src/admin/api.js` / `src/admin/pages/settings/MailSettingsTab.jsx` / `src/admin/admin.scss`。(ii) docs＝`docs/ops/email-deliverability.md`。
+  - **BUG-B（管理画面ロゴ未同梱）(A)**（第8報）: `src/admin/App.jsx` / 新規 `src/admin/images/SmartBookingLogo.svg`。data URI インライン同梱・配布ZIP実行時解決まで Green。
+- 全案件、固有ゲート＋回帰（ベースライン差分・新規失敗ゼロ）＋Plugin Check＋契約非破壊で Green。
 
-## 別件トラック（今回決着しない）
-- phase3 予約フロー赤3件 = 仕様 vs 出荷済み設計の乖離。正本 `docs/bugs/spec-vs-shipped-booking-flow.md`。
-- 「残りわずか(few_left)」視覚表現の無効化（出荷済み CSS デグレ疑い）。ledger 第4報付記。
-- BUG-3 の非ブロッキング UX 改善2点（`skipped_invalid_recipient` の to_type 別誘導／`transport_failed` の SMTP 表現具体化）。ledger 第6報。
-
-## 進行中 / 次の一手（別途着手指示待ち）
-1. 残バグ: BUG-B（管理画面ロゴが配布ZIPに未同梱＝`src/admin/App.jsx` が `docs/images/...` 参照）。
-2. phase3 乖離・few_left・BUG-3 UX 改善のプロダクト判断。
-3. ゲート定義の CLAUDE.md / logic-evaluator.md 反映（ユーザー確認）。
-4. 上記決着後に v0.2.3 リリース手順（人間 GO）。
+## 次の一手（人間 GO / 判断待ち）
+1. **v0.2.3 リリース手順（人間の明示 GO・不可逆）**: `npm run build` → バージョン4箇所更新（`smart-booking.php` の `Version:` ／ `SMART_BOOKING_VERSION` ／ `readme.txt` `Stable tag:` ／ `package.json` `version`）→ readme.txt Changelog 追記（日本語）→ `plugin-zip` → SVN commit / WordPress.org 公開。planner が1ブロックずつ提示して GO を待つ。
+2. **リリース前に整理が要る別トラック（人間判断）**:
+   - readme.txt 英語readme言語 ERROR 2件（WordPress.org 2025-07 新ポリシー）＝再審査で実害。**リリース前に要対応の可能性**。
+   - ゲート定義の CLAUDE.md／`.claude/agents/logic-evaluator.md` 反映（decision 0001・ユーザー確認待ち）。
+   - phase3 仕様 vs 出荷乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／few_left 視覚表現（第4報）／BUG-3 UX 改善（第6報）／BUG-B aria-label 二重（第8報）＝いずれも非ブロッキング別件。
 
 ## 未解決 / 確認事項
-- BUG-B 未着手。ゲート定義反映（ユーザー確認・decision 0001）。phase3 乖離・few_left・BUG-3 UX 改善の扱い。
-- readme.txt 英語readme言語 ERROR 2件（WordPress.org 2025-07 新ポリシー・既存事項）。
-- 一時プローブ/検証資産（`tests/red/_tmp_migration_probe.php`, `tests/red/bug3-mail-*.php`）残置＝配布対象外・掃除候補。
-- BUG-3 到達性は環境要因（SMTP/SPF/DKIM/DMARC）＝人間対応。`docs/ops/email-deliverability.md` に手順あり。
-- テスト運用: 長時間スイートは**フォアグラウンド＋チャンク**（シェル `timeout` は macOS 未インストール→Bash ツール timeout 使用）。detached は孤児化防止のため避ける。
+- 上記別トラックの取り扱い（特に readme.txt 英語ポリシーはリリース審査に影響）。
+- 検証資産の掃除候補: `tests/red/_tmp_migration_probe.php`, `tests/red/bug3-mail-*.php`, `tests/e2e/bug-a-plain-repro.spec.js`(skip), `tests/e2e/bug-b-logo-shipping.spec.js`（配布対象外だが整理判断）。
+- 変更は未コミット。リリース前に commit 方針（ブランチ/メッセージ）を人間と確認。
 
-## GO 待ち（不可逆・人間の明示 GO が必要）
-- `npm run build` 後のバージョン4箇所更新・Changelog 追記・`plugin-zip` 生成。SVN commit / WordPress.org 公開（不可逆）。
+## テスト運用メモ
+- 長時間スイートは**フォアグラウンド＋spec チャンク＋Bash ツール timeout**（シェル `timeout` は macOS 未インストール）。detached background は孤児化防止のため使わない。
+- 回帰ゲート＝ベースライン差分で新規失敗ゼロ（既知 stale 3件: phase3-fix1:45 / phase3-validation:115 / phase3-responsive:967 は別件）。
 
 ## 触ってはいけない
 - デモ VPS 同居の Laravel（`api.konkatsu-scope.com`）と Python。
