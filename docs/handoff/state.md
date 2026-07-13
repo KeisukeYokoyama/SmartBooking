@@ -3,28 +3,27 @@
 最終更新: 2026-07-13
 
 ## 現在地
-- 公開済み: v0.2.2（WordPress.org）。次バージョン: v0.2.3（不具合修正）。**未リリース**。
-- git: 主要 v0.2.3 作業は人間が `main` へコミット済み（HEAD=`f1945a8`）。未コミットは few_left の `src/frontend/styles/frontend.css` ＋新規 `tests/e2e/few-left-visual-repro.spec.js` のみ。
-- **v0.2.3 対象バグ＝全てクローズ・未リリース**:
-  - **BUG-1/2＋BUG-4＋自動更新フック(b)**（ledger 第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`。
-  - **BUG-A（Plain パーマリンク REST 依存）**（第4報）: `src/admin/api.js` / `src/frontend/api.js` / `tests/e2e/bug-a-plain-repro.spec.js`(skip化)。
-  - **BUG-3（メール未達）(iii)**（第5〜6報）: (i) 失敗可視化＝`includes/class-email.php` / `includes/rest/class-rest-settings.php` / `src/admin/api.js` / `src/admin/pages/settings/MailSettingsTab.jsx` / `src/admin/admin.scss`。(ii) docs＝`docs/ops/email-deliverability.md`。
-  - **BUG-B（管理画面ロゴ未同梱）(A)**（第8報）: `src/admin/App.jsx` / 新規 `src/admin/images/SmartBookingLogo.svg`。data URI インライン同梱・配布ZIP実行時解決まで Green。
-  - **few_left（残りわずか）視覚回帰**（第10報）: `src/frontend/styles/frontend.css`（few_left を警告色に是正・仕様3.4準拠）＋新規 `tests/e2e/few-left-visual-repro.spec.js`。
-- 全案件、固有ゲート＋回帰（ベースライン差分・新規失敗ゼロ）＋Plugin Check＋契約非破壊で Green。
+- **公開バージョン: v0.2.3（WordPress.org・SVN rev 3605460、2026-07-13 公開）**。前バージョン v0.2.2（rev 3592043）。
+- git: v0.2.3 の全作業を `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
+- **v0.2.3 でリリース済み（全て Green・公開済み）**:
+  - **BUG-1/2＋BUG-4＋自動更新フック(b)**（第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`（copy_schedules 店舗×担当者スコープ／schedules UNIQUE＋dedup 移行／admin_init maybe_upgrade）。
+  - **BUG-A（Plain パーマリンク REST 依存）**（第4報）: `src/admin/api.js` / `src/frontend/api.js`（buildUrl セパレータ修正）。
+  - **BUG-3（メール未達）(iii)**（第5〜6報）: (i) 送信失敗の可視化＝`includes/class-email.php` / `includes/rest/class-rest-settings.php` / `src/admin/api.js` / `src/admin/pages/settings/MailSettingsTab.jsx` / `src/admin/admin.scss`。(ii) docs＝`docs/ops/email-deliverability.md`。
+  - **BUG-B（管理画面ロゴ未同梱）(A)**（第8報）: `src/admin/App.jsx` / `src/admin/images/SmartBookingLogo.svg`（webpack import＝data URI 同梱）。
+  - **few_left（残りわずか）視覚回帰**（第10報）: `src/frontend/styles/frontend.css`（警告色/バッジ復元・仕様3.4準拠）。
+  - **readme 英語化**（WordPress.org 2025-07 ポリシー）: 短い説明＋Description を英語復元・`non_official_language` 0。
+- 全案件、固有ゲート＋回帰（ベースライン差分・新規失敗ゼロ）＋配布物 Plugin Check 0/0（ZIP 実測・混入なし・全修正同梱）＋契約非破壊で Green。
 
-## 次の一手（人間 GO / 判断待ち）
-1. **v0.2.3 リリース手順（人間の明示 GO・不可逆）**: `npm run build` → バージョン4箇所更新（`smart-booking.php` の `Version:` ／ `SMART_BOOKING_VERSION` ／ `readme.txt` `Stable tag:` ／ `package.json` `version`）→ readme.txt Changelog 追記（日本語）→ `plugin-zip` → SVN commit / WordPress.org 公開。planner が1ブロックずつ提示して GO を待つ。
-2. **リリース前に整理が要る別トラック（人間判断）**:
-   - ✅ **readme.txt 英語readme ERROR 2件＝解消済み**（短い説明＋Description を元英語復元。Plugin Check 0件実測。ブランチ `fix/v0.2.3-bugfixes` コミット `47ed8ec`・readme のみ・未push・Stable tag 0.2.2 据え置き）。
-   - ゲート定義の CLAUDE.md／`.claude/agents/logic-evaluator.md` 反映（decision 0001・ユーザー確認待ち）。
-   - ✅ **few_left 視覚回帰＝解消済み**（第10報・仕様3.4準拠・全ゲート Green）。
-   - phase3 仕様 vs 出荷乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／BUG-3 UX 改善（第6報）／BUG-B aria-label 二重（第8報）＝いずれも非ブロッキング別件。
+## 次の一手
+1. **約24時間後（2026-07-14 目安）に https://wordpress.org/plugins/smart-booking/ で バージョン 0.2.3 表示・Changelog を目視確認**（WP.org 配布反映の遅延は正常）。
+2. 残トラック（**v0.2.4／設計トラック送り**・いずれも非ブロッキング）:
+   - **phase3 仕様乖離**（`docs/bugs/spec-vs-shipped-booking-flow.md`：仕様 3.1/3.2 の多段ステップ vs 出荷済み統合設計）＝要プロダクト判断。
+   - **BUG-3 UX 微改善**（第6報：skip 種別ごとの誘導文・SMTP 表現の具体化）。
+   - **BUG-B aria-label 二重発話の統一**（第8報）。
+- **GO 待ち・未リリース事項はクリア**（v0.2.3 公開完了）。ゲート定義の CLAUDE.md／`.claude/agents/logic-evaluator.md` 反映（decision 0001）は反映・コミット済み（`a61be83` / `e59b3f5`）。
 
 ## 未解決 / 確認事項
-- 上記別トラックの取り扱い（特に readme.txt 英語ポリシーはリリース審査に影響）。
-- 検証資産の掃除候補: `tests/red/_tmp_migration_probe.php`, `tests/red/bug3-mail-*.php`, `tests/e2e/bug-a-plain-repro.spec.js`(skip), `tests/e2e/bug-b-logo-shipping.spec.js`（配布対象外だが整理判断）。
-- 変更は未コミット。リリース前に commit 方針（ブランチ/メッセージ）を人間と確認。
+- 検証資産の掃除候補（配布対象外・任意）: `tests/red/bug3-mail-failure-red.php`, `tests/red/bug3-mail-green-verify.php`, `tests/e2e/bug-a-plain-repro.spec.js`(skip), `tests/e2e/bug-b-logo-shipping.spec.js`, `tests/e2e/few-left-visual-repro.spec.js`。
 
 ## テスト運用メモ
 - 長時間スイートは**フォアグラウンド＋spec チャンク＋Bash ツール timeout**（シェル `timeout` は macOS 未インストール）。detached background は孤児化防止のため使わない。
