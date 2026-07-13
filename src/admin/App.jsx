@@ -5,6 +5,7 @@
  * 対応するページコンポーネントを描画する。SPA ルーティングは使わない。
  */
 import { ToastProvider } from './components/ToastContainer';
+import logoSrc from './images/SmartBookingLogo.svg';
 import FormSettingsPage from './pages/FormSettingsPage';
 import ReservationsPage from './pages/ReservationsPage';
 import SchedulePage from './pages/SchedulePage';
@@ -23,21 +24,17 @@ export default function App({ page }) {
 	const Component = PAGE_COMPONENTS[page] || SchedulePage;
 	const adminCtx = (typeof window !== 'undefined' && window.smartBookingAdmin) || {};
 	const version = adminCtx.version || '';
-	const pluginUrl = adminCtx.pluginUrl || '';
-	const logoSrc = pluginUrl ? `${pluginUrl}docs/images/SmartBookingLogo.svg` : '';
 
 	return (
 		<ToastProvider>
 			<div className="smb-app">
 				<header className="smb-app__header">
 					<div className="smb-app__brand" aria-label="Smart Booking">
-						{logoSrc && (
-							<img
-								src={logoSrc}
-								alt="Smart Booking"
-								className="smb-app__brand-logo"
-							/>
-						)}
+						<img
+							src={logoSrc}
+							alt="Smart Booking"
+							className="smb-app__brand-logo"
+						/>
 					</div>
 					{version && (
 						<span className="smb-app__version" aria-label="プラグインバージョン">
