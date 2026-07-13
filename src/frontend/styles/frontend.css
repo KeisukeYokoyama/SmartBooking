@@ -1963,6 +1963,21 @@
 	display: none;
 }
 
+/* few_left（残りわずか）は available（背景 #f3f4f6）と区別できる警告色にする。
+ * このタイルは border を使わないデザインのため、時間枠の警告トークンと揃えた背景色
+ * （既存の badge 配色 #fef3c7 を再利用）で表現する。選択可能な状態のまま（disabled にしない）。 */
+.smb-front-date-card.is-tone-few,
+.smb-front-day-tile.is-tone-few {
+	background: #fef3c7;
+}
+
+/* 選択中は is-selected の色を優先する（.is-tone-few と同じ specificity のため明示的に上書き）。 */
+.smb-front-date-card.is-tone-few.is-selected,
+.smb-front-day-tile.is-tone-few.is-selected {
+	background: var(--smb-front-color-date-selected);
+	color: #ffffff;
+}
+
 /* ---------- 日付ピッカー: 月表示（グリッドカレンダー）(Gen-C) ----------
  *
  * 7 列グリッド / gap 4px / セル aspect-ratio 1。
@@ -2301,15 +2316,16 @@
 	color: var(--smb-front-text-body);
 }
 
-/* few_left は通常スタイルに揃える（カード全体の警告色は控えめに、テキスト側で表現） */
+/* few_left は available と視覚的に区別できる警告色にする（既存トークン #fbbf24 / #fffbeb / #fef3c7 を再利用）。
+ * 選択可能なボタンであることは変えず、クリック可否ロジック（disabled 判定）は JSX 側のまま。 */
 .smb-front-time-btn.is-few_left {
-	background: #ffffff;
-	border-color: var(--smb-front-border-default);
+	background: #fffbeb;
+	border-color: #fbbf24;
 }
 
 .smb-front-time-btn.is-few_left:hover:not(:disabled) {
-	background: var(--smb-front-bg-light);
-	border-color: var(--smb-front-color-focus);
+	background: #fef3c7;
+	border-color: #fbbf24;
 }
 
 .smb-front-time-btn.is-few_left.is-selected {
@@ -2360,6 +2376,12 @@
 /* 既存の small バッジは Gen-C デザインでは非表示にしつつ、a11y 用には残す */
 .smb-front-time-btn__badge {
 	display: none;
+}
+
+/* 「残りわずか」バッジのみ可視化し、警告色での区別をさらに補強する（full/closed のバッジは非表示のまま）。 */
+.smb-front-time-btn__badge.is-few_left {
+	display: inline-flex;
+	align-items: center;
 }
 
 /* ============================================================
