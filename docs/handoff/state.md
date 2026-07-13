@@ -3,12 +3,14 @@
 最終更新: 2026-07-13
 
 ## 現在地
-- 公開済み: v0.2.2（WordPress.org）。次バージョン: v0.2.3（不具合修正）。**未リリース**（実装は未コミット作業ツリー）。
+- 公開済み: v0.2.2（WordPress.org）。次バージョン: v0.2.3（不具合修正）。**未リリース**。
+- git: 主要 v0.2.3 作業は人間が `main` へコミット済み（HEAD=`f1945a8`）。未コミットは few_left の `src/frontend/styles/frontend.css` ＋新規 `tests/e2e/few-left-visual-repro.spec.js` のみ。
 - **v0.2.3 対象バグ＝全てクローズ・未リリース**:
   - **BUG-1/2＋BUG-4＋自動更新フック(b)**（ledger 第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`。
   - **BUG-A（Plain パーマリンク REST 依存）**（第4報）: `src/admin/api.js` / `src/frontend/api.js` / `tests/e2e/bug-a-plain-repro.spec.js`(skip化)。
   - **BUG-3（メール未達）(iii)**（第5〜6報）: (i) 失敗可視化＝`includes/class-email.php` / `includes/rest/class-rest-settings.php` / `src/admin/api.js` / `src/admin/pages/settings/MailSettingsTab.jsx` / `src/admin/admin.scss`。(ii) docs＝`docs/ops/email-deliverability.md`。
   - **BUG-B（管理画面ロゴ未同梱）(A)**（第8報）: `src/admin/App.jsx` / 新規 `src/admin/images/SmartBookingLogo.svg`。data URI インライン同梱・配布ZIP実行時解決まで Green。
+  - **few_left（残りわずか）視覚回帰**（第10報）: `src/frontend/styles/frontend.css`（few_left を警告色に是正・仕様3.4準拠）＋新規 `tests/e2e/few-left-visual-repro.spec.js`。
 - 全案件、固有ゲート＋回帰（ベースライン差分・新規失敗ゼロ）＋Plugin Check＋契約非破壊で Green。
 
 ## 次の一手（人間 GO / 判断待ち）
@@ -16,7 +18,8 @@
 2. **リリース前に整理が要る別トラック（人間判断）**:
    - ✅ **readme.txt 英語readme ERROR 2件＝解消済み**（短い説明＋Description を元英語復元。Plugin Check 0件実測。ブランチ `fix/v0.2.3-bugfixes` コミット `47ed8ec`・readme のみ・未push・Stable tag 0.2.2 据え置き）。
    - ゲート定義の CLAUDE.md／`.claude/agents/logic-evaluator.md` 反映（decision 0001・ユーザー確認待ち）。
-   - phase3 仕様 vs 出荷乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／few_left 視覚表現（第4報）／BUG-3 UX 改善（第6報）／BUG-B aria-label 二重（第8報）＝いずれも非ブロッキング別件。
+   - ✅ **few_left 視覚回帰＝解消済み**（第10報・仕様3.4準拠・全ゲート Green）。
+   - phase3 仕様 vs 出荷乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／BUG-3 UX 改善（第6報）／BUG-B aria-label 二重（第8報）＝いずれも非ブロッキング別件。
 
 ## 未解決 / 確認事項
 - 上記別トラックの取り扱い（特に readme.txt 英語ポリシーはリリース審査に影響）。
