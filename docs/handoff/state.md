@@ -14,7 +14,7 @@
 ## 次の一手（人間 GO / 判断待ち）
 1. **v0.2.3 リリース手順（人間の明示 GO・不可逆）**: `npm run build` → バージョン4箇所更新（`smart-booking.php` の `Version:` ／ `SMART_BOOKING_VERSION` ／ `readme.txt` `Stable tag:` ／ `package.json` `version`）→ readme.txt Changelog 追記（日本語）→ `plugin-zip` → SVN commit / WordPress.org 公開。planner が1ブロックずつ提示して GO を待つ。
 2. **リリース前に整理が要る別トラック（人間判断）**:
-   - readme.txt 英語readme言語 ERROR 2件（WordPress.org 2025-07 新ポリシー）＝再審査で実害。**リリース前に要対応の可能性**。
+   - ✅ **readme.txt 英語readme ERROR 2件＝解消済み**（短い説明＋Description を元英語復元。Plugin Check 0件実測。ブランチ `fix/v0.2.3-bugfixes` コミット `47ed8ec`・readme のみ・未push・Stable tag 0.2.2 据え置き）。
    - ゲート定義の CLAUDE.md／`.claude/agents/logic-evaluator.md` 反映（decision 0001・ユーザー確認待ち）。
    - phase3 仕様 vs 出荷乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／few_left 視覚表現（第4報）／BUG-3 UX 改善（第6報）／BUG-B aria-label 二重（第8報）＝いずれも非ブロッキング別件。
 
