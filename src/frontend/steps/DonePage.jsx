@@ -85,7 +85,7 @@ export default function DonePage({ state }) {
 					ご予約ありがとうございました
 				</h2>
 				<p className="smb-front-done__lead smb-front-done-message">
-					予約を承りました。担当者が確認次第、ご登録のメールアドレスへご連絡いたします。
+					予約を承りました。{staffLabel}が確認次第、ご登録のメールアドレスへご連絡いたします。
 				</p>
 
 				<div className="smb-front-done-detail-card">
