@@ -42,17 +42,20 @@ class Smart_Booking_Activator {
 	 * admin_init などから毎リクエスト呼ばれることを前提に、バージョンゲートで
 	 * run_migrations() の呼び出し自体を絞る（性能目的の外側ゲート）。
 	 *
-	 * ゲート値はスキーマ移行対象の '0.2.3' を用いる（SMART_BOOKING_VERSION では
-	 * ゲートしない）。既存 v0.2.2 ユーザーは db_version='0.2.2' を持つため、
-	 * '0.2.2' でゲートすると 0.2.2 < 0.2.2 = false となり移行が発火しない。
-	 * '0.2.3' でゲートすれば 0.2.2 < 0.2.3 = true で1回発火し、成功後は
-	 * run_migrations() が db_version を '0.2.3' へ前進させてゲートが閉じる
-	 * （＝1回だけ発火・冪等）。失敗時は 0.2.3 未満に留まり次回 admin_init で再試行。
+	 * ゲート値は SMART_BOOKING_VERSION を用いる。スキーマ変更を伴うリリースごとに
+	 * 個別のゲート文字列を書き換える運用は「書き換え漏れ＝既存ユーザーへ未適用」を招くため、
+	 * 常に現行バージョン未満なら run_migrations() を1回通す方式にする（各バージョン固有の
+	 * 移行は run_migrations() 内の version_compare で個別にゲートされる）。
+	 *
+	 * 例: 既存 v0.2.3 ユーザーは db_version='0.2.3' を持つ。0.3.0 へ更新すると
+	 * 0.2.3 < 0.3.0 = true で1回発火し、run_migrations() が dbDelta（③の condition_* 列追加）を
+	 * 適用して db_version を '0.3.0' へ前進させゲートが閉じる（＝1回だけ発火・冪等）。
+	 * スキーマ移行が失敗した場合は db_version を現行未満に留め、次回 admin_init で再試行する。
 	 *
 	 * @return void
 	 */
 	public static function maybe_upgrade() {
-		if ( version_compare( (string) get_option( 'smart_booking_db_version', '0.0.0' ), '0.2.3', '<' ) ) {
+		if ( version_compare( (string) get_option( 'smart_booking_db_version', '0.0.0' ), SMART_BOOKING_VERSION, '<' ) ) {
 			self::run_migrations();
 		}
 	}
@@ -118,6 +121,13 @@ class Smart_Booking_Activator {
 		$schedules_unique_ready = true;
 		if ( version_compare( $current, '0.2.3', '<' ) ) {
 			$schedules_unique_ready = self::migrate_schedules_unique_index();
+		}
+
+		// 0.3.0: 条件フィールド用の condition_field_key / condition_value 列を既存ユーザーへ適用する。
+		// dbDelta は冪等（不足列のみ ADD）なので全テーブル再適用でも既存データは不変。schedules の
+		// UNIQUE は上の migrate_schedules_unique_index() で確立済みのため dbDelta 側は no-op になる。
+		if ( version_compare( $current, '0.3.0', '<' ) ) {
+			self::create_tables();
 		}
 
 		// db_version の確定。
@@ -449,8 +459,8 @@ class Smart_Booking_Activator {
 		) {$charset_collate};";
 
 		// smart_booking_custom_fields（フォームフィールド定義）.
-		// v0.3.0: 条件フィールド用に condition_field_key / condition_value を追加。既存ユーザーへの適用は
-		// v0.3.0 リリース時に version 判定で確定する方針（現時点は activation の dbDelta 適用のみ。db_version は bump しない）。
+		// v0.3.0: 条件フィールド用に condition_field_key / condition_value を追加。既存ユーザーへは
+		// maybe_upgrade() → run_migrations() の 0.3.0 ゲートで dbDelta を再適用して列を追加する（冪等）。
 		$sql_custom_fields = "CREATE TABLE {$prefix}custom_fields (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			field_key varchar(100) NOT NULL DEFAULT '',
