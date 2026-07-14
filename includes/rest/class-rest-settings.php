@@ -38,6 +38,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 			'smart_booking_booking_deadline_hours'           => 'int',
 			'smart_booking_show_store_front'                 => 'bool',
 			'smart_booking_show_staff_front'                 => 'bool',
+			'smart_booking_store_label'                      => 'text',
+			'smart_booking_staff_label'                      => 'text',
 			'smart_booking_completion_message'               => 'html',
 
 			// メール通知.

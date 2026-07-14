@@ -16,7 +16,7 @@ import { useEffect } from 'react';
 import StepHeader from '../components/StepHeader';
 import { pushBookingEvent } from '../utils/analytics';
 
-export default function StaffSelect({ staff, storeId, onSelect, onBack }) {
+export default function StaffSelect({ staff, storeId, staffLabel = '担当者', onSelect, onBack }) {
 	useEffect(() => {
 		pushBookingEvent('staff_select');
 	}, []);
@@ -26,12 +26,12 @@ export default function StaffSelect({ staff, storeId, onSelect, onBack }) {
 	return (
 		<div className="smb-front-step">
 			<StepHeader
-				title="担当者を選択"
-				subtitle="ご希望の担当者をお選びください。"
+				title={`${staffLabel}を選択`}
+				subtitle={`ご希望の${staffLabel}をお選びください。`}
 				onBack={onBack}
 			/>
 			{filtered.length === 0 ? (
-				<p className="smb-front-empty">予約可能な担当者がいません。</p>
+				<p className="smb-front-empty">{`予約可能な${staffLabel}がいません。`}</p>
 			) : (
 				<ul className="smb-front-cards" role="list">
 					{filtered.map((member) => (

@@ -43,8 +43,13 @@ const DEFAULT_VALUES = {
 	smart_booking_booking_deadline_days: '1',
 	smart_booking_show_store_front: false,
 	smart_booking_show_staff_front: false,
+	smart_booking_store_label: '',
+	smart_booking_staff_label: '',
 	smart_booking_completion_message: '',
 };
+
+// 呼び方の入力上限（UI が崩れない長さ）。仕様に明記が無いため実装判断。
+const LABEL_MAX_LENGTH = 20;
 
 // 旧スラッグから正準値への正規化（後方互換）。
 const VIEW_MODE_ALIASES = {
@@ -96,6 +101,8 @@ function hydrate(settings) {
 		smart_booking_booking_deadline_days: String(days || 1),
 		smart_booking_show_store_front: showStore,
 		smart_booking_show_staff_front: showStaff,
+		smart_booking_store_label: settings.smart_booking_store_label || '',
+		smart_booking_staff_label: settings.smart_booking_staff_label || '',
 		smart_booking_completion_message: settings.smart_booking_completion_message || '',
 	};
 }
@@ -125,6 +132,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 			smart_booking_completion_message: values.smart_booking_completion_message,
 			smart_booking_show_store_front: values.smart_booking_show_store_front ? 1 : 0,
 			smart_booking_show_staff_front: values.smart_booking_show_staff_front ? 1 : 0,
+			smart_booking_store_label: values.smart_booking_store_label.trim(),
+			smart_booking_staff_label: values.smart_booking_staff_label.trim(),
 		};
 		if (values.smb_booking_deadline_type === 'hours') {
 			patch.smart_booking_booking_deadline_hours = Number(values.smart_booking_booking_deadline_hours) || 0;
@@ -299,6 +308,36 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						</p>
 					</div>
 				</div>
+			</div>
+
+			<div className="smb-settings-section">
+				<div className="smb-settings-section__header">
+					<h3 className="smb-settings-section__title">店舗・担当者の呼び方</h3>
+					<p className="smb-settings-section__lead">
+						予約フォーム（お客様の画面）で「店舗」「担当者」の代わりに表示する言葉を変更できます。
+						業種に合わせて「サロン」「校舎」「スタッフ」「先生」などに変更できます。
+						空欄のままにすると「店舗」「担当者」と表示されます。<br />
+						※この設定は予約フォームの見出し・ラベルのみに反映されます。管理画面の表記は変わりません。
+					</p>
+				</div>
+
+				<Input
+					label="店舗の呼び方"
+					value={values.smart_booking_store_label}
+					onChange={(e) => update({ smart_booking_store_label: e.target.value })}
+					maxLength={LABEL_MAX_LENGTH}
+					placeholder="店舗"
+					help="例: サロン / 校舎 / 店舗（空欄なら「店舗」）"
+				/>
+
+				<Input
+					label="担当者の呼び方"
+					value={values.smart_booking_staff_label}
+					onChange={(e) => update({ smart_booking_staff_label: e.target.value })}
+					maxLength={LABEL_MAX_LENGTH}
+					placeholder="担当者"
+					help="例: スタッフ / 先生 / 担当者（空欄なら「担当者」）"
+				/>
 			</div>
 
 			<div className="smb-settings-section">

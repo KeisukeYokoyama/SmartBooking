@@ -65,6 +65,16 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'default' => 0,
 				'type'    => 'bool',
 			),
+			'smart_booking_store_label'            => array(
+				'key'     => 'store_label',
+				'default' => '',
+				'type'    => 'text',
+			),
+			'smart_booking_staff_label'            => array(
+				'key'     => 'staff_label',
+				'default' => '',
+				'type'    => 'text',
+			),
 			'smart_booking_completion_message'     => array(
 				'key'     => 'completion_message',
 				'default' => '',
@@ -378,6 +388,16 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		if ( $out['display_period_days'] <= 0 ) {
 			$out['display_period_days'] = 7;
+		}
+
+		// 呼び方（店舗・担当者）の空文字フォールバック。
+		// 未設定・空白のみはデフォルト表記に寄せ、フォールバック判定をここ（サーバ）に集約する。
+		// フロントは受け取った値をそのまま表示する。
+		if ( '' === trim( (string) $out['store_label'] ) ) {
+			$out['store_label'] = '店舗';
+		}
+		if ( '' === trim( (string) $out['staff_label'] ) ) {
+			$out['staff_label'] = '担当者';
 		}
 
 		return rest_ensure_response( $out );

@@ -135,6 +135,7 @@ export default function App({ fixedStoreId = 0 }) {
 			{state.step === 'store' && (
 				<StoreSelect
 					stores={state.stores}
+					storeLabel={(state.settings && state.settings.store_label) || '店舗'}
 					onSelect={(storeId) => dispatch({ type: 'SET_STORE', payload: storeId })}
 				/>
 			)}
@@ -143,6 +144,7 @@ export default function App({ fixedStoreId = 0 }) {
 				<StaffSelect
 					staff={state.staff}
 					storeId={state.storeId}
+					staffLabel={(state.settings && state.settings.staff_label) || '担当者'}
 					onSelect={(staffId) => dispatch({ type: 'SET_STAFF', payload: staffId })}
 					onBack={
 						// 戻れる先のステップが存在する場合だけ「戻る」を出す。

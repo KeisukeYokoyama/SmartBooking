@@ -24,16 +24,19 @@ function formatAddress(store) {
 		.join(' ');
 }
 
-export default function StoreSelect({ stores, onSelect }) {
+export default function StoreSelect({ stores, storeLabel = '店舗', onSelect }) {
 	useEffect(() => {
 		pushBookingEvent('store_select');
 	}, []);
 
 	return (
 		<div className="smb-front-step">
-			<StepHeader title="店舗を選択" subtitle="ご予約いただく店舗をお選びください。" />
+			<StepHeader
+				title={`${storeLabel}を選択`}
+				subtitle={`ご予約いただく${storeLabel}をお選びください。`}
+			/>
 			{stores.length === 0 ? (
-				<p className="smb-front-empty">現在、予約可能な店舗がありません。</p>
+				<p className="smb-front-empty">{`現在、予約可能な${storeLabel}がありません。`}</p>
 			) : (
 				<ul className="smb-front-cards" role="list">
 					{stores.map((store) => {

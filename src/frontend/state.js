@@ -278,10 +278,12 @@ export function reducer( state, action ) {
 				fixedStoreId > 0 &&
 				! activeStores.some( ( s ) => s.id === fixedStoreId )
 			) {
+				const storeLabel =
+					( settings && settings.store_label ) || '店舗';
 				return {
 					...state,
 					loading: false,
-					error: '指定された店舗は現在予約を受け付けていません。',
+					error: `指定された${ storeLabel }は現在予約を受け付けていません。`,
 					step: 'error',
 					settings,
 					stores: activeStores,

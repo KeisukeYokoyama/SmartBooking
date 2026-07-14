@@ -61,6 +61,9 @@ function pickSelectionInfo(state) {
 
 export default function SelectionBar({ state }) {
 	const info = useMemo(() => pickSelectionInfo(state), [state]);
+	const settings = state.settings || {};
+	const storeLabel = settings.store_label || '店舗';
+	const staffLabel = settings.staff_label || '担当者';
 
 	if (!info.showStore && !info.showStaff) {
 		return null;
@@ -70,11 +73,11 @@ export default function SelectionBar({ state }) {
 		<div
 			className="smb-front-selection-bar"
 			role="status"
-			aria-label="選択中の店舗と担当者"
+			aria-label={`選択中の${storeLabel}と${staffLabel}`}
 		>
 			{info.showStore && (
 				<span className="smb-front-selection-bar__item">
-					<span className="smb-front-selection-bar__label">店舗</span>
+					<span className="smb-front-selection-bar__label">{storeLabel}</span>
 					<span className="smb-front-selection-bar__value">{info.store.name}</span>
 				</span>
 			)}
@@ -83,7 +86,7 @@ export default function SelectionBar({ state }) {
 			)}
 			{info.showStaff && (
 				<span className="smb-front-selection-bar__item">
-					<span className="smb-front-selection-bar__label">担当者</span>
+					<span className="smb-front-selection-bar__label">{staffLabel}</span>
 					<span className="smb-front-selection-bar__value">{info.staff.name}</span>
 				</span>
 			)}

@@ -65,6 +65,9 @@ export default function DonePage({ state }) {
 	// 設定で店舗・担当者の表示を OFF にしている場合、完了画面でも該当行を出さない。
 	const showStore = !!(settings && settings.show_store_front === true);
 	const showStaff = !!(settings && settings.show_staff_front === true);
+	// 呼び方（フロント反映）。空文字はサーバ側でデフォルトに寄せ済みだが念のためガード。
+	const storeLabel = (settings && settings.store_label) || '店舗';
+	const staffLabel = (settings && settings.staff_label) || '担当者';
 
 	return (
 		<div
@@ -96,13 +99,13 @@ export default function DonePage({ state }) {
 					<dl className="smb-front-done__summary smb-front-done-detail-card__list">
 						{showStore && completedReservation.store_name && (
 							<>
-								<dt>店舗</dt>
+								<dt>{storeLabel}</dt>
 								<dd>{completedReservation.store_name}</dd>
 							</>
 						)}
 						{showStaff && completedReservation.staff_name && (
 							<>
-								<dt>担当者</dt>
+								<dt>{staffLabel}</dt>
 								<dd>{completedReservation.staff_name}</dd>
 							</>
 						)}

@@ -1,6 +1,6 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-07-13
+最終更新: 2026-07-14
 
 ## 現在地
 - **公開バージョン: v0.2.3（WordPress.org・SVN rev 3605460、2026-07-13 公開）**。前バージョン v0.2.2（rev 3592043）。
@@ -13,6 +13,16 @@
   - **few_left（残りわずか）視覚回帰**（第10報）: `src/frontend/styles/frontend.css`（警告色/バッジ復元・仕様3.4準拠）。
   - **readme 英語化**（WordPress.org 2025-07 ポリシー）: 短い説明＋Description を英語復元・`non_official_language` 0。
 - 全案件、固有ゲート＋回帰（ベースライン差分・新規失敗ゼロ）＋配布物 Plugin Check 0/0（ZIP 実測・混入なし・全修正同梱）＋契約非破壊で Green。
+
+## v0.3.0 進行中（未リリース・仕様は `docs/spec-amendment-v030-v040.md`）
+- **機能① 店舗・担当者の呼び方設定：実装完了・検証 Green（2026-07-14）**。
+  - ブランチ `feat/v030-store-staff-labels` にコミット（**push なし**）。**バージョンは 0.2.3 のまま据え置き**（v0.3.0 は ①③④ が揃った時点で別途リリース。readme Changelog 未着手）。
+  - 内容: 設定に個別 option 2つ `smart_booking_store_label` / `smart_booking_staff_label`（新テーブル無し）。GET/POST `/settings` と GET `/public/settings` に2キー追加（**追加のみ・公開契約非破壊**）。空文字→デフォルト（店舗/担当者）フォールバックは `class-rest-public.php::get_settings()` 末尾に集約。管理画面 基本設定タブに入力UI（maxLength=20）。反映は**フロントのみ**（StoreSelect/StaffSelect 見出し・SelectionBar・DonePage ラベル・state.js 店舗固定エラー）。管理画面表記は意図的に不変。
+  - 検証: logic-evaluator が全完了条件 Green（REST フォールバック決定的検証・新規 E2E `tests/e2e/v030-labels-front.spec.js` A/B pass・デグレ無し・回帰新規失敗ゼロ）。
+  - 既知の非ブロッキング残件:
+    - 🟡 phpcs 整形警告 +2（`class-rest-settings.php` の新2行 `DoubleArrowNotAligned`）。**意図的に既存の整列スタイルに合わせて据え置き**（この sniff は `wp plugin check` のゲート対象外・phpcbf で全ブロック再整列すると差分が肥大するため不採用）。ERRORS は 0/0。
+    - 🔵 `tests/e2e/phase6-visibility.spec.js:B`（line 279-280）が本機能と無関係にプリエグジスティングで 90s タイムアウト（`page_id=7` ハードコードがリビジョン扱いで nonce 未 localize）。要別件起票（`page_id=7`→`FRONT_PAGE_PATH` 化）。ベースラインにも存在＝非回帰。
+- **残り: ③ 条件フィールド / ④ 住所フィールド（郵便番号自動入力）**。③④ 実装後にまとめて v0.3.0 リリース（バージョン4箇所更新＋Changelog＋ZIP＋SVN は人間 GO）。②は v0.4.0。
 
 ## 次の一手
 1. **約24時間後（2026-07-14 目安）に https://wordpress.org/plugins/smart-booking/ で バージョン 0.2.3 表示・Changelog を目視確認**（WP.org 配布反映の遅延は正常）。
