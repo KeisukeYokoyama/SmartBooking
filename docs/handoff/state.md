@@ -28,7 +28,17 @@
   - サーバ: 管理CRUD（条件バリデーション・**親削除の依存ブロック**・**逆方向ネスト `smb_field_condition_is_parent` も両側で塞いだ**）／公開取得／**予約作成のサーバ側再評価 `condition_met()`**（表示中のみ必須・非表示値は meta 破棄。フロント判定を信用しない）。REST は `condition_field_key`/`condition_value` を**追加のみ**で非破壊。CSV/予約詳細は meta 由来で自動空欄（無改修）。
   - フロント: 共有 `fieldConditions.js`（`isFieldVisible`）／FormInput・MainInputPage・ConfirmPage（表示中のみ描画/検証/payload除外＝送信時破棄）／CustomFieldModal「表示条件」UI（親候補フィルタ・system非表示・逆方向ネスト非表示）／FormSettingsPage。
   - 検証: logic-evaluator が全完了条件 Green（サーバ再評価を直接POSTで実証・CSV実出力で破棄空欄確認・管理UI DOM 実走）。新規 E2E `tests/e2e/v030-conditional-fields.spec.js`（A/B/C）＋`tests/e2e/v030-conditional-admin.spec.js`（2g・4ケース）。**デグレなし**（条件ゼロ時は従来同一）。回帰ゲートは planner が form/admin/flow/confirm/reservations 系を実走し新規失敗ゼロを確認。
-- **残り: ④ 住所フィールド（郵便番号自動入力）**。③④ 揃った時点で v0.3.0 リリース。②は v0.4.0。
+- **機能④ 住所フィールド（郵便番号自動入力）：実装完了・検証 Green（2026-07-14）**。
+  - 同ブランチにコミット（**push なし・0.2.3 据え置き**）。field_type `address` = 郵便番号+住所の複合フィールド。meta は `{key}_zip`/`{key}_address` の2キーで保存。CSV は常に2列出力（`{label}（郵便番号）`/`{label}（住所）`）。is_required は複合全体に適用。自動入力 ON/OFF チェックボックス（デフォルト ON）。address は③の子には成れるが親には成れない。
+  - **外部通信は zipcloud（`https://zipcloud.ibsnet.co.jp/api/search`）**。CORS は人間側 Chrome DevTools で事前検証済（実行元 `https://demo.wp-smart-booking.com/`、ヒット `zipcode=1500002`→`東京都渋谷区渋谷`、0件 `zipcode=0000000`→`{results:null,status:200}`）。通信条件＝address フィールドが存在し自動入力 ON かつ利用者が郵便番号7桁を入力したときのみ。全角郵便番号は半角正規化（`normalizeZip`）。フェイルソフト（API 失敗/タイムアウト5s/0件でもブロックせず・console.error/warn 無し）。
+  - サーバ: `class-rest-custom-fields.php`（ALLOWED_TYPES に address 追加・`field_options={autofill:bool}` 保存・`resolve_autofill`）／`class-rest-public.php`（address 分岐で autofill 出力・`normalize_zip` 全角対応・必須検証は zip 7桁+住所両方／任意時は zip があれば7桁・meta は `condition_met` 破棄の後に2行 insert・**フロント判定を信用せずサーバ再正規化**）／`class-rest-reservations.php`（CSV を (label, meta_key) リストへ一般化し address は2列を常時出力）。REST は field_options 経由で**追加のみ・非破壊**。
+  - フロント: `src/frontend/addressLookup.js`（`normalizeZip`／`lookupAddress`＝AbortController 5s・`credentials:omit`・`cache:no-store`・失敗時 null）／`src/frontend/components/AddressField.jsx`（zip+住所の複合入力・500ms debounce・requestTokenRef で古い/アンマウント結果を無効化・ユーザー編集済みは上書きしない overwrite-guard）／FormInput・MainInputPage・ConfirmPage（address 分岐＝`〒{zip} {address}`）／管理: FieldTypeCards（address カード）・CustomFieldModal（「住所の自動入力」Switch・デフォルト ON）・CustomFieldRenderer・ManualReservationModal（`normalizeZip` で meta 展開）・ReservationDetailModal（`〒{zip} {address}` 表示）。
+  - 検証: logic-evaluator が全完了条件 Green。新規 E2E `tests/e2e/v030-address-field.spec.js`（A 自動補完/全角/2キー・B フェイルソフト0件・C ③連携で非表示値破棄・D 自動入力OFF は無通信+直POSTバリデーション、desktop+mobile 8 pass、全て route intercept でモック）。REST 往復・全角「１５００００２」→「東京都渋谷区渋谷」→`dest_zip=1500002`/`dest_address`・自動入力OFF時 zipcloud リクエスト0件・console error 0・直POSTで `smb_reservation_zip_invalid`/`smb_reservation_custom_field_required`・address 親拒否 `smb_reservation`/`smb_field_condition_parent_invalid`・CSV 2列を実証。**デグレなし**（address 分岐は全て `field_type==='address'` ゲート）。回帰ゲートは planner が form-settings/reservations/flow（32 pass）を実走し新規失敗ゼロを確認。
+  - 既知の非ブロッキング残件:
+    - 🟢 2d 上書き防止・2j 予約詳細表示はコード確認済（専用 E2E は未追加だが実装は堅牢・test A が自動補完後の手編集を通過）。
+    - 🟡 phpcs 整形警告 +3（address 分岐の整列）。①③と同方針で据え置き（`wp plugin check` ゲート対象外・ERRORS 0/0）。
+    - 🔴 **リリース時 readme External services に zipcloud 追記必須**（下記チェックリスト。④コミットでは readme 未タッチ＝意図的にリリース作業へ集約）。
+- **①③④ が全て揃った。次は v0.3.0 リリース作業（下記チェックリスト・すべて人間 GO）**。②は v0.4.0。
 
 ### ⚠️ v0.3.0 リリースチェックリスト（機能④で発生した規約必須事項）
 - **readme.txt の External services セクションに住所検索 API（zipcloud）を必ず追記する**（通信先 `https://zipcloud.ibsnet.co.jp/api/search`・目的=郵便番号からの住所自動補完・タイミング=「住所フィールドが存在し自動入力ON かつ利用者が郵便番号7桁を入力したとき」・送信データ=郵便番号のみ・提供元 zipcloud）。**本機能はプラグイン初の「予約フロー中の外部通信」。追記漏れは WordPress.org 規約違反**。④実装コミットでは readme を触っていない（意図的にリリース作業へ集約）。

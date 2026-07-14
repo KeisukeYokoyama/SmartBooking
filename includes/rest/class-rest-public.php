@@ -425,8 +425,20 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		$out = array();
 		foreach ( $rows as $row ) {
-			$options = array();
-			if ( ! empty( $row['field_options'] ) ) {
+			$type     = (string) $row['field_type'];
+			$options  = array();
+			$autofill = false;
+			if ( 'address' === $type ) {
+				// address: field_options には選択肢ではなく自動入力フラグ（JSON）が入る。
+				// 公開出力の field_options は空配列（選択肢なし）。autofill は未設定/デコード失敗時 true。
+				$autofill = true;
+				if ( ! empty( $row['field_options'] ) ) {
+					$decoded = json_decode( $row['field_options'], true );
+					if ( is_array( $decoded ) && array_key_exists( 'autofill', $decoded ) ) {
+						$autofill = (bool) $decoded['autofill'];
+					}
+				}
+			} elseif ( ! empty( $row['field_options'] ) ) {
 				$decoded = json_decode( $row['field_options'], true );
 				if ( is_array( $decoded ) ) {
 					$options = array_values( array_map( 'strval', $decoded ) );
@@ -443,8 +455,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'id'                  => (int) $row['id'],
 				'field_key'           => (string) $row['field_key'],
 				'field_label'         => (string) $row['field_label'],
-				'field_type'          => (string) $row['field_type'],
+				'field_type'          => $type,
 				'field_options'       => $options,
+				'autofill'            => (bool) $autofill,
 				'placeholder'         => (string) $row['placeholder'],
 				'is_required'         => (int) $row['is_required'] ? 1 : 0,
 				'sort_order'          => (int) $row['sort_order'],
@@ -719,6 +732,43 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * 郵便番号を正規化する（PHP / JS 同一ルール）。
+	 *
+	 * - 全角数字（U+FF10–FF19）→ 半角。
+	 * - ハイフン・空白・その他の非数字をすべて除去。
+	 * - 残った数字列を返す（7桁判定は呼び出し側で行う）。
+	 *
+	 * @param mixed $raw 入力（文字列想定）.
+	 * @return string 数字のみの文字列.
+	 */
+	private function normalize_zip( $raw ) {
+		$s = (string) $raw;
+		// 全角数字 → 半角（mb_convert_kana があれば利用）。
+		if ( function_exists( 'mb_convert_kana' ) ) {
+			$s = mb_convert_kana( $s, 'n' );
+		}
+		// フォールバック（mb 拡張なし環境）でも確実に全角数字を変換する。
+		$s = strtr(
+			$s,
+			array(
+				'０' => '0',
+				'１' => '1',
+				'２' => '2',
+				'３' => '3',
+				'４' => '4',
+				'５' => '5',
+				'６' => '6',
+				'７' => '7',
+				'８' => '8',
+				'９' => '9',
+			)
+		);
+		// 数字以外を全除去。
+		$s = preg_replace( '/[^0-9]/', '', $s );
+		return null === $s ? '' : $s;
+	}
+
+	/**
 	 * 予約作成 (フロント予約フォームから).
 	 *
 	 * spec 3.5 (初期フィールド: 氏名/メール/電話), 3.6 (確認画面からのPOST), 5.8 (アトミック競合防止), 5.10 (ハニーポット).
@@ -833,7 +883,38 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			if ( ! $this->condition_met( $def, $custom_fields_input ) ) {
 				continue;
 			}
-			if ( empty( $def['is_required'] ) ) {
+
+			$field_type  = isset( $def['field_type'] ) ? (string) $def['field_type'] : '';
+			$is_required = ! empty( $def['is_required'] );
+
+			// address 型: { zip, address } の複合。zip は 7桁（正規化後）検証。
+			// 必須なら郵便番号・住所の両方必須。任意でも zip 非空なら 7桁必須。
+			if ( 'address' === $field_type ) {
+				$val      = isset( $custom_fields_input[ $key ] ) ? $custom_fields_input[ $key ] : null;
+				$zip_raw  = ( is_array( $val ) && isset( $val['zip'] ) ) ? (string) $val['zip'] : '';
+				$addr_raw = ( is_array( $val ) && isset( $val['address'] ) ) ? (string) $val['address'] : '';
+				$zip_has  = ( '' !== trim( $zip_raw ) );
+				$addr_has = ( '' !== trim( $addr_raw ) );
+				$zip_ok   = ( 7 === strlen( $this->normalize_zip( $zip_raw ) ) );
+
+				if ( $is_required ) {
+					if ( ! $zip_has || ! $addr_has ) {
+						return $this->error(
+							'smb_reservation_custom_field_required',
+							sprintf( '「%s」は必須項目です。', (string) $def['field_label'] ),
+							400
+						);
+					}
+					if ( ! $zip_ok ) {
+						return $this->error( 'smb_reservation_zip_invalid', '郵便番号は7桁で入力してください。', 400 );
+					}
+				} elseif ( $zip_has && ! $zip_ok ) {
+					return $this->error( 'smb_reservation_zip_invalid', '郵便番号は7桁で入力してください。', 400 );
+				}
+				continue;
+			}
+
+			if ( ! $is_required ) {
 				continue;
 			}
 			$val = isset( $custom_fields_input[ $key ] ) ? $custom_fields_input[ $key ] : '';
@@ -1003,6 +1084,43 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			if ( '' === $key_clean ) {
 				continue;
 			}
+
+			// address 型: 1フィールド = 2 meta（{key}_zip 正規化7桁 / {key}_address）。
+			// 値がオブジェクトでない/両方空のときは保存しない（未入力 = meta 無し = CSV 空欄）。
+			$field_type = isset( $def['field_type'] ) ? (string) $def['field_type'] : '';
+			if ( 'address' === $field_type ) {
+				$raw = array_key_exists( $key, $custom_fields_input ) ? $custom_fields_input[ $key ] : null;
+				if ( ! is_array( $raw ) ) {
+					continue;
+				}
+				$zip_norm = $this->normalize_zip( isset( $raw['zip'] ) ? (string) $raw['zip'] : '' );
+				$addr_val = sanitize_text_field( isset( $raw['address'] ) ? (string) $raw['address'] : '' );
+				if ( '' === $zip_norm && '' === trim( $addr_val ) ) {
+					continue;
+				}
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				$wpdb->insert(
+					$wpdb->prefix . 'smart_booking_reservation_meta',
+					array(
+						'reservation_id' => $reservation_id,
+						'meta_key'       => $key_clean . '_zip',
+						'meta_value'     => $zip_norm,
+					),
+					array( '%d', '%s', '%s' )
+				);
+				$wpdb->insert(
+					$wpdb->prefix . 'smart_booking_reservation_meta',
+					array(
+						'reservation_id' => $reservation_id,
+						'meta_key'       => $key_clean . '_address',
+						'meta_value'     => $addr_val,
+					),
+					array( '%d', '%s', '%s' )
+				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				continue;
+			}
+
 			if ( ! array_key_exists( $key, $custom_fields_input ) ) {
 				continue;
 			}

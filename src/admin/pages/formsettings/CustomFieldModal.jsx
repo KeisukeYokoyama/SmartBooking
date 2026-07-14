@@ -29,6 +29,7 @@ const EMPTY = {
 	is_required: 0,
 	condition_field_key: '',
 	condition_value: '',
+	address_autofill: true,
 };
 
 const TYPE_OPTIONS = FIELD_TYPES.map((t) => ({ value: t.type, label: t.label }));
@@ -85,6 +86,7 @@ export default function CustomFieldModal({
 				is_required: field.is_required ? 1 : 0,
 				condition_field_key: field.condition_field_key || '',
 				condition_value: field.condition_value || '',
+				address_autofill: field.autofill !== false,
 			};
 			setValues(init);
 			const optsText = (Array.isArray(field.field_options) ? field.field_options : []).join('\n');
@@ -244,6 +246,9 @@ export default function CustomFieldModal({
 			condition_field_key: isProtected ? '' : values.condition_field_key,
 			condition_value: isProtected ? '' : values.condition_value,
 		};
+		if (values.field_type === 'address') {
+			payload.address_autofill = !!values.address_autofill;
+		}
 		onSubmit(payload);
 	};
 
@@ -330,6 +335,20 @@ export default function CustomFieldModal({
 						placeholder={'はい\nいいえ\nわからない'}
 						help="1行に1つずつ入力してください。"
 					/>
+				)}
+
+				{values.field_type === 'address' && (
+					<Field label="住所の自動入力">
+						<Switch
+							checked={!!values.address_autofill}
+							onChange={(v) => update({ address_autofill: v })}
+							label={
+								values.address_autofill
+									? '郵便番号から住所を自動入力する'
+									: '自動入力しない（手入力のみ）'
+							}
+						/>
+					</Field>
 				)}
 
 				<Field label="必須入力">

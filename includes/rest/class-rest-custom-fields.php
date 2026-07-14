@@ -25,7 +25,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	/**
 	 * 有効な field_type。
 	 */
-	const ALLOWED_TYPES = array( 'text', 'email', 'tel', 'textarea', 'select', 'radio', 'checkbox' );
+	const ALLOWED_TYPES = array( 'text', 'email', 'tel', 'textarea', 'select', 'radio', 'checkbox', 'address' );
 
 	/**
 	 * ルート登録。
@@ -100,8 +100,20 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 * @return array
 	 */
 	private function format_row( $row ) {
-		$options = array();
-		if ( ! empty( $row['field_options'] ) ) {
+		$type     = (string) $row['field_type'];
+		$options  = array();
+		$autofill = false;
+		if ( 'address' === $type ) {
+			// address: field_options には選択肢ではなく自動入力フラグ（JSON）を格納する。
+			// 出力の field_options は選択肢が無いため空配列。autofill は未設定/デコード失敗時 true。
+			$autofill = true;
+			if ( ! empty( $row['field_options'] ) ) {
+				$decoded = json_decode( $row['field_options'], true );
+				if ( is_array( $decoded ) && array_key_exists( 'autofill', $decoded ) ) {
+					$autofill = (bool) $decoded['autofill'];
+				}
+			}
+		} elseif ( ! empty( $row['field_options'] ) ) {
 			$decoded = json_decode( $row['field_options'], true );
 			if ( is_array( $decoded ) ) {
 				$options = $decoded;
@@ -119,6 +131,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			'field_label'         => $row['field_label'],
 			'field_type'          => $row['field_type'],
 			'field_options'       => $options,
+			'autofill'            => (bool) $autofill,
 			'placeholder'         => $row['placeholder'],
 			'is_required'         => (int) $row['is_required'] ? 1 : 0,
 			'sort_order'          => (int) $row['sort_order'],
@@ -232,6 +245,19 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * address 型の自動入力フラグ（address_autofill）を解決する。
+	 *
+	 * 未指定（null）はデフォルト true。指定があれば真偽にキャスト。
+	 *
+	 * @param WP_REST_Request $request リクエスト.
+	 * @return bool
+	 */
+	private function resolve_autofill( $request ) {
+		$raw = $request->get_param( 'address_autofill' );
+		return ( null === $raw ) ? true : (bool) $raw;
+	}
+
+	/**
 	 * 入力をサニタイズ（作成用）。
 	 *
 	 * @param WP_REST_Request $request リクエスト.
@@ -295,11 +321,16 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			return $condition;
 		}
 
+		// address 型は field_options に選択肢ではなく自動入力フラグ（JSON）を保存する。
+		$field_options_json = ( 'address' === $type )
+			? wp_json_encode( array( 'autofill' => $this->resolve_autofill( $request ) ) )
+			: wp_json_encode( $options );
+
 		return array(
 			'field_key'           => $key,
 			'field_label'         => $label,
 			'field_type'          => $type,
-			'field_options'       => wp_json_encode( $options ),
+			'field_options'       => $field_options_json,
 			'placeholder'         => sanitize_text_field( (string) $request->get_param( 'placeholder' ) ),
 			'is_required'         => $request->get_param( 'is_required' ) ? 1 : 0,
 			'sort_order'          => (int) $request->get_param( 'sort_order' ),
@@ -386,10 +417,15 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			return $condition;
 		}
 
+		// address 型は field_options に選択肢ではなく自動入力フラグ（JSON）を保存する。
+		$field_options_json = ( 'address' === $type )
+			? wp_json_encode( array( 'autofill' => $this->resolve_autofill( $request ) ) )
+			: wp_json_encode( $options );
+
 		$update = array(
 			'field_label'         => $label,
 			'field_type'          => $type,
-			'field_options'       => wp_json_encode( $options ),
+			'field_options'       => $field_options_json,
 			'placeholder'         => sanitize_text_field( (string) $request->get_param( 'placeholder' ) ),
 			'is_required'         => $request->get_param( 'is_required' ) ? 1 : 0,
 			'sort_order'          => (int) $request->get_param( 'sort_order' ),

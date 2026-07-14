@@ -14,6 +14,7 @@ import Spinner from '../components/Spinner';
 import StepHeader from '../components/StepHeader';
 import { formatMonthDay, fromYmd } from '../dateUtils';
 import { isFieldVisible } from '../fieldConditions';
+import { normalizeZip } from '../addressLookup';
 import { pushBookingEvent } from '../utils/analytics';
 
 const CORE_KEYS = ['customer_name', 'customer_email', 'customer_phone'];
@@ -29,6 +30,15 @@ function renderValue(field, rawVal) {
 		const arr = Array.isArray(rawVal) ? rawVal : [];
 		if (arr.length === 0) return '—';
 		return arr.join(' / ');
+	}
+	if (field.field_type === 'address') {
+		const zip = rawVal && typeof rawVal.zip === 'string' ? rawVal.zip.trim() : '';
+		const address = rawVal && typeof rawVal.address === 'string' ? rawVal.address.trim() : '';
+		if (zip === '' && address === '') return '—';
+		const digits = normalizeZip(zip);
+		const zipLabel = digits.length === 7 ? digits : zip;
+		const zipPart = zipLabel ? `〒${zipLabel}` : '';
+		return [zipPart, address].filter(Boolean).join(' ');
 	}
 	const s = rawVal === undefined || rawVal === null ? '' : String(rawVal);
 	if (s === '') return '—';

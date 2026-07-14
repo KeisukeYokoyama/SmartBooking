@@ -20,6 +20,7 @@ import Modal from '../../components/Modal';
 import Select from '../../components/Select';
 import Spinner from '../../components/Spinner';
 import Textarea from '../../components/Textarea';
+import { normalizeZip } from '../../../frontend/addressLookup';
 import { fromYmd, toYmd } from '../schedule/dateUtils';
 import CustomFieldRenderer from './CustomFieldRenderer';
 import { STATUS_OPTIONS } from './StatusBadge';
@@ -218,6 +219,19 @@ export default function ManualReservationModal({
 		}
 		// カスタムフィールドの必須チェック.
 		displayFields.forEach((f) => {
+			if (f.field_type === 'address') {
+				// 住所フィールド: 必須のときのみ、郵便番号・住所の両方が非空 かつ 郵便番号が7桁であることを検証する。
+				if (!f.is_required) return;
+				const v = meta[f.field_key];
+				const zip = v && typeof v.zip === 'string' ? v.zip.trim() : '';
+				const address = v && typeof v.address === 'string' ? v.address.trim() : '';
+				if (zip === '' || address === '') {
+					errs[f.field_key] = '入力してください。';
+				} else if (normalizeZip(zip).length !== 7) {
+					errs[f.field_key] = '郵便番号は7桁の数字で入力してください。';
+				}
+				return;
+			}
 			if (!f.is_required) return;
 			const v = meta[f.field_key];
 			const empty =
@@ -245,8 +259,22 @@ export default function ManualReservationModal({
 				status: form.status,
 				admin_memo: form.admin_memo,
 				meta: (() => {
+					const addressKeys = new Set(
+						displayFields.filter((f) => f.field_type === 'address').map((f) => f.field_key)
+					);
 					const clean = {};
 					Object.entries(meta).forEach(([k, v]) => {
+						if (addressKeys.has(k)) {
+							// 住所フィールドはオブジェクトのまま送らず、{key}_zip / {key}_address の2キーに展開する。
+							const obj = v && typeof v === 'object' ? v : {};
+							const zip = typeof obj.zip === 'string' ? obj.zip.trim() : '';
+							const address = typeof obj.address === 'string' ? obj.address.trim() : '';
+							if (zip !== '' || address !== '') {
+								clean[`${k}_zip`] = normalizeZip(zip);
+								clean[`${k}_address`] = address;
+							}
+							return;
+						}
 						if (Array.isArray(v)) {
 							clean[k] = v.join(', ');
 						} else if (v !== undefined && v !== null) {

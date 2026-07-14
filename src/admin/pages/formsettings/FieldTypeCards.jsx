@@ -42,6 +42,11 @@ export const FIELD_TYPES = [
 		label: 'チェックボックス',
 		description: '複数選択を許可するチェック式。',
 	},
+	{
+		type: 'address',
+		label: '住所（郵便番号）',
+		description: '郵便番号を入力すると住所を自動補完。番地は手入力。',
+	},
 ];
 
 export function fieldTypeLabel(type) {

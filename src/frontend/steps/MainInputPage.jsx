@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SelectionBar from '../components/SelectionBar';
 import { isFieldVisible } from '../fieldConditions';
+import { normalizeZip } from '../addressLookup';
 import DateSelect from './DateSelect';
 import FormInput from './FormInput';
 import TimeSelect from './TimeSelect';
@@ -28,6 +29,10 @@ function normalizeValue(field, raw) {
 	if (field.field_type === 'checkbox') {
 		return Array.isArray(raw) ? raw : [];
 	}
+	if (field.field_type === 'address') {
+		const obj = raw && typeof raw === 'object' ? raw : {};
+		return { zip: obj.zip || '', address: obj.address || '' };
+	}
 	return raw === undefined || raw === null ? '' : String(raw);
 }
 
@@ -37,6 +42,16 @@ function isFieldValid(field, value) {
 		const arr = Array.isArray(value) ? value : [];
 		if (required && arr.length === 0) return false;
 		return true;
+	}
+	if (field.field_type === 'address') {
+		const zip = typeof value?.zip === 'string' ? value.zip.trim() : '';
+		const address = typeof value?.address === 'string' ? value.address.trim() : '';
+		if (required) {
+			if (zip === '' || address === '') return false;
+			return normalizeZip(zip).length === 7;
+		}
+		if (zip === '') return true;
+		return normalizeZip(zip).length === 7;
 	}
 	const str = typeof value === 'string' ? value.trim() : '';
 	if (required && str === '') return false;

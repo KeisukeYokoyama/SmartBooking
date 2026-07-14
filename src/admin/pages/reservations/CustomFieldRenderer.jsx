@@ -81,6 +81,35 @@ export default function CustomFieldRenderer({ field, value, onChange, error }) {
 		);
 	}
 
+	// address (v0.3.0 機能④): 郵便番号 + 住所の2入力。管理画面からの手動登録では自動補完しない。
+	if (type === 'address') {
+		const obj = value && typeof value === 'object' ? value : {};
+		const zip = obj.zip || '';
+		const address = obj.address || '';
+		return (
+			<Field label={label} required={!!required} error={error}>
+				<div className="smb-field-group smb-field-group--contact">
+					<input
+						type="text"
+						className="smb-input"
+						placeholder="1234567"
+						value={zip}
+						onChange={(e) => onChange(key, { zip: e.target.value, address })}
+						aria-label={`${label}（郵便番号）`}
+					/>
+					<input
+						type="text"
+						className="smb-input"
+						placeholder="東京都渋谷区渋谷1-2-3"
+						value={address}
+						onChange={(e) => onChange(key, { zip, address: e.target.value })}
+						aria-label={`${label}（住所）`}
+					/>
+				</div>
+			</Field>
+		);
+	}
+
 	// textarea.
 	if (type === 'textarea') {
 		return (

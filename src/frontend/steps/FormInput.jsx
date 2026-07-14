@@ -13,9 +13,11 @@
  *   - 「戻る」ボタンで前ステップへ。
  */
 import { useEffect, useMemo, useState } from 'react';
+import AddressField from '../components/AddressField';
 import StepHeader from '../components/StepHeader';
 import { pushBookingEvent } from '../utils/analytics';
 import { isFieldVisible } from '../fieldConditions';
+import { normalizeZip } from '../addressLookup';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 数字・ハイフン・プラス・括弧・スペースのみ許容（国際形式まで緩めに）。
@@ -32,6 +34,10 @@ function normalizeValue(field, raw) {
 		if (Array.isArray(raw)) return raw;
 		return [];
 	}
+	if (field.field_type === 'address') {
+		const obj = raw && typeof raw === 'object' ? raw : {};
+		return { zip: obj.zip || '', address: obj.address || '' };
+	}
 	return raw === undefined || raw === null ? '' : String(raw);
 }
 
@@ -40,6 +46,25 @@ function validateField(field, value) {
 	if (field.field_type === 'checkbox') {
 		const arr = Array.isArray(value) ? value : [];
 		if (required && arr.length === 0) return 'この項目は必須です。';
+		return null;
+	}
+	if (field.field_type === 'address') {
+		const zip = typeof value?.zip === 'string' ? value.zip.trim() : '';
+		const address = typeof value?.address === 'string' ? value.address.trim() : '';
+		if (required) {
+			// 必須: 郵便番号・住所の両方が非空、かつ郵便番号は正規化後7桁であること。
+			if (zip === '' || address === '') return 'この項目は必須です。';
+			if (normalizeZip(zip).length !== 7) {
+				return '郵便番号は7桁の数字で入力してください。';
+			}
+			return null;
+		}
+		// 任意: 郵便番号が空なら住所欄の内容にかかわらずOK。
+		// 郵便番号を入力した場合のみ、7桁かどうかを検証する。
+		if (zip === '') return null;
+		if (normalizeZip(zip).length !== 7) {
+			return '郵便番号は7桁の数字で入力してください。';
+		}
 		return null;
 	}
 	const str = typeof value === 'string' ? value.trim() : '';
@@ -321,6 +346,31 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 										);
 									})}
 								</div>
+								{errMsg && (
+									<p
+										id={id + '-err'}
+										className="smb-front-form__error"
+										role="alert"
+									>
+										{errMsg}
+									</p>
+								)}
+							</div>
+						);
+					}
+
+					// address (v0.3.0 機能④)
+					if (f.field_type === 'address') {
+						return (
+							<div key={f.id} className="smb-front-form__row smb-front-form-group">
+								{labelEl}
+								<AddressField
+									field={f}
+									value={val}
+									onChange={(obj) => handleChange(f.field_key, obj)}
+									error={errMsg}
+									id={id}
+								/>
 								{errMsg && (
 									<p
 										id={id + '-err'}

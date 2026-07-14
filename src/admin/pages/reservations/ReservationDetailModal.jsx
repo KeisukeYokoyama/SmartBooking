@@ -232,18 +232,32 @@ export default function ReservationDetailModal({
 							<h3 className="smb-reservation-detail__section-title">追加の入力項目</h3>
 							<dl className="smb-reservation-detail__defs">
 								{displayFields.map((f) => {
-									const v = data.meta?.[f.field_key];
 									let display = '—';
-									if (v !== undefined && v !== null && v !== '') {
-										if (f.field_type === 'checkbox') {
-											try {
-												const arr = typeof v === 'string' ? JSON.parse(v) : v;
-												display = Array.isArray(arr) ? arr.join('、') : String(v);
-											} catch {
+									if (f.field_type === 'address') {
+										// 住所フィールドはサーバー側で {field_key}_zip / {field_key}_address の
+										// 2キーに分けて保存されている。
+										const zip = data.meta?.[`${f.field_key}_zip`];
+										const address = data.meta?.[`${f.field_key}_address`];
+										const zipStr = zip !== undefined && zip !== null ? String(zip).trim() : '';
+										const addressStr =
+											address !== undefined && address !== null ? String(address).trim() : '';
+										if (zipStr !== '' || addressStr !== '') {
+											const zipPart = zipStr ? `〒${zipStr}` : '';
+											display = [zipPart, addressStr].filter(Boolean).join(' ');
+										}
+									} else {
+										const v = data.meta?.[f.field_key];
+										if (v !== undefined && v !== null && v !== '') {
+											if (f.field_type === 'checkbox') {
+												try {
+													const arr = typeof v === 'string' ? JSON.parse(v) : v;
+													display = Array.isArray(arr) ? arr.join('、') : String(v);
+												} catch {
+													display = String(v);
+												}
+											} else {
 												display = String(v);
 											}
-										} else {
-											display = String(v);
 										}
 									}
 									return (
