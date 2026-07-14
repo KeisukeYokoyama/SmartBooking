@@ -7,6 +7,9 @@
  *    - field_type の変更不可
  *    - is_required を 0 にできない（必須固定）
  *    - field_key は常に読み取り専用
+ * - 表示条件 (v0.3.0 機能③): radio/select の親フィールドの選択値に応じて表示/非表示。
+ *    - 条件は1つのみ・親は radio/select のみ・ネスト禁止（条件付きフィールドは親候補から除外）
+ *    - 保護フィールドは条件の子になれないためセクション自体を出さない
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '../../components/Button';
@@ -24,6 +27,8 @@ const EMPTY = {
 	field_options: [],
 	placeholder: '',
 	is_required: 0,
+	condition_field_key: '',
+	condition_value: '',
 };
 
 const TYPE_OPTIONS = FIELD_TYPES.map((t) => ({ value: t.type, label: t.label }));
@@ -53,6 +58,7 @@ export default function CustomFieldModal({
 	field,
 	defaultType = 'text',
 	existingKeys = [],
+	fields = [],
 	onClose,
 	onSubmit,
 	submitting = false,
@@ -77,6 +83,8 @@ export default function CustomFieldModal({
 				field_options: Array.isArray(field.field_options) ? field.field_options : [],
 				placeholder: field.placeholder || '',
 				is_required: field.is_required ? 1 : 0,
+				condition_field_key: field.condition_field_key || '',
+				condition_value: field.condition_value || '',
 			};
 			setValues(init);
 			const optsText = (Array.isArray(field.field_options) ? field.field_options : []).join('\n');
@@ -130,6 +138,67 @@ export default function CustomFieldModal({
 
 	const needsOptions = NEEDS_OPTIONS.includes(values.field_type);
 
+	// --- 表示条件 (v0.3.0 機能③) ---
+	// 親候補: radio/select のみ・自分自身は除外・既に条件付き（子）のフィールドは除外（ネスト禁止）。
+	const parentCandidates = useMemo(() => {
+		const list = Array.isArray(fields) ? fields : [];
+		return list.filter(
+			(f) =>
+				(f.field_type === 'radio' || f.field_type === 'select') &&
+				f.field_key !== values.field_key &&
+				!f.condition_field_key
+		);
+	}, [fields, values.field_key]);
+
+	const parentOptions = useMemo(
+		() => parentCandidates.map((f) => ({ value: f.field_key, label: f.field_label })),
+		[parentCandidates]
+	);
+
+	const selectedParentField = useMemo(
+		() => parentCandidates.find((f) => f.field_key === values.condition_field_key) || null,
+		[parentCandidates, values.condition_field_key]
+	);
+
+	const conditionValueOptions = useMemo(() => {
+		const opts = Array.isArray(selectedParentField?.field_options)
+			? selectedParentField.field_options
+			: [];
+		return opts.map((o) => ({ value: o, label: o }));
+	}, [selectedParentField]);
+
+	// ON = condition_field_key に親が入っている状態。
+	const conditionOn = !!values.condition_field_key;
+
+	// ネスト禁止（逆方向）: 自身が既に他フィールドの表示条件の親になっている場合、
+	// 自身に条件を設定すると 2 段ネストになるため、表示条件セクションを出さない。
+	const isAlreadyParent = useMemo(
+		() =>
+			isEdit &&
+			!!field &&
+			(Array.isArray(fields) ? fields : []).some(
+				(f) => f.condition_field_key && f.condition_field_key === field.field_key
+			),
+		[isEdit, fields, field]
+	);
+
+	const onConditionToggle = (checked) => {
+		if (checked) {
+			const first = parentCandidates[0];
+			update({ condition_field_key: first ? first.field_key : '', condition_value: '' });
+		} else {
+			update({ condition_field_key: '', condition_value: '' });
+		}
+	};
+
+	const onConditionParentChange = (e) => {
+		update({ condition_field_key: e.target.value, condition_value: '' });
+	};
+
+	const onConditionValueChange = (e) => {
+		update({ condition_value: e.target.value });
+	};
+
 	const validate = () => {
 		const e = {};
 		if (!values.field_label.trim()) {
@@ -152,6 +221,9 @@ export default function CustomFieldModal({
 		if (needsOptions && values.field_options.length === 0) {
 			e.field_options = '選択肢を1行に1つずつ入力してください。';
 		}
+		if (!isProtected && values.condition_field_key && !values.condition_value) {
+			e.condition_value = '表示条件の値を選択してください。';
+		}
 		return e;
 	};
 
@@ -161,7 +233,7 @@ export default function CustomFieldModal({
 		setErrors(errs);
 		if (Object.keys(errs).length > 0) return;
 
-		// 保護フィールドは is_required を 1 に固定
+		// 保護フィールドは is_required を 1 に固定。表示条件も同様に保護フィールドは常に空。
 		const payload = {
 			field_label: values.field_label.trim(),
 			field_key: values.field_key,
@@ -169,6 +241,8 @@ export default function CustomFieldModal({
 			field_options: needsOptions ? values.field_options : [],
 			placeholder: values.placeholder,
 			is_required: isProtected ? 1 : values.is_required ? 1 : 0,
+			condition_field_key: isProtected ? '' : values.condition_field_key,
+			condition_value: isProtected ? '' : values.condition_value,
 		};
 		onSubmit(payload);
 	};
@@ -272,6 +346,67 @@ export default function CustomFieldModal({
 						}
 					/>
 				</Field>
+
+				{/*
+				  表示条件 (v0.3.0 機能③): radio/select の親フィールドの選択値に応じて
+				  このフィールドを表示/非表示にする。初期フィールドは条件の子になれないため
+				  isProtected のときはセクション自体を表示しない。
+				*/}
+				{!isProtected && isAlreadyParent && (
+					<div className="smb-field-group">
+						<Field label="表示条件">
+							<p className="smb-field__help">
+								このフィールドは他フィールドの表示条件の親になっているため、表示条件を設定できません（表示条件はネストできません）。
+							</p>
+						</Field>
+					</div>
+				)}
+
+				{!isProtected && !isAlreadyParent && (
+					<div className="smb-field-group">
+						<Field label="表示条件">
+							{parentCandidates.length === 0 ? (
+								<p className="smb-field__help">
+									選択式（ラジオ/セレクト）のフィールドを先に作成すると、表示条件を設定できます。
+								</p>
+							) : (
+								<Switch
+									checked={conditionOn}
+									onChange={onConditionToggle}
+									label={
+										conditionOn
+											? '表示条件を設定する'
+											: '常に表示する（表示条件なし）'
+									}
+								/>
+							)}
+						</Field>
+
+						{conditionOn && parentCandidates.length > 0 && (
+							<div className="smb-field-group smb-field-group--contact">
+								<Select
+									label="親フィールド"
+									required
+									options={parentOptions}
+									value={values.condition_field_key}
+									onChange={onConditionParentChange}
+									help="この項目の選択式フィールドの値に応じて表示/非表示を切り替えます。"
+								/>
+								<Select
+									label="表示する値"
+									required
+									options={conditionValueOptions}
+									value={values.condition_value}
+									onChange={onConditionValueChange}
+									error={errors.condition_value}
+									disabled={!values.condition_field_key}
+									placeholder="選択してください"
+									help="親フィールドがこの値のとき、このフィールドを表示します。"
+								/>
+							</div>
+						)}
+					</div>
+				)}
 			</form>
 		</Modal>
 	);

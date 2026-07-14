@@ -197,6 +197,7 @@ export default function FormSettingsPage() {
 				field={modal.field}
 				defaultType={modal.defaultType}
 				existingKeys={existingKeys}
+				fields={fields}
 				onClose={closeModal}
 				onSubmit={submitField}
 				submitting={submitting}

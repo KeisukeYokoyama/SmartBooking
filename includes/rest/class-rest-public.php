@@ -413,7 +413,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
-			"SELECT id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order
+			"SELECT id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, condition_field_key, condition_value
 			FROM {$wpdb->prefix}smart_booking_custom_fields
 			ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
@@ -432,15 +432,24 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 					$options = array_values( array_map( 'strval', $decoded ) );
 				}
 			}
+			$condition_field_key = ( isset( $row['condition_field_key'] ) && null !== $row['condition_field_key'] && '' !== (string) $row['condition_field_key'] )
+				? (string) $row['condition_field_key']
+				: null;
+			$condition_value     = ( isset( $row['condition_value'] ) && null !== $row['condition_value'] && '' !== (string) $row['condition_value'] )
+				? (string) $row['condition_value']
+				: null;
+
 			$out[] = array(
-				'id'            => (int) $row['id'],
-				'field_key'     => (string) $row['field_key'],
-				'field_label'   => (string) $row['field_label'],
-				'field_type'    => (string) $row['field_type'],
-				'field_options' => $options,
-				'placeholder'   => (string) $row['placeholder'],
-				'is_required'   => (int) $row['is_required'] ? 1 : 0,
-				'sort_order'    => (int) $row['sort_order'],
+				'id'                  => (int) $row['id'],
+				'field_key'           => (string) $row['field_key'],
+				'field_label'         => (string) $row['field_label'],
+				'field_type'          => (string) $row['field_type'],
+				'field_options'       => $options,
+				'placeholder'         => (string) $row['placeholder'],
+				'is_required'         => (int) $row['is_required'] ? 1 : 0,
+				'sort_order'          => (int) $row['sort_order'],
+				'condition_field_key' => $condition_field_key,
+				'condition_value'     => $condition_value,
 			);
 		}
 		return rest_ensure_response( $out );
@@ -683,6 +692,33 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * 表示条件が成立するか（＝そのフィールドが表示中か）を判定する。
+	 *
+	 * - condition_field_key が空/NULL のフィールドは常に表示（true）。
+	 * - それ以外は、送信された親フィールドの値が condition_value と一致するときのみ true。
+	 *   親は radio/select（文字列値）であることを前提とし、フロントの判定結果は一切信用せず
+	 *   送信ペイロードから再評価する。
+	 *
+	 * @param array $def                 フィールド定義（condition_field_key / condition_value を含む）.
+	 * @param array $custom_fields_input 送信されたカスタムフィールド入力.
+	 * @return bool 表示中なら true。
+	 */
+	private function condition_met( array $def, array $custom_fields_input ) {
+		$parent = isset( $def['condition_field_key'] ) ? (string) $def['condition_field_key'] : '';
+		if ( '' === $parent ) {
+			return true;
+		}
+		$parent_value = isset( $custom_fields_input[ $parent ] ) ? $custom_fields_input[ $parent ] : '';
+		if ( is_array( $parent_value ) ) {
+			// 親は radio/select ＝単一文字列値のみを想定。配列は不成立扱い。
+			return false;
+		}
+		$expected = (string) ( isset( $def['condition_value'] ) ? $def['condition_value'] : '' );
+		$actual   = (string) $parent_value;
+		return $expected === $actual;
+	}
+
+	/**
 	 * 予約作成 (フロント予約フォームから).
 	 *
 	 * spec 3.5 (初期フィールド: 氏名/メール/電話), 3.6 (確認画面からのPOST), 5.8 (アトミック競合防止), 5.10 (ハニーポット).
@@ -774,7 +810,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_defs = $wpdb->get_results(
-			"SELECT field_key, field_label, field_type, is_required FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC, id ASC",
+			"SELECT field_key, field_label, field_type, is_required, condition_field_key, condition_value FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC, id ASC",
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -791,6 +827,10 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		foreach ( $field_defs as $def ) {
 			$key = (string) $def['field_key'];
 			if ( in_array( $key, $core_keys, true ) ) {
+				continue;
+			}
+			// 表示条件が不成立（非表示）なら必須チェックをスキップ（表示中のみ必須）。
+			if ( ! $this->condition_met( $def, $custom_fields_input ) ) {
 				continue;
 			}
 			if ( empty( $def['is_required'] ) ) {
@@ -953,6 +993,10 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		foreach ( $field_defs as $def ) {
 			$key = (string) $def['field_key'];
 			if ( in_array( $key, $core_keys, true ) ) {
+				continue;
+			}
+			// 表示条件が不成立（非表示）なら値を破棄（meta 行を作らない → CSV/予約詳細は空欄）。
+			if ( ! $this->condition_met( $def, $custom_fields_input ) ) {
 				continue;
 			}
 			$key_clean = sanitize_key( $key );

@@ -16,6 +16,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SelectionBar from '../components/SelectionBar';
+import { isFieldVisible } from '../fieldConditions';
 import DateSelect from './DateSelect';
 import FormInput from './FormInput';
 import TimeSelect from './TimeSelect';
@@ -73,10 +74,11 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 	}, [customFields]);
 
 	// 必須項目および形式バリデーションの状態を監視し、ボタン活性を判定する。
+	// 条件フィールドで非表示のものは判定対象外（表示中のみ必須が有効）。
 	const allFieldsValid = useMemo(() => {
-		return orderedFields.every((f) =>
-			isFieldValid(f, normalizeValue(f, formValues[f.field_key])),
-		);
+		return orderedFields
+			.filter((f) => isFieldVisible(f, formValues))
+			.every((f) => isFieldValid(f, normalizeValue(f, formValues[f.field_key])));
 	}, [orderedFields, formValues]);
 
 	const canConfirm = !!date && !!time && allFieldsValid;

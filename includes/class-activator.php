@@ -449,6 +449,8 @@ class Smart_Booking_Activator {
 		) {$charset_collate};";
 
 		// smart_booking_custom_fields（フォームフィールド定義）.
+		// v0.3.0: 条件フィールド用に condition_field_key / condition_value を追加。既存ユーザーへの適用は
+		// v0.3.0 リリース時に version 判定で確定する方針（現時点は activation の dbDelta 適用のみ。db_version は bump しない）。
 		$sql_custom_fields = "CREATE TABLE {$prefix}custom_fields (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			field_key varchar(100) NOT NULL DEFAULT '',
@@ -458,6 +460,8 @@ class Smart_Booking_Activator {
 			placeholder varchar(255) NOT NULL DEFAULT '',
 			is_required tinyint(1) NOT NULL DEFAULT 0,
 			sort_order int(11) NOT NULL DEFAULT 0,
+			condition_field_key varchar(100) DEFAULT NULL,
+			condition_value varchar(255) DEFAULT NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			UNIQUE KEY uniq_field_key (field_key),

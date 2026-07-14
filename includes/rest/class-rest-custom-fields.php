@@ -107,17 +107,95 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 				$options = $decoded;
 			}
 		}
+		$condition_field_key = ( isset( $row['condition_field_key'] ) && null !== $row['condition_field_key'] && '' !== (string) $row['condition_field_key'] )
+			? (string) $row['condition_field_key']
+			: null;
+		$condition_value     = ( isset( $row['condition_value'] ) && null !== $row['condition_value'] && '' !== (string) $row['condition_value'] )
+			? (string) $row['condition_value']
+			: null;
 		return array(
-			'id'            => (int) $row['id'],
-			'field_key'     => $row['field_key'],
-			'field_label'   => $row['field_label'],
-			'field_type'    => $row['field_type'],
-			'field_options' => $options,
-			'placeholder'   => $row['placeholder'],
-			'is_required'   => (int) $row['is_required'] ? 1 : 0,
-			'sort_order'    => (int) $row['sort_order'],
-			'is_protected'  => in_array( $row['field_key'], self::PROTECTED_KEYS, true ),
-			'created_at'    => $row['created_at'],
+			'id'                  => (int) $row['id'],
+			'field_key'           => $row['field_key'],
+			'field_label'         => $row['field_label'],
+			'field_type'          => $row['field_type'],
+			'field_options'       => $options,
+			'placeholder'         => $row['placeholder'],
+			'is_required'         => (int) $row['is_required'] ? 1 : 0,
+			'sort_order'          => (int) $row['sort_order'],
+			'condition_field_key' => $condition_field_key,
+			'condition_value'     => $condition_value,
+			'is_protected'        => in_array( $row['field_key'], self::PROTECTED_KEYS, true ),
+			'created_at'          => $row['created_at'],
+		);
+	}
+
+	/**
+	 * 表示条件（condition_field_key / condition_value）の入力を検証・正規化する。
+	 *
+	 * 3制約: (1) 条件は1つのみ (2) 親は radio/select のみ (3) ネスト禁止（親が条件付きでない）。
+	 *
+	 * @param WP_REST_Request $request      リクエスト.
+	 * @param string          $self_key     自身の field_key（自己参照防止・自己除外に使用）.
+	 * @param bool            $is_protected 保護フィールド（氏名/メール/電話）か.
+	 * @return array|WP_Error condition_field_key / condition_value（各 string|null）または WP_Error.
+	 */
+	private function sanitize_condition( $request, $self_key, $is_protected ) {
+		global $wpdb;
+
+		// 保護フィールド（system）は条件の子になれない → 強制 NULL。
+		if ( $is_protected ) {
+			return array(
+				'condition_field_key' => null,
+				'condition_value'     => null,
+			);
+		}
+
+		$parent_key = sanitize_key( (string) $request->get_param( 'condition_field_key' ) );
+
+		// 未指定 → 常時表示（両方 NULL）。
+		if ( '' === $parent_key ) {
+			return array(
+				'condition_field_key' => null,
+				'condition_value'     => null,
+			);
+		}
+
+		// 自己参照は不可。
+		if ( '' !== (string) $self_key && $parent_key === (string) $self_key ) {
+			return $this->error( 'smb_field_condition_self', '表示条件に自分自身は指定できません。', 400 );
+		}
+
+		// ネスト禁止（逆方向）: 自身が既に他フィールドの表示条件の親になっている場合、
+		// 自身に条件を設定すると 2 段ネストになるため不可。
+		if ( '' !== (string) $self_key ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$is_parent = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s", (string) $self_key ) );
+			if ( $is_parent > 0 ) {
+				return $this->error( 'smb_field_condition_is_parent', 'このフィールドは他フィールドの表示条件の親になっているため、表示条件を設定できません。', 400 );
+			}
+		}
+
+		// 親フィールドの取得。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$parent = $wpdb->get_row( $wpdb->prepare( "SELECT field_type, condition_field_key FROM {$wpdb->prefix}smart_booking_custom_fields WHERE field_key = %s", $parent_key ), ARRAY_A );
+		if ( ! $parent || ! in_array( (string) $parent['field_type'], array( 'radio', 'select' ), true ) ) {
+			return $this->error( 'smb_field_condition_parent_invalid', '表示条件の親は選択式（ラジオ/セレクト）のフィールドのみ指定できます。', 400 );
+		}
+
+		// ネスト禁止: 親自身が条件付きなら不可。
+		if ( isset( $parent['condition_field_key'] ) && null !== $parent['condition_field_key'] && '' !== (string) $parent['condition_field_key'] ) {
+			return $this->error( 'smb_field_condition_nested', '表示条件付きのフィールドを親には指定できません。', 400 );
+		}
+
+		$value = sanitize_text_field( (string) $request->get_param( 'condition_value' ) );
+		if ( '' === $value ) {
+			return $this->error( 'smb_field_condition_value_required', '表示条件の値を選択してください。', 400 );
+		}
+
+		// condition_value が親の選択肢に含まれなくてもエラーにしない（仕様: 永遠に不成立＝常に非表示で許容）。
+		return array(
+			'condition_field_key' => $parent_key,
+			'condition_value'     => $value,
 		);
 	}
 
@@ -211,14 +289,22 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_field_options_required', '選択肢を1つ以上入力してください。', 400 );
 		}
 
+		$is_protected = in_array( $key, self::PROTECTED_KEYS, true );
+		$condition    = $this->sanitize_condition( $request, $key, $is_protected );
+		if ( is_wp_error( $condition ) ) {
+			return $condition;
+		}
+
 		return array(
-			'field_key'     => $key,
-			'field_label'   => $label,
-			'field_type'    => $type,
-			'field_options' => wp_json_encode( $options ),
-			'placeholder'   => sanitize_text_field( (string) $request->get_param( 'placeholder' ) ),
-			'is_required'   => $request->get_param( 'is_required' ) ? 1 : 0,
-			'sort_order'    => (int) $request->get_param( 'sort_order' ),
+			'field_key'           => $key,
+			'field_label'         => $label,
+			'field_type'          => $type,
+			'field_options'       => wp_json_encode( $options ),
+			'placeholder'         => sanitize_text_field( (string) $request->get_param( 'placeholder' ) ),
+			'is_required'         => $request->get_param( 'is_required' ) ? 1 : 0,
+			'sort_order'          => (int) $request->get_param( 'sort_order' ),
+			'condition_field_key' => $condition['condition_field_key'],
+			'condition_value'     => $condition['condition_value'],
 		);
 	}
 
@@ -240,7 +326,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		$wpdb->insert(
 			$this->table(),
 			$data,
-			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
 		);
 		$id      = (int) $wpdb->insert_id;
 		$get_req = new WP_REST_Request( 'GET' );
@@ -294,17 +380,25 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_field_options_required', '選択肢を1つ以上入力してください。', 400 );
 		}
 
+		$is_protected = in_array( $row['field_key'], self::PROTECTED_KEYS, true );
+		$condition    = $this->sanitize_condition( $request, (string) $row['field_key'], $is_protected );
+		if ( is_wp_error( $condition ) ) {
+			return $condition;
+		}
+
 		$update = array(
-			'field_label'   => $label,
-			'field_type'    => $type,
-			'field_options' => wp_json_encode( $options ),
-			'placeholder'   => sanitize_text_field( (string) $request->get_param( 'placeholder' ) ),
-			'is_required'   => $request->get_param( 'is_required' ) ? 1 : 0,
-			'sort_order'    => (int) $request->get_param( 'sort_order' ),
+			'field_label'         => $label,
+			'field_type'          => $type,
+			'field_options'       => wp_json_encode( $options ),
+			'placeholder'         => sanitize_text_field( (string) $request->get_param( 'placeholder' ) ),
+			'is_required'         => $request->get_param( 'is_required' ) ? 1 : 0,
+			'sort_order'          => (int) $request->get_param( 'sort_order' ),
+			'condition_field_key' => $condition['condition_field_key'],
+			'condition_value'     => $condition['condition_value'],
 		);
 
 		// 保護フィールドの is_required は常に 1（必須）強制.
-		if ( in_array( $row['field_key'], self::PROTECTED_KEYS, true ) ) {
+		if ( $is_protected ) {
 			$update['is_required'] = 1;
 		}
 
@@ -313,7 +407,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			$wpdb->prefix . 'smart_booking_custom_fields',
 			$update,
 			array( 'id' => $id ),
-			array( '%s', '%s', '%s', '%s', '%d', '%d' ),
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
 		return $this->get_item( $request );
@@ -340,6 +434,21 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 				400
 			);
 		}
+
+		// 依存チェック: このフィールドを表示条件の親にしている子フィールドがある場合は削除をブロック。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$dependents = $wpdb->get_col( $wpdb->prepare( "SELECT field_label FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s", (string) $row['field_key'] ) );
+		if ( is_array( $dependents ) && count( $dependents ) > 0 ) {
+			return $this->error(
+				'smb_field_has_dependents',
+				sprintf(
+					'このフィールドは他フィールドの表示条件の親になっています（依存: %s）。先に表示条件を解除してください。',
+					implode( ', ', array_map( 'strval', $dependents ) )
+				),
+				400
+			);
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->prefix . 'smart_booking_custom_fields', array( 'id' => $id ), array( '%d' ) );
 		return rest_ensure_response(

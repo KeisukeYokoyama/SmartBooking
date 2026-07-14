@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import StepHeader from '../components/StepHeader';
 import { pushBookingEvent } from '../utils/analytics';
+import { isFieldVisible } from '../fieldConditions';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // 数字・ハイフン・プラス・括弧・スペースのみ許容（国際形式まで緩めに）。
@@ -89,6 +90,12 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 		return list;
 	}, [customFields]);
 
+	// 条件フィールド: 親の選択値によって表示対象外のフィールドは描画しない。
+	const visibleOrderedFields = useMemo(
+		() => orderedFields.filter((f) => isFieldVisible(f, formValues)),
+		[orderedFields, formValues],
+	);
+
 	const [errors, setErrors] = useState({});
 	const [honeypot, setHoneypot] = useState('');
 
@@ -122,6 +129,8 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 
 		const nextErrors = {};
 		orderedFields.forEach((f) => {
+			// 非表示フィールド（条件不成立）はバリデーション対象外。
+			if (!isFieldVisible(f, formValues)) return;
 			const val = normalizeValue(f, formValues[f.field_key]);
 			const msg = validateField(f, val);
 			if (msg) nextErrors[f.field_key] = msg;
@@ -151,7 +160,7 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 			)}
 
 			<form className="smb-front-form" onSubmit={handleSubmit} noValidate>
-				{orderedFields.map((f) => {
+				{visibleOrderedFields.map((f) => {
 					const id = 'smb-front-field-' + f.field_key;
 					const val = normalizeValue(f, formValues[f.field_key]);
 					const errMsg = errors[f.field_key];

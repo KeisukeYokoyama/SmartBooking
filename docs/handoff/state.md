@@ -22,7 +22,13 @@
   - 既知の非ブロッキング残件:
     - 🟡 phpcs 整形警告 +2（`class-rest-settings.php` の新2行 `DoubleArrowNotAligned`）。**意図的に既存の整列スタイルに合わせて据え置き**（この sniff は `wp plugin check` のゲート対象外・phpcbf で全ブロック再整列すると差分が肥大するため不採用）。ERRORS は 0/0。
     - 🔵 `tests/e2e/phase6-visibility.spec.js:B`（line 279-280）が本機能と無関係にプリエグジスティングで 90s タイムアウト（`page_id=7` ハードコードがリビジョン扱いで nonce 未 localize）。要別件起票（`page_id=7`→`FRONT_PAGE_PATH` 化）。ベースラインにも存在＝非回帰。
-- **残り: ③ 条件フィールド / ④ 住所フィールド（郵便番号自動入力）**。③④ 実装後にまとめて v0.3.0 リリース（バージョン4箇所更新＋Changelog＋ZIP＋SVN は人間 GO）。②は v0.4.0。
+- **機能③ 条件フィールド：実装完了・検証 Green（2026-07-14）**。
+  - 同ブランチにコミット（**push なし・0.2.3 据え置き**）。radio/select 親の選択値で子フィールドを表示/非表示。3制約（条件1つ・親は radio/select のみ・ネスト禁止1段）。
+  - DB: `smart_booking_custom_fields` に `condition_field_key varchar(100) NULL` / `condition_value varchar(255) NULL` を dbDelta で追加（**db_version bump せず・0.3.0 移行判定はリリース時に確定**。開発は再有効化で適用）。
+  - サーバ: 管理CRUD（条件バリデーション・**親削除の依存ブロック**・**逆方向ネスト `smb_field_condition_is_parent` も両側で塞いだ**）／公開取得／**予約作成のサーバ側再評価 `condition_met()`**（表示中のみ必須・非表示値は meta 破棄。フロント判定を信用しない）。REST は `condition_field_key`/`condition_value` を**追加のみ**で非破壊。CSV/予約詳細は meta 由来で自動空欄（無改修）。
+  - フロント: 共有 `fieldConditions.js`（`isFieldVisible`）／FormInput・MainInputPage・ConfirmPage（表示中のみ描画/検証/payload除外＝送信時破棄）／CustomFieldModal「表示条件」UI（親候補フィルタ・system非表示・逆方向ネスト非表示）／FormSettingsPage。
+  - 検証: logic-evaluator が全完了条件 Green（サーバ再評価を直接POSTで実証・CSV実出力で破棄空欄確認・管理UI DOM 実走）。新規 E2E `tests/e2e/v030-conditional-fields.spec.js`（A/B/C）＋`tests/e2e/v030-conditional-admin.spec.js`（2g・4ケース）。**デグレなし**（条件ゼロ時は従来同一）。回帰ゲートは planner が form/admin/flow/confirm/reservations 系を実走し新規失敗ゼロを確認。
+- **残り: ④ 住所フィールド（郵便番号自動入力）**。③④ 揃った時点で v0.3.0 リリース（バージョン4箇所更新＋Changelog＋ZIP＋SVN は人間 GO）。②は v0.4.0。
 
 ## 次の一手
 1. **約24時間後（2026-07-14 目安）に https://wordpress.org/plugins/smart-booking/ で バージョン 0.2.3 表示・Changelog を目視確認**（WP.org 配布反映の遅延は正常）。
@@ -37,7 +43,11 @@
 
 ## テスト運用メモ
 - 長時間スイートは**フォアグラウンド＋spec チャンク＋Bash ツール timeout**（シェル `timeout` は macOS 未インストール）。detached background は孤児化防止のため使わない。
-- 回帰ゲート＝ベースライン差分で新規失敗ゼロ（既知 stale 3件: phase3-fix1:45 / phase3-validation:115 / phase3-responsive:967 は別件）。
+- 回帰ゲート＝ベースライン差分で新規失敗ゼロ。既知 stale（ベースラインでも失敗＝別件・ブロックしない）:
+  - phase3-fix1:45 / phase3-validation:115 / phase3-responsive:967（`docs/bugs/spec-vs-shipped-booking-flow.md` の仕様乖離）。
+  - **phase3-validation:174 / :319 も同根**（統合設計 MainInputPage は「送信時エラー表示」ではなく「必須未入力時はボタン disabled」。旧多段ステップ前提のテストが古い）＝2026-07-14 の③回帰確認で stash 比較しベースラインでも同一失敗を確認。serial のため後続テストは巻き添えスキップされる。
+  - **phase9-redesign-confirm-responsive:220**（375px 幅）もプリエグジスティング（stash 比較で確認）。
+  - phase6-visibility:B（`docs/bugs/phase6-visibility-flaky-page-id-7.md`、page_id=7 ハードコード）。
 
 ## 触ってはいけない
 - デモ VPS 同居の Laravel（`api.konkatsu-scope.com`）と Python。

@@ -13,6 +13,7 @@ import ErrorMessage from '../components/ErrorMessage';
 import Spinner from '../components/Spinner';
 import StepHeader from '../components/StepHeader';
 import { formatMonthDay, fromYmd } from '../dateUtils';
+import { isFieldVisible } from '../fieldConditions';
 import { pushBookingEvent } from '../utils/analytics';
 
 const CORE_KEYS = ['customer_name', 'customer_email', 'customer_phone'];
@@ -92,6 +93,12 @@ export default function ConfirmPage({ state, dispatch }) {
 		return list;
 	}, [customFields]);
 
+	// 条件フィールド: 親の選択値によって表示対象外のフィールドは確認画面にも出さない。
+	const visibleOrderedFields = useMemo(
+		() => orderedFields.filter((f) => isFieldVisible(f, formValues)),
+		[orderedFields, formValues],
+	);
+
 	const store = useMemo(
 		() => (Array.isArray(stores) ? stores.find((s) => s.id === storeId) : null),
 		[stores, storeId],
@@ -114,6 +121,8 @@ export default function ConfirmPage({ state, dispatch }) {
 		const customFieldPayload = {};
 		orderedFields.forEach((f) => {
 			if (CORE_KEYS.includes(f.field_key)) return;
+			// 条件フィールドで非表示のものは送信時に破棄する（古い入力値を残さない）。
+			if (!isFieldVisible(f, formValues)) return;
 			const v = formValues[f.field_key];
 			if (v === undefined) return;
 			customFieldPayload[f.field_key] = v;
@@ -191,7 +200,7 @@ export default function ConfirmPage({ state, dispatch }) {
 				<dl
 					className="smb-front-confirm__list smb-front-confirm-list__dl"
 				>
-					{orderedFields.map((f) => (
+					{visibleOrderedFields.map((f) => (
 						<div
 							key={f.id}
 							className="smb-front-confirm__pair smb-front-confirm-row"
