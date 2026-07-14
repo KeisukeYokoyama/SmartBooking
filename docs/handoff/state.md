@@ -28,7 +28,11 @@
   - サーバ: 管理CRUD（条件バリデーション・**親削除の依存ブロック**・**逆方向ネスト `smb_field_condition_is_parent` も両側で塞いだ**）／公開取得／**予約作成のサーバ側再評価 `condition_met()`**（表示中のみ必須・非表示値は meta 破棄。フロント判定を信用しない）。REST は `condition_field_key`/`condition_value` を**追加のみ**で非破壊。CSV/予約詳細は meta 由来で自動空欄（無改修）。
   - フロント: 共有 `fieldConditions.js`（`isFieldVisible`）／FormInput・MainInputPage・ConfirmPage（表示中のみ描画/検証/payload除外＝送信時破棄）／CustomFieldModal「表示条件」UI（親候補フィルタ・system非表示・逆方向ネスト非表示）／FormSettingsPage。
   - 検証: logic-evaluator が全完了条件 Green（サーバ再評価を直接POSTで実証・CSV実出力で破棄空欄確認・管理UI DOM 実走）。新規 E2E `tests/e2e/v030-conditional-fields.spec.js`（A/B/C）＋`tests/e2e/v030-conditional-admin.spec.js`（2g・4ケース）。**デグレなし**（条件ゼロ時は従来同一）。回帰ゲートは planner が form/admin/flow/confirm/reservations 系を実走し新規失敗ゼロを確認。
-- **残り: ④ 住所フィールド（郵便番号自動入力）**。③④ 揃った時点で v0.3.0 リリース（バージョン4箇所更新＋Changelog＋ZIP＋SVN は人間 GO）。②は v0.4.0。
+- **残り: ④ 住所フィールド（郵便番号自動入力）**。③④ 揃った時点で v0.3.0 リリース。②は v0.4.0。
+
+### ⚠️ v0.3.0 リリースチェックリスト（機能④で発生した規約必須事項）
+- **readme.txt の External services セクションに住所検索 API（zipcloud）を必ず追記する**（通信先 `https://zipcloud.ibsnet.co.jp/api/search`・目的=郵便番号からの住所自動補完・タイミング=「住所フィールドが存在し自動入力ON かつ利用者が郵便番号7桁を入力したとき」・送信データ=郵便番号のみ・提供元 zipcloud）。**本機能はプラグイン初の「予約フロー中の外部通信」。追記漏れは WordPress.org 規約違反**。④実装コミットでは readme を触っていない（意図的にリリース作業へ集約）。
+- 通常のリリース手順: バージョン4箇所更新（`smart-booking.php` Version / `SMART_BOOKING_VERSION` / `readme.txt` Stable tag / `package.json`）＋ Changelog（日本語）＋ `npx wp-scripts plugin-zip` ＋ SVN commit。すべて人間 GO。
 
 ## 次の一手
 1. **約24時間後（2026-07-14 目安）に https://wordpress.org/plugins/smart-booking/ で バージョン 0.2.3 表示・Changelog を目視確認**（WP.org 配布反映の遅延は正常）。
