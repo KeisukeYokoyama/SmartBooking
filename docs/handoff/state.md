@@ -40,17 +40,24 @@
     - 🔴 **リリース時 readme External services に zipcloud 追記必須**（下記チェックリスト。④コミットでは readme 未タッチ＝意図的にリリース作業へ集約）。
 - **①③④ が全て揃った。次は v0.3.0 リリース作業（下記チェックリスト・すべて人間 GO）**。②は v0.4.0。
 
-### ⚠️ v0.3.0 リリースチェックリスト（機能④で発生した規約必須事項）
-- **readme.txt の External services セクションに住所検索 API（zipcloud）を必ず追記する**（通信先 `https://zipcloud.ibsnet.co.jp/api/search`・目的=郵便番号からの住所自動補完・タイミング=「住所フィールドが存在し自動入力ON かつ利用者が郵便番号7桁を入力したとき」・送信データ=郵便番号のみ・提供元 zipcloud）。**本機能はプラグイン初の「予約フロー中の外部通信」。追記漏れは WordPress.org 規約違反**。④実装コミットでは readme を触っていない（意図的にリリース作業へ集約）。
-- 通常のリリース手順: バージョン4箇所更新（`smart-booking.php` Version / `SMART_BOOKING_VERSION` / `readme.txt` Stable tag / `package.json`）＋ Changelog（日本語）＋ `npx wp-scripts plugin-zip` ＋ SVN commit。すべて人間 GO。
+### v0.3.0 リリース準備：ローカル作業 完了（2026-07-14・ブランチ `feat/v030-store-staff-labels`・push なし）
+リリース ZIP を出す直前までのローカル作業は全て完了。**残りは人間 GO の不可逆操作のみ**（下記「次の一手」）。
+- **✅ readme.txt External services に zipcloud 追記済み**（通信先 `https://zipcloud.ibsnet.co.jp/api/search`・目的=郵便番号からの住所自動補完・タイミング=「住所フィールドが存在し自動入力ON かつ利用者が郵便番号7桁を入力したとき」・送信データ=郵便番号のみ）。総括文も「明示的に有効化・設定した場合のみ通信」に整合（zipcloud はフィールド追加＝有効）。**規約必須事項をクリア**。
+- **✅ Changelog に 0.3.0 追記済み**（①呼び方設定・③条件フィールド・④住所フィールド。既存エントリ不変）。
+- **✅ バージョン4箇所を 0.3.0 に一致更新**（`smart-booking.php` Version / `SMART_BOOKING_VERSION` / `readme.txt` Stable tag / `package.json`）。
+- **✅ 既存ユーザーのアップグレード経路を修正**（`includes/class-activator.php`）。旧実装は `maybe_upgrade()` のゲートが `db_version < '0.2.3'` ハードコードで、既存 0.2.3 ユーザーが 0.3.0 に更新しても③の condition_* 列が追加されない不具合があった。ゲートを `SMART_BOOKING_VERSION` に変更し、`run_migrations()` に `create_tables()`（dbDelta 冪等再適用・`< '0.3.0'` ゲート）を追加。wp-env で 0.2.3 状態（列DROP・db_version=0.2.3）から `maybe_upgrade()` 発火 → condition_* 列再追加 & db_version→0.3.0 & 冪等（再発火 no-op）& schedules UNIQUE 4列 intact を実証。deactivate→activate の新規インストール相当も db_version=0.3.0・列2本で健全。
+- **✅ Plugin Check 0 errors / 0 warnings**（配布スコープ＝ZIP 相当。wp-env の plugin-check プラグインで実測。dev ファイルは .distignore 相当を除外）。④が新規に持ち込んだ `WordPress.DB.SlowDBQuery.slow_db_query_meta_key` 誤検知3件は、CSV 列生成のローカル配列キー `meta_key`→`mkey` へ改名して発生源から解消（`includes/rest/class-rest-reservations.php`。phase2-reservations の CSV export テスト10 pass で挙動不変を実証）。
+- **✅ ZIP 検証**（`npx wp-scripts plugin-zip`・コミット非対象・.gitignore 済み）: 29 ファイル（v0.2.3 と同一構成＝増減なし。③④は build/ バンドルと既存 `includes/rest/*.php` の内容更新に収まり新規出荷ファイルなし）。build/・includes/・languages/index.php・readme.txt・smart-booking.php・uninstall.php を同梱、docs/node_modules/tests/src/.git 等の混入ゼロ。ロゴは build/admin.js に data URI 同梱（別 SVG なし＝v0.2.3 BUG-B 方式）。
+- **✅ スモーク**（パーマリンク「基本(Plain)」「投稿名」の両方）: 管理画面5ページ（schedule/reservations/stores/form-settings/settings）が boot し boot 中 REST に 4xx/5xx ゼロ・ヘッダ v0.3.0 表示、フロント予約フロー完走。**BUG-A（Plain で REST 404）デグレなしを両構造で実証**。全 PHP `php -l` OK、phpcs 出荷スコープ ERRORS 0（整形 WARNINGS 36 は①③同方針で据え置き・審査ゲートは Plugin Check 0/0）。
 
-## 次の一手
-1. **約24時間後（2026-07-14 目安）に https://wordpress.org/plugins/smart-booking/ で バージョン 0.2.3 表示・Changelog を目視確認**（WP.org 配布反映の遅延は正常）。
-2. 残トラック（**v0.2.4／設計トラック送り**・いずれも非ブロッキング）:
-   - **phase3 仕様乖離**（`docs/bugs/spec-vs-shipped-booking-flow.md`：仕様 3.1/3.2 の多段ステップ vs 出荷済み統合設計）＝要プロダクト判断。
-   - **BUG-3 UX 微改善**（第6報：skip 種別ごとの誘導文・SMTP 表現の具体化）。
-   - **BUG-B aria-label 二重発話の統一**（第8報）。
-- **GO 待ち・未リリース事項はクリア**（v0.2.3 公開完了）。ゲート定義の CLAUDE.md／`.claude/agents/logic-evaluator.md` 反映（decision 0001）は反映・コミット済み（`a61be83` / `e59b3f5`）。
+## 次の一手（**すべて人間 GO・不可逆**）
+1. **ローカルコミット済み内容のレビュー**（`feat/v030-store-staff-labels`。push していない）。
+2. 人間が実施するリリース手順（Claude は認証情報を扱わない）:
+   - `main` へのマージ / `git push` / `git tag v0.3.0`。
+   - SVN（`~/dev/smart-booking-svn`）へ trunk 反映 + `tags/0.3.0` 作成 + `svn ci` で WordPress.org 公開。
+   - ZIP は `npx wp-scripts plugin-zip` で再生成可能（現状のローカル ZIP は検証用。SVN は展開ファイルを直接コミットする運用）。
+3. 公開後：約24時間後に https://wordpress.org/plugins/smart-booking/ で 0.3.0 表示・Changelog を目視確認。
+4. 残トラック（**v0.2.4／設計トラック送り**・非ブロッキング）: phase3 仕様乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／BUG-3 UX 微改善（第6報）／BUG-B aria-label 二重発話（第8報）。
 
 ## 未解決 / 確認事項
 - 検証資産の掃除候補（配布対象外・任意）: `tests/red/bug3-mail-failure-red.php`, `tests/red/bug3-mail-green-verify.php`, `tests/e2e/bug-a-plain-repro.spec.js`(skip), `tests/e2e/bug-b-logo-shipping.spec.js`, `tests/e2e/few-left-visual-repro.spec.js`。
