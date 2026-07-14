@@ -40,7 +40,9 @@ function seedTextOnly() {
 async function openEdit( page, label ) {
 	const row = page.locator( '.smb-field-list__row', { hasText: label } );
 	await row.getByRole( 'button', { name: '編集' } ).click();
-	await page.waitForSelector( '[role="dialog"].smb-modal', { timeout: 10_000 } );
+	await page.waitForSelector( '[role="dialog"].smb-modal', {
+		timeout: 10_000,
+	} );
 	return page.getByRole( 'dialog' );
 }
 
@@ -59,7 +61,9 @@ test.describe( 'v0.3.0 ③: 条件フィールド 管理UI', () => {
 	} ) => {
 		seedFull();
 		await bootstrapAdmin( page, 'form-settings' );
-		await page.waitForSelector( '.smb-page--form-settings', { timeout: 15_000 } );
+		await page.waitForSelector( '.smb-page--form-settings', {
+			timeout: 15_000,
+		} );
 
 		// select フィールド「都道府県」を編集 → 自己除外の検証に使う。
 		const dialog = await openEdit( page, '都道府県' );
@@ -75,7 +79,9 @@ test.describe( 'v0.3.0 ③: 条件フィールド 管理UI', () => {
 
 		const parentSelect = dialog.getByLabel( '親フィールド' );
 		await expect( parentSelect ).toBeVisible();
-		const opts = ( await parentSelect.locator( 'option' ).allTextContents() )
+		const opts = (
+			await parentSelect.locator( 'option' ).allTextContents()
+		)
 			.map( ( s ) => s.trim() )
 			.filter( Boolean );
 		// radio「資料送付」は候補に出る。
@@ -91,7 +97,9 @@ test.describe( 'v0.3.0 ③: 条件フィールド 管理UI', () => {
 	} ) => {
 		seedFull();
 		await bootstrapAdmin( page, 'form-settings' );
-		await page.waitForSelector( '.smb-page--form-settings', { timeout: 15_000 } );
+		await page.waitForSelector( '.smb-page--form-settings', {
+			timeout: 15_000,
+		} );
 
 		const dialog = await openEdit( page, 'お名前' );
 		await expect( dialog ).toContainText( '初期フィールド' );
@@ -105,7 +113,9 @@ test.describe( 'v0.3.0 ③: 条件フィールド 管理UI', () => {
 	} ) => {
 		seedFull();
 		await bootstrapAdmin( page, 'form-settings' );
-		await page.waitForSelector( '.smb-page--form-settings', { timeout: 15_000 } );
+		await page.waitForSelector( '.smb-page--form-settings', {
+			timeout: 15_000,
+		} );
 
 		// 資料送付(shiryo) は addr の親 → 表示条件は設定不可。
 		const dialog = await openEdit( page, '資料送付' );
@@ -126,7 +136,9 @@ test.describe( 'v0.3.0 ③: 条件フィールド 管理UI', () => {
 	test( '(d) 親候補0件: スイッチではなく案内文が出る', async ( { page } ) => {
 		seedTextOnly();
 		await bootstrapAdmin( page, 'form-settings' );
-		await page.waitForSelector( '.smb-page--form-settings', { timeout: 15_000 } );
+		await page.waitForSelector( '.smb-page--form-settings', {
+			timeout: 15_000,
+		} );
 
 		const dialog = await openEdit( page, 'メモ' );
 		await expect(

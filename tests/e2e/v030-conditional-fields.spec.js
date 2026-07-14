@@ -87,19 +87,27 @@ test.describe( 'v0.3.0 ③: 条件フィールド', () => {
 		} );
 	}
 
-	test( 'A: 親選択で子フィールドが表示/非表示に切り替わる', async ( { page } ) => {
+	test( 'A: 親選択で子フィールドが表示/非表示に切り替わる', async ( {
+		page,
+	} ) => {
 		await reachForm( page );
 		// 初期: 親未選択 → 子(addr)は非表示。
-		await expect( page.locator( '#smb-front-field-addr' ) ).toHaveCount( 0 );
+		await expect( page.locator( '#smb-front-field-addr' ) ).toHaveCount(
+			0
+		);
 		// 「希望する」→ 子が出現。
 		await page.locator( '#smb-front-field-shiryo-opt-0' ).check();
 		await expect( page.locator( '#smb-front-field-addr' ) ).toBeVisible();
 		// 「希望しない」→ 子が消失。
 		await page.locator( '#smb-front-field-shiryo-opt-1' ).check();
-		await expect( page.locator( '#smb-front-field-addr' ) ).toHaveCount( 0 );
+		await expect( page.locator( '#smb-front-field-addr' ) ).toHaveCount(
+			0
+		);
 	} );
 
-	test( 'B: 非表示に戻した子の入力値は meta に残らない（DB確認）', async ( { page } ) => {
+	test( 'B: 非表示に戻した子の入力値は meta に残らない（DB確認）', async ( {
+		page,
+	} ) => {
 		await reachForm( page );
 		// 希望する → 住所入力 → 希望しない（非表示に戻す）→ 送信。
 		await page.locator( '#smb-front-field-shiryo-opt-0' ).check();
@@ -107,7 +115,9 @@ test.describe( 'v0.3.0 ③: 条件フィールド', () => {
 			.locator( '#smb-front-field-addr' )
 			.fill( '東京都テスト区1-2-3' );
 		await page.locator( '#smb-front-field-shiryo-opt-1' ).check();
-		await page.locator( '#smb-front-field-customer_name' ).fill( '条件 太郎' );
+		await page
+			.locator( '#smb-front-field-customer_name' )
+			.fill( '条件 太郎' );
 		await page
 			.locator( '#smb-front-field-customer_email' )
 			.fill( 'cond@example.com' );
@@ -115,24 +125,33 @@ test.describe( 'v0.3.0 ③: 条件フィールド', () => {
 			.locator( '#smb-front-field-customer_phone' )
 			.fill( '090-1111-2222' );
 		await page.getByRole( 'button', { name: '予約内容の確認' } ).click();
-		await page.waitForSelector( '.smb-front-confirm-page, .smb-front-confirm', {
-			timeout: 10_000,
-		} );
+		await page.waitForSelector(
+			'.smb-front-confirm-page, .smb-front-confirm',
+			{
+				timeout: 10_000,
+			}
+		);
 		// 確認画面に非表示フィールド(送付先住所)の行が出ない。
 		await expect( page.getByText( '送付先住所' ) ).toHaveCount( 0 );
 		await page.getByRole( 'button', { name: '予約を確定する' } ).click();
 		await expect(
-			page.getByRole( 'heading', { name: 'ご予約ありがとうございました' } )
+			page.getByRole( 'heading', {
+				name: 'ご予約ありがとうございました',
+			} )
 		).toBeVisible( { timeout: 10_000 } );
 		// DB: addr の meta 行は作られていない。
 		expect( addrMetaCount() ).toBe( 0 );
 	} );
 
-	test( 'C: 表示中のみ必須（フロント＋サーバ直接POST）', async ( { page } ) => {
+	test( 'C: 表示中のみ必須（フロント＋サーバ直接POST）', async ( {
+		page,
+	} ) => {
 		await reachForm( page );
 		// 表示中(希望する)で addr 空のまま確認へ → フロント必須で確認画面に進めない。
 		await page.locator( '#smb-front-field-shiryo-opt-0' ).check();
-		await page.locator( '#smb-front-field-customer_name' ).fill( '必須 太郎' );
+		await page
+			.locator( '#smb-front-field-customer_name' )
+			.fill( '必須 太郎' );
 		await page
 			.locator( '#smb-front-field-customer_email' )
 			.fill( 'req@example.com' );
