@@ -561,9 +561,10 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$fields = $wpdb->get_results( "SELECT field_key, field_label, field_type FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC", ARRAY_A );
 
-		// 列を (label, meta_key) エントリのリストに一般化する。
+		// 列を (label, mkey) エントリのリストに一般化する（mkey = 参照する reservation_meta のキー）。
 		// address 型は 1フィールド = 2列（郵便番号 / 住所）。他は 1列。
 		// 列は常時出力（条件フィールドで非表示だった行は meta 無し → 空欄）。
+		// ※ 配列キーを 'meta_key' にすると WordPress.DB.SlowDBQuery 誤検知（WP_Query 引数扱い）を招くため 'mkey' とする。
 		$core_fields   = array( 'customer_name', 'customer_email', 'customer_phone' );
 		$extra_columns = array();
 		foreach ( $fields as $f ) {
@@ -573,17 +574,17 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 			$ftype = isset( $f['field_type'] ) ? (string) $f['field_type'] : '';
 			if ( 'address' === $ftype ) {
 				$extra_columns[] = array(
-					'label'    => $f['field_label'] . '（郵便番号）',
-					'meta_key' => $f['field_key'] . '_zip',
+					'label' => $f['field_label'] . '（郵便番号）',
+					'mkey'  => $f['field_key'] . '_zip',
 				);
 				$extra_columns[] = array(
-					'label'    => $f['field_label'] . '（住所）',
-					'meta_key' => $f['field_key'] . '_address',
+					'label' => $f['field_label'] . '（住所）',
+					'mkey'  => $f['field_key'] . '_address',
 				);
 			} else {
 				$extra_columns[] = array(
-					'label'    => $f['field_label'],
-					'meta_key' => $f['field_key'],
+					'label' => $f['field_label'],
+					'mkey'  => $f['field_key'],
 				);
 			}
 		}
@@ -647,7 +648,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 				$r['created_at'],
 			);
 			foreach ( $extra_columns as $col ) {
-				$k            = $col['meta_key'];
+				$k            = $col['mkey'];
 				$row_values[] = isset( $meta_map[ $k ] ) ? $meta_map[ $k ] : '';
 			}
 
