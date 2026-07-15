@@ -1,7 +1,9 @@
 /**
  * 店舗カード。アバター（画像）+ 基本情報 + 有効/無効スイッチ + 並び替えハンドル + 操作ボタン。
  */
+import ShortcodeField from '../../components/ShortcodeField';
 import Switch from '../../components/Switch';
+import { buildStoreShortcode } from '../../utils/shortcode';
 
 export default function StoreCard({
 	store,
@@ -55,6 +57,7 @@ export default function StoreCard({
 						</>
 					)}
 				</dl>
+				<ShortcodeField code={buildStoreShortcode(store)} compact />
 			</div>
 			<div className="smb-card__side">
 				<Switch
