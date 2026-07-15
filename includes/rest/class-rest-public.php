@@ -404,21 +404,27 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	}
 
 	/**
-	 * 公開カスタムフィールド定義。
+	 * 公開カスタムフィールド定義。`form_id` で絞り込み（省略・不正時はデフォルトフォームへフォールバック）。
 	 *
+	 * @param WP_REST_Request $request リクエスト.
 	 * @return WP_REST_Response
 	 */
-	public function get_custom_fields() {
+	public function get_custom_fields( $request ) {
 		global $wpdb;
+		// 存在しない form_id はデフォルトフォームへフォールバック（フロントで予約が止まる事故を防ぐ）。
+		$form_id = Smart_Booking_REST_Forms::resolve_form_id( absint( $request->get_param( 'form_id' ) ) );
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
-			"SELECT id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, condition_field_key, condition_value
-			FROM {$wpdb->prefix}smart_booking_custom_fields
-			ORDER BY sort_order ASC, id ASC",
+			$wpdb->prepare(
+				"SELECT id, form_id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, condition_field_key, condition_value
+				FROM {$wpdb->prefix}smart_booking_custom_fields
+				WHERE form_id = %d
+				ORDER BY sort_order ASC, id ASC",
+				$form_id
+			),
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
 		}
@@ -453,6 +459,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 			$out[] = array(
 				'id'                  => (int) $row['id'],
+				'form_id'             => (int) $row['form_id'],
 				'field_key'           => (string) $row['field_key'],
 				'field_label'         => (string) $row['field_label'],
 				'field_type'          => $type,
@@ -800,6 +807,14 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			);
 		}
 
+		// フォーム解決。指定があれば存在検証、省略時はデフォルトフォーム。
+		// このフォームのフィールドのみを必須検証・meta 保存の対象とする。
+		$requested_form = absint( $request->get_param( 'form_id' ) );
+		if ( $requested_form > 0 && ! Smart_Booking_REST_Forms::form_exists( $requested_form ) ) {
+			return $this->error( 'smb_reservation_form_invalid', 'フォームが正しくありません。', 400 );
+		}
+		$form_id = $requested_form > 0 ? $requested_form : Smart_Booking_REST_Forms::default_form_id();
+
 		// schedule_id 存在確認.
 		$schedule_id = absint( $request->get_param( 'schedule_id' ) );
 		if ( $schedule_id <= 0 ) {
@@ -856,14 +871,16 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_reservation_phone_required', '電話番号を入力してください。', 400 );
 		}
 
-		// カスタムフィールド必須チェック.
+		// カスタムフィールド必須チェック（このフォームのフィールドのみ）.
 		// テーブル名は内部生成値。プレースホルダでは識別子を扱えないため interpolation で対応。
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_defs = $wpdb->get_results(
-			"SELECT field_key, field_label, field_type, is_required, condition_field_key, condition_value FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC, id ASC",
+			$wpdb->prepare(
+				"SELECT field_key, field_label, field_type, is_required, condition_field_key, condition_value FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d ORDER BY sort_order ASC, id ASC",
+				$form_id
+			),
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		if ( ! is_array( $field_defs ) ) {
 			$field_defs = array();
 		}
@@ -1039,6 +1056,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		$ok = $wpdb->insert(
 			$wpdb->prefix . 'smart_booking_reservations',
 			array(
+				'form_id'        => (int) $form_id,
 				'store_id'       => (int) $booked_schedule['store_id'],
 				'staff_id'       => (int) $booked_schedule['staff_id'],
 				'schedule_id'    => (int) $booked_schedule['id'],
@@ -1052,7 +1070,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'created_at'     => $now,
 				'updated_at'     => $now,
 			),
-			array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( false === $ok ) {

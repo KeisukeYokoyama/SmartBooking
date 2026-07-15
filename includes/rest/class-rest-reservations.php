@@ -114,6 +114,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 
 		$data = array(
 			'id'              => (int) $row['id'],
+			'form_id'         => (int) $row['form_id'],
 			'store_id'        => (int) $row['store_id'],
 			'staff_id'        => (int) $row['staff_id'],
 			'store_is_system' => $store_is_system,
@@ -155,6 +156,10 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		$where  = array( '1=1' );
 		$params = array();
 
+		if ( $request->get_param( 'form_id' ) ) {
+			$where[]  = 'form_id = %d';
+			$params[] = absint( $request->get_param( 'form_id' ) );
+		}
 		if ( $request->get_param( 'store_id' ) ) {
 			$where[]  = 'store_id = %d';
 			$params[] = absint( $request->get_param( 'store_id' ) );
@@ -276,6 +281,9 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 	public function create_item( $request ) {
 		global $wpdb;
 
+		// フォーム解決（省略・不正時はデフォルトフォーム）。予約にどのフォーム経由かを記録する。
+		$form_id = Smart_Booking_REST_Forms::resolve_form_id( absint( $request->get_param( 'form_id' ) ) );
+
 		$schedule_id = absint( $request->get_param( 'schedule_id' ) );
 		if ( $schedule_id <= 0 ) {
 			return $this->error( 'smb_reservation_schedule_required', 'スケジュールを指定してください。', 400 );
@@ -331,6 +339,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		$ok = $wpdb->insert(
 			$wpdb->prefix . 'smart_booking_reservations',
 			array(
+				'form_id'        => (int) $form_id,
 				'store_id'       => (int) $schedule['store_id'],
 				'staff_id'       => (int) $schedule['staff_id'],
 				'schedule_id'    => (int) $schedule['id'],
@@ -344,7 +353,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 				'created_at'     => $now,
 				'updated_at'     => $now,
 			),
-			array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( false === $ok ) {
@@ -558,6 +567,9 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		$stores = $wpdb->get_results( "SELECT id, name, is_system FROM {$wpdb->prefix}smart_booking_stores", OBJECT_K );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$staff = $wpdb->get_results( "SELECT id, name, is_system FROM {$wpdb->prefix}smart_booking_staff", OBJECT_K );
+		// フォーム名の解決用（削除済みフォームは id が引けない）。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$forms = $wpdb->get_results( "SELECT id, name FROM {$wpdb->prefix}smart_booking_forms", OBJECT_K );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$fields = $wpdb->get_results( "SELECT field_key, field_label, field_type FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC", ARRAY_A );
 
@@ -565,27 +577,30 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		// address 型は 1フィールド = 2列（郵便番号 / 住所）。他は 1列。
 		// 列は常時出力（条件フィールドで非表示だった行は meta 無し → 空欄）。
 		// ※ 配列キーを 'meta_key' にすると WordPress.DB.SlowDBQuery 誤検知（WP_Query 引数扱い）を招くため 'mkey' とする。
+		// 複数フォームで同一 field_key が併存し得るため、mkey で列を重複排除する（最初の出現を残す）。
 		$core_fields   = array( 'customer_name', 'customer_email', 'customer_phone' );
 		$extra_columns = array();
+		$seen_mkeys    = array();
+		$add_column    = static function ( $label, $mkey ) use ( &$extra_columns, &$seen_mkeys ) {
+			if ( isset( $seen_mkeys[ $mkey ] ) ) {
+				return;
+			}
+			$seen_mkeys[ $mkey ] = true;
+			$extra_columns[]     = array(
+				'label' => $label,
+				'mkey'  => $mkey,
+			);
+		};
 		foreach ( $fields as $f ) {
 			if ( in_array( $f['field_key'], $core_fields, true ) ) {
 				continue;
 			}
 			$ftype = isset( $f['field_type'] ) ? (string) $f['field_type'] : '';
 			if ( 'address' === $ftype ) {
-				$extra_columns[] = array(
-					'label' => $f['field_label'] . '（郵便番号）',
-					'mkey'  => $f['field_key'] . '_zip',
-				);
-				$extra_columns[] = array(
-					'label' => $f['field_label'] . '（住所）',
-					'mkey'  => $f['field_key'] . '_address',
-				);
+				$add_column( $f['field_label'] . '（郵便番号）', $f['field_key'] . '_zip' );
+				$add_column( $f['field_label'] . '（住所）', $f['field_key'] . '_address' );
 			} else {
-				$extra_columns[] = array(
-					'label' => $f['field_label'],
-					'mkey'  => $f['field_key'],
-				);
+				$add_column( $f['field_label'], $f['field_key'] );
 			}
 		}
 		$extra_labels = array();
@@ -603,7 +618,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		);
 
 		$header = array_merge(
-			array( '予約番号', '予約日', '予約時間', '予約者名', 'メール', '電話', '店舗', '担当者', 'ステータス', '作成日時' ),
+			array( '予約番号', '予約日', '予約時間', '予約者名', 'メール', '電話', '店舗', 'フォーム', '担当者', 'ステータス', '作成日時' ),
 			$extra_labels
 		);
 
@@ -633,7 +648,15 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 			if ( $staff_obj ) {
 				$staff_name = ! empty( $staff_obj->is_system ) ? '-' : (string) $staff_obj->name;
 			}
-			$status     = isset( $status_labels[ $r['status'] ] ) ? $status_labels[ $r['status'] ] : $r['status'];
+			$status = isset( $status_labels[ $r['status'] ] ) ? $status_labels[ $r['status'] ] : $r['status'];
+
+			// フォーム名: form_id=0 は空文字、>0 かつマップにあればその name、無ければ「(削除済みフォーム)」。
+			$form_id_val = (int) $r['form_id'];
+			$form_name   = '';
+			if ( $form_id_val > 0 ) {
+				$form_obj  = isset( $forms[ $form_id_val ] ) ? $forms[ $form_id_val ] : null;
+				$form_name = $form_obj ? (string) $form_obj->name : '(削除済みフォーム)';
+			}
 
 			$row_values = array(
 				(string) $r['id'],
@@ -643,6 +666,7 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 				$r['customer_email'],
 				$r['customer_phone'],
 				$store_name,
+				$form_name,
 				$staff_name,
 				$status,
 				$r['created_at'],

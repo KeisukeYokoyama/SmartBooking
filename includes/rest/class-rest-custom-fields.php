@@ -94,6 +94,19 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * リクエストの form_id を有効なフォーム id へ解決する。
+	 *
+	 * 省略時・不正な id はデフォルトフォームへフォールバックする（フォーム定義の
+	 * 一意性はデフォルトフォーム側に集約される）。
+	 *
+	 * @param WP_REST_Request $request リクエスト.
+	 * @return int
+	 */
+	private function resolve_form_id( $request ) {
+		return Smart_Booking_REST_Forms::resolve_form_id( absint( $request->get_param( 'form_id' ) ) );
+	}
+
+	/**
 	 * 行を整形する。
 	 *
 	 * @param array $row DB 行.
@@ -127,6 +140,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			: null;
 		return array(
 			'id'                  => (int) $row['id'],
+			'form_id'             => (int) $row['form_id'],
 			'field_key'           => $row['field_key'],
 			'field_label'         => $row['field_label'],
 			'field_type'          => $row['field_type'],
@@ -150,10 +164,13 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 * @param WP_REST_Request $request      リクエスト.
 	 * @param string          $self_key     自身の field_key（自己参照防止・自己除外に使用）.
 	 * @param bool            $is_protected 保護フィールド（氏名/メール/電話）か.
+	 * @param int             $form_id      対象フォーム id（親候補・依存対象を同一フォーム内に限定）.
 	 * @return array|WP_Error condition_field_key / condition_value（各 string|null）または WP_Error.
 	 */
-	private function sanitize_condition( $request, $self_key, $is_protected ) {
+	private function sanitize_condition( $request, $self_key, $is_protected, $form_id ) {
 		global $wpdb;
+
+		$form_id = (int) $form_id;
 
 		// 保護フィールド（system）は条件の子になれない → 強制 NULL。
 		if ( $is_protected ) {
@@ -182,15 +199,15 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		// 自身に条件を設定すると 2 段ネストになるため不可。
 		if ( '' !== (string) $self_key ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$is_parent = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s", (string) $self_key ) );
+			$is_parent = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s AND form_id = %d", (string) $self_key, $form_id ) );
 			if ( $is_parent > 0 ) {
 				return $this->error( 'smb_field_condition_is_parent', 'このフィールドは他フィールドの表示条件の親になっているため、表示条件を設定できません。', 400 );
 			}
 		}
 
-		// 親フィールドの取得。
+		// 親フィールドの取得（同一フォーム内のみ）。
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$parent = $wpdb->get_row( $wpdb->prepare( "SELECT field_type, condition_field_key FROM {$wpdb->prefix}smart_booking_custom_fields WHERE field_key = %s", $parent_key ), ARRAY_A );
+		$parent = $wpdb->get_row( $wpdb->prepare( "SELECT field_type, condition_field_key FROM {$wpdb->prefix}smart_booking_custom_fields WHERE field_key = %s AND form_id = %d", $parent_key, $form_id ), ARRAY_A );
 		if ( ! $parent || ! in_array( (string) $parent['field_type'], array( 'radio', 'select' ), true ) ) {
 			return $this->error( 'smb_field_condition_parent_invalid', '表示条件の親は選択式（ラジオ/セレクト）のフィールドのみ指定できます。', 400 );
 		}
@@ -213,14 +230,16 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	}
 
 	/**
-	 * 一覧取得。
+	 * 一覧取得（form_id で絞り込み。省略時はデフォルトフォーム）。
 	 *
+	 * @param WP_REST_Request $request リクエスト.
 	 * @return WP_REST_Response
 	 */
-	public function get_items() {
+	public function get_items( $request ) {
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}smart_booking_custom_fields ORDER BY sort_order ASC, id ASC", ARRAY_A );
+		$form_id = $this->resolve_form_id( $request );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d ORDER BY sort_order ASC, id ASC", $form_id ), ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			$rows = array();
 		}
@@ -261,10 +280,13 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 * 入力をサニタイズ（作成用）。
 	 *
 	 * @param WP_REST_Request $request リクエスト.
+	 * @param int             $form_id 対象フォーム id（field_key の衝突判定・親候補の範囲）.
 	 * @return array|WP_Error
 	 */
-	private function sanitize_create( $request ) {
+	private function sanitize_create( $request, $form_id ) {
 		global $wpdb;
+
+		$form_id = (int) $form_id;
 
 		$label = sanitize_text_field( (string) $request->get_param( 'field_label' ) );
 		if ( '' === $label ) {
@@ -284,16 +306,16 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			$key = 'field_' . ( $max + 1 );
 		}
 
-		// 既存 key との衝突チェック.
+		// 既存 key との衝突チェック（同一フォーム内で一意にする＝複合 UNIQUE(form_id, field_key)）.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE field_key = %s", $key ) );
+		$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d AND field_key = %s", $form_id, $key ) );
 		if ( $exists > 0 ) {
 			// 衝突した場合は suffix を付ける.
 			$i = 2;
 			do {
 				$candidate = $key . '_' . $i;
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE field_key = %s", $candidate ) );
+				$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d AND field_key = %s", $form_id, $candidate ) );
 				++$i;
 			} while ( $exists > 0 && $i < 100 );
 			$key = $candidate;
@@ -316,7 +338,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		}
 
 		$is_protected = in_array( $key, self::PROTECTED_KEYS, true );
-		$condition    = $this->sanitize_condition( $request, $key, $is_protected );
+		$condition    = $this->sanitize_condition( $request, $key, $is_protected, $form_id );
 		if ( is_wp_error( $condition ) ) {
 			return $condition;
 		}
@@ -347,17 +369,20 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	 */
 	public function create_item( $request ) {
 		global $wpdb;
-		$data = $this->sanitize_create( $request );
+		$form_id = $this->resolve_form_id( $request );
+		$data    = $this->sanitize_create( $request, $form_id );
 		if ( is_wp_error( $data ) ) {
 			return $data;
 		}
+		// form_id を先頭に配置（format 配列の先頭 %d と対応）。
+		$data               = array_merge( array( 'form_id' => $form_id ), $data );
 		$data['created_at'] = $this->now_mysql();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert(
 			$this->table(),
 			$data,
-			array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
 		);
 		$id      = (int) $wpdb->insert_id;
 		$get_req = new WP_REST_Request( 'GET' );
@@ -412,7 +437,8 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		}
 
 		$is_protected = in_array( $row['field_key'], self::PROTECTED_KEYS, true );
-		$condition    = $this->sanitize_condition( $request, (string) $row['field_key'], $is_protected );
+		// form_id は不変。対象行の form_id を条件検証のスコープに使う（同一フォーム内のみ親候補）。
+		$condition = $this->sanitize_condition( $request, (string) $row['field_key'], $is_protected, (int) $row['form_id'] );
 		if ( is_wp_error( $condition ) ) {
 			return $condition;
 		}
@@ -471,9 +497,9 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			);
 		}
 
-		// 依存チェック: このフィールドを表示条件の親にしている子フィールドがある場合は削除をブロック。
+		// 依存チェック: このフィールドを表示条件の親にしている子フィールドが同一フォーム内にある場合は削除をブロック。
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$dependents = $wpdb->get_col( $wpdb->prepare( "SELECT field_label FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s", (string) $row['field_key'] ) );
+		$dependents = $wpdb->get_col( $wpdb->prepare( "SELECT field_label FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s AND form_id = %d", (string) $row['field_key'], (int) $row['form_id'] ) );
 		if ( is_array( $dependents ) && count( $dependents ) > 0 ) {
 			return $this->error(
 				'smb_field_has_dependents',

@@ -688,52 +688,71 @@ class Smart_Booking_Activator {
 		$fields_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields" );
 		if ( 0 === $fields_count ) {
 			// 初期フィールドはデフォルトフォームに束ねる（form_id を付与）。
-			$form_id  = self::ensure_default_form();
-			$defaults = array(
-				array(
-					'field_key'   => 'customer_name',
-					'field_label' => '氏名',
-					'field_type'  => 'text',
-					'placeholder' => '山田 太郎',
-					'is_required' => 1,
-					'sort_order'  => 0,
-				),
-				array(
-					'field_key'   => 'customer_email',
-					'field_label' => 'メールアドレス',
-					'field_type'  => 'email',
-					'placeholder' => 'example@example.com',
-					'is_required' => 1,
-					'sort_order'  => 1,
-				),
-				array(
-					'field_key'   => 'customer_phone',
-					'field_label' => '電話番号',
-					'field_type'  => 'tel',
-					'placeholder' => '090-1234-5678',
-					'is_required' => 1,
-					'sort_order'  => 2,
-				),
-			);
+			$form_id = self::ensure_default_form();
+			self::seed_initial_fields_for_form( $form_id );
+		}
+	}
 
-			foreach ( $defaults as $field ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->insert(
-					$wpdb->prefix . 'smart_booking_custom_fields',
-					array(
-						'form_id'       => $form_id,
-						'field_key'     => $field['field_key'],
-						'field_label'   => $field['field_label'],
-						'field_type'    => $field['field_type'],
-						'field_options' => '',
-						'placeholder'   => $field['placeholder'],
-						'is_required'   => $field['is_required'],
-						'sort_order'    => $field['sort_order'],
-						'created_at'    => current_time( 'mysql' ),
-					),
-					array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
-				);
-			}
+	/**
+	 * 指定フォームに初期3フィールド（氏名 / メールアドレス / 電話番号）を投入する。
+	 *
+	 * 有効化時のデフォルトデータ投入と、新規フォーム作成直後の初期化で共有する。
+	 * これらのフィールドは削除禁止（PROTECTED_KEYS）であり、メール通知の宛先解決
+	 * （customer_email 等）が常に成立する前提を担保する。
+	 *
+	 * 注意: 本メソッドは無条件で挿入する。呼び出し側が「対象フォームがフィールドを
+	 * 持たない（新規作成直後・または全体が空）」ことを保証すること。
+	 *
+	 * @param int $form_id 挿入先フォーム id.
+	 * @return void
+	 */
+	public static function seed_initial_fields_for_form( $form_id ) {
+		global $wpdb;
+
+		$defaults = array(
+			array(
+				'field_key'   => 'customer_name',
+				'field_label' => '氏名',
+				'field_type'  => 'text',
+				'placeholder' => '山田 太郎',
+				'is_required' => 1,
+				'sort_order'  => 0,
+			),
+			array(
+				'field_key'   => 'customer_email',
+				'field_label' => 'メールアドレス',
+				'field_type'  => 'email',
+				'placeholder' => 'example@example.com',
+				'is_required' => 1,
+				'sort_order'  => 1,
+			),
+			array(
+				'field_key'   => 'customer_phone',
+				'field_label' => '電話番号',
+				'field_type'  => 'tel',
+				'placeholder' => '090-1234-5678',
+				'is_required' => 1,
+				'sort_order'  => 2,
+			),
+		);
+
+		foreach ( $defaults as $field ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->insert(
+				$wpdb->prefix . 'smart_booking_custom_fields',
+				array(
+					'form_id'       => (int) $form_id,
+					'field_key'     => $field['field_key'],
+					'field_label'   => $field['field_label'],
+					'field_type'    => $field['field_type'],
+					'field_options' => '',
+					'placeholder'   => $field['placeholder'],
+					'is_required'   => $field['is_required'],
+					'sort_order'    => $field['sort_order'],
+					'created_at'    => current_time( 'mysql' ),
+				),
+				array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
+			);
 		}
 	}
 }

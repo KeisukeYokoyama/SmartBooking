@@ -21,6 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'SMART_BOOKING_VERSION', '0.3.0' );
+// 複数フォームの上限（性能ではなく UI 崩壊防止のためのハードキャップ）。設定画面には出さない。
+define( 'SMART_BOOKING_MAX_FORMS', 10 );
 define( 'SMART_BOOKING_PLUGIN_FILE', __FILE__ );
 define( 'SMART_BOOKING_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SMART_BOOKING_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
