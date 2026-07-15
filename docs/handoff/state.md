@@ -33,15 +33,16 @@
 - 🔵 非ブロッキング（掃除任意・出荷影響なし）：リポジトリルートに古い `smart-booking.zip`・`.DS_Store`（`includes/.DS_Store` 含む）が残存。配布 ZIP には含まれない（.distignore 除外）。
 
 ### v0.4.0 次の一手（**すべて人間 GO・不可逆**）
-1. **ローカルコミットのレビュー**（`feat/v040-multi-forms`・push していない。release commit `b1f4a3d` + 本 handoff commit）。
-2. **公開順序の判断（要確認）**：現在の公開バージョンは **v0.2.3**。**v0.3.0（①③④）はブランチ `feat/v030-store-staff-labels` にコミット済みだが WordPress.org 未公開**。この v0.4.0 ブランチは 0.3.0 リリースコミット（`4b27463`）の上に②を積み ①③④ を内包する。よって「v0.3.0 を先に公開 → その後 v0.4.0」か「v0.2.3→v0.4.0 で ①〜④ を一括公開」かを人間が決める必要がある。Changelog は 0.4.0/0.3.0 とも記載済みなので一括公開でも履歴は揃う。
+1. **ローカルコミットのレビュー**（`feat/v040-multi-forms`・push していない。release commit `b1f4a3d` + handoff commit 群）。
+2. **公開経路 = v0.3.0 → v0.4.0 の通常更新**（公開順序の判断は不要）。**現在の公開バージョンは v0.3.0**（WordPress.org・2026-07-14 公開・SVN rev 3608167）。この v0.4.0 ブランチは 0.3.0 リリースコミット（`4b27463`）の上に②を積むため、既存 v0.3.0 ユーザーには `maybe_upgrade()`（0.3.0<0.4.0）で本番マイグレーションが1回発火する（上で実証済）。
 3. 人間が実施するリリース手順（Claude は認証情報を扱わない）：main へのマージ / `git push` / `git tag v0.4.0` / SVN（`~/dev/smart-booking-svn`）trunk 反映 + `tags/0.4.0` + `svn ci`。ZIP は `npx wp-scripts plugin-zip` で再生成可能。
 4. 公開後：約24時間後に https://wordpress.org/plugins/smart-booking/ で表示・Changelog を目視確認。
-5. 🟡 readme 精度メモ（②由来・任意判断・今回スコープ厳守で未編集）：FAQ「プラグインを削除すると…**6つ**のカスタムテーブル…削除されます」は②で forms テーブル追加により**実体7つ**。uninstall.php は7テーブル DROP 済で挙動は正しく、あくまで readme 文言の数値。文言更新の要否は人間判断。
+5. ✅ readme 精度（②由来）：FAQ「プラグインを削除すると…カスタムテーブル…削除されます」の**「6つ」→「7つ」に修正済み**（②の forms テーブル追加＝実体7つ・uninstall.php の7テーブル DROP と整合）。
 
 ## 現在地
-- **公開バージョン: v0.2.3（WordPress.org・SVN rev 3605460、2026-07-13 公開）**。前バージョン v0.2.2（rev 3592043）。
-- git: v0.2.3 の全作業を `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
+- **公開バージョン: v0.3.0（WordPress.org・SVN rev 3608167、2026-07-14 公開）**。公開ページで 0.3.0 表示・demo サイトも 0.3.0 へ更新済み（SVN 公開は人間側作業＝これまで state.md に未記録だった）。前バージョン v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
+- **次リリース = v0.4.0（機能② 複数フォーム）＝v0.3.0 → v0.4.0 の通常更新**。ローカル準備完了（上記 v0.4.0 セクション）・人間 GO 待ち。
+- git（v0.2.3）: 全作業を `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。v0.3.0 の git main マージ / tag 状況は人間側管理（本ツールからは未確認）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
   - **BUG-1/2＋BUG-4＋自動更新フック(b)**（第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`（copy_schedules 店舗×担当者スコープ／schedules UNIQUE＋dedup 移行／admin_init maybe_upgrade）。
   - **BUG-A（Plain パーマリンク REST 依存）**（第4報）: `src/admin/api.js` / `src/frontend/api.js`（buildUrl セパレータ修正）。
@@ -51,7 +52,7 @@
   - **readme 英語化**（WordPress.org 2025-07 ポリシー）: 短い説明＋Description を英語復元・`non_official_language` 0。
 - 全案件、固有ゲート＋回帰（ベースライン差分・新規失敗ゼロ）＋配布物 Plugin Check 0/0（ZIP 実測・混入なし・全修正同梱）＋契約非破壊で Green。
 
-## v0.3.0 進行中（未リリース・仕様は `docs/spec-amendment-v030-v040.md`）
+## v0.3.0（WordPress.org 公開済み・2026-07-14・仕様は `docs/spec-amendment-v030-v040.md`）
 - **機能① 店舗・担当者の呼び方設定：実装完了・検証 Green（2026-07-14）**。
   - ブランチ `feat/v030-store-staff-labels` にコミット（**push なし**）。**バージョンは 0.2.3 のまま据え置き**（v0.3.0 は ①③④ が揃った時点で別途リリース。readme Changelog 未着手）。
   - 内容: 設定に個別 option 2つ `smart_booking_store_label` / `smart_booking_staff_label`（新テーブル無し）。GET/POST `/settings` と GET `/public/settings` に2キー追加（**追加のみ・公開契約非破壊**）。空文字→デフォルト（店舗/担当者）フォールバックは `class-rest-public.php::get_settings()` 末尾に集約。管理画面 基本設定タブに入力UI（maxLength=20）。反映は**フロントのみ**（StoreSelect/StaffSelect 見出し・SelectionBar・DonePage ラベル・state.js 店舗固定エラー）。管理画面表記は意図的に不変。
@@ -75,7 +76,7 @@
     - 🟢 2d 上書き防止・2j 予約詳細表示はコード確認済（専用 E2E は未追加だが実装は堅牢・test A が自動補完後の手編集を通過）。
     - 🟡 phpcs 整形警告 +3（address 分岐の整列）。①③と同方針で据え置き（`wp plugin check` ゲート対象外・ERRORS 0/0）。
     - 🔴 **リリース時 readme External services に zipcloud 追記必須**（下記チェックリスト。④コミットでは readme 未タッチ＝意図的にリリース作業へ集約）。
-- **①③④ が全て揃った。次は v0.3.0 リリース作業（下記チェックリスト・すべて人間 GO）**。②は v0.4.0。
+- **①③④ が全て揃い、v0.3.0 は 2026-07-14 に WordPress.org 公開済み（SVN rev 3608167）**。②は v0.4.0（上記セクション・ローカル準備完了）。
 
 ### v0.3.0 リリース準備：ローカル作業 完了（2026-07-14・ブランチ `feat/v030-store-staff-labels`・push なし）
 リリース ZIP を出す直前までのローカル作業は全て完了。**残りは人間 GO の不可逆操作のみ**（下記「次の一手」）。
@@ -87,14 +88,9 @@
 - **✅ ZIP 検証**（`npx wp-scripts plugin-zip`・コミット非対象・.gitignore 済み）: 29 ファイル（v0.2.3 と同一構成＝増減なし。③④は build/ バンドルと既存 `includes/rest/*.php` の内容更新に収まり新規出荷ファイルなし）。build/・includes/・languages/index.php・readme.txt・smart-booking.php・uninstall.php を同梱、docs/node_modules/tests/src/.git 等の混入ゼロ。ロゴは build/admin.js に data URI 同梱（別 SVG なし＝v0.2.3 BUG-B 方式）。
 - **✅ スモーク**（パーマリンク「基本(Plain)」「投稿名」の両方）: 管理画面5ページ（schedule/reservations/stores/form-settings/settings）が boot し boot 中 REST に 4xx/5xx ゼロ・ヘッダ v0.3.0 表示、フロント予約フロー完走。**BUG-A（Plain で REST 404）デグレなしを両構造で実証**。全 PHP `php -l` OK、phpcs 出荷スコープ ERRORS 0（整形 WARNINGS 36 は①③同方針で据え置き・審査ゲートは Plugin Check 0/0）。
 
-## 次の一手（**すべて人間 GO・不可逆**）
-1. **ローカルコミット済み内容のレビュー**（`feat/v030-store-staff-labels`。push していない）。
-2. 人間が実施するリリース手順（Claude は認証情報を扱わない）:
-   - `main` へのマージ / `git push` / `git tag v0.3.0`。
-   - SVN（`~/dev/smart-booking-svn`）へ trunk 反映 + `tags/0.3.0` 作成 + `svn ci` で WordPress.org 公開。
-   - ZIP は `npx wp-scripts plugin-zip` で再生成可能（現状のローカル ZIP は検証用。SVN は展開ファイルを直接コミットする運用）。
-3. 公開後：約24時間後に https://wordpress.org/plugins/smart-booking/ で 0.3.0 表示・Changelog を目視確認。
-4. 残トラック（**v0.2.4／設計トラック送り**・非ブロッキング）: phase3 仕様乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／BUG-3 UX 微改善（第6報）／BUG-B aria-label 二重発話（第8報）。
+## v0.3.0 リリース（完了・WordPress.org 公開済み 2026-07-14）
+- **✅ 公開済み**（SVN rev 3608167・公開ページ 0.3.0 表示・demo サイト 0.3.0 へ更新）。SVN 公開・`main` マージ / `git push` / `git tag v0.3.0` は人間側作業（Claude は認証情報を扱わない）。git 側の詳細状況は人間側管理。
+- 残トラック（**v0.2.4／設計トラック送り**・非ブロッキング）: phase3 仕様乖離（`docs/bugs/spec-vs-shipped-booking-flow.md`）／BUG-3 UX 微改善（第6報）／BUG-B aria-label 二重発話（第8報）。
 
 ## 未解決 / 確認事項
 - 検証資産の掃除候補（配布対象外・任意）: `tests/red/bug3-mail-failure-red.php`, `tests/red/bug3-mail-green-verify.php`, `tests/e2e/bug-a-plain-repro.spec.js`(skip), `tests/e2e/bug-b-logo-shipping.spec.js`, `tests/e2e/few-left-visual-repro.spec.js`。
