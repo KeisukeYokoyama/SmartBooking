@@ -1,6 +1,27 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-07-14
+最終更新: 2026-07-15
+
+## v0.4.0 機能② 複数フォーム（ローカル完了・未push・2026-07-15）
+
+- **ブランチ `feat/v040-multi-forms`（main から分岐・push なし・SVN 未操作）。バージョンは 0.3.0 のまま据え置き**（v0.4.0 のバージョン更新・Changelog・External services 確認はリリース作業で別途）。仕様正本は `docs/spec-amendment-v030-v040.md`「② 複数フォーム」。
+- **設計方針**: スケジュール（空き枠）はフォームで分けない＝全フォームが同一の店舗×担当者スケジュールを共有。予約枠・アトミックUPDATE競合防止・締切ロジックは一切不変。上限 `SMART_BOOKING_MAX_FORMS=10`（設定画面非公開）。
+- **コミット（依存順）**:
+  - `5a434dc` DB: 新テーブル `smart_booking_forms`（7テーブル化）／`custom_fields`・`reservations` に `form_id`／`field_key` UNIQUE を `(form_id, field_key)` 複合へ張替。`run_migrations()` に **0.4.0 ゲート + 冪等 `migrate_multi_forms()`**（forms確保→標準フォームシード→既存行 form_id バックフィル→明示ALTERでUNIQUE張替、複合実在確認後に単独DROP）。`$forms_ready` 失敗キャップでリリース時の再試行担保。`uninstall.php` 7テーブル対応。
+  - `3782cfd` REST: `/forms` CRUD（上限403・作成時に初期3フィールド自動生成・デフォルト削除403・通常削除は custom_fields のみ削除し予約は残す）。`/custom-fields` を form_id スコープ化（衝突・条件親候補・逆ネスト・依存削除を `AND form_id`）。`/public/custom-fields?form_id`（不正→デフォルト fallback）。`/public/reservations` に form_id 存在検証（`smb_reservation_form_invalid` 400）。予約一覧 `format_row`/`build_filter` に form_id、CSV に「フォーム」列（店舗の隣・常時出力・削除済みは「(削除済みフォーム)」）。
+  - `02839f1` 管理UI: フォームセレクタ+[編集]+[+追加]（`FormNameModal` 新規）。セレクタ切替で選択中フォームのフィールドへ。デフォルト削除導線なし。**親候補/キー重複は選択中フォームの fields を渡すことで form スコープに閉じる**（CustomFieldModal 無変更）。テーマ設定は設定→デザインのグローバルのまま（全フォーム共通）。
+  - `c94ba7a` フロント+ショートコード: `[smart_booking form_id="2"]`。**不正/未指定は PHP 側 `resolve_form_id` でデフォルトの有効 id に解決**して `data-form-id` 出力（予約POSTの存在検証も通す）。フロントは form_id で取得し予約 payload に付与。
+  - `ea81e7e` 予約一覧UI: フォーム列+フィルタ。**デグレ回避で `forms.length>1` のときのみ列/フィルタ表示**（1フォーム運用の一覧は v0.3.0 と同一の見た目）。CSV は常時出力。
+  - `2cfe05c` fix: `migrate_multi_forms()` の `$prefix` 変数を廃しインライン補間へ（Plugin Check `UnescapedDBParameter` 誤検知4件を解消）。
+  - `3cb82c1` test: 新規 E2E `tests/e2e/v040-*.spec.js`（5本+helper）。既存 spec の form_id 追随（複合UNIQUEに伴い直接SQL INSERT行をデフォルトフォームへ紐付けるUPDATE追記: v030-conditional-fields/admin, v030-address-field, phase3-validation）。
+- **バージョン据え置きとマイグレーション発火の設計**: `SMART_BOOKING_VERSION=0.3.0` のため `db_version` は 0.3.0 頭打ち＝`migrate_multi_forms()` は**再有効化のたび発火（冪等ゆえ無害）**。リリース時に `SMART_BOOKING_VERSION` を 0.4.0 へ bump すると、既存 0.3.0 ユーザーの `maybe_upgrade()`（0.3.0<0.4.0）が**1回だけ発火**→ 移行 → db_version 0.4.0 へ前進（今のコードで本番経路も正しく動作）。
+- **検証（logic-evaluator 独立判定 + 実測）全 Green**:
+  - マイグレーション: v0.3.0→0.4.0 正当（既存フィールド/予約がデフォルトフォームに紐付き・③条件関係保持・schedules UNIQUE 無傷）／2-3回発火冪等／複合UNIQUE隔離（別フォームは同一 field_key 可・同一は1062拒否）／uninstall 7テーブル。
+  - 機能: 新規 E2E 5本 desktop 8/8（forms CRUD+上限／セレクタ切替／form_id別予約／スケジュール共有＝満席連動409／不正idフォールバック）。
+  - 1フォームデグレ: 管理一覧はフォーム列/フィルタ非表示（v0.3.0 同一）・CSV常時フォーム列・public は fallback。
+  - Plugin Check **配布スコープ 0/0**（activator 誤検知は `2cfe05c` で解消）。php -l 全通過・phpcs ERRORS 0・build 成功。
+  - 回帰ゲート: ②が触った経路の既存スイート（bug124／phase2-reservations 11/11／phase3-flow 13/13／phase2-form-settings／phase2-reservations-extra・smoke／v030-conditional-fields・admin・address 11/11）で **②起因の新規失敗ゼロ**（②で壊れた直接INSERT系4テストは form_id 追随で修正済み）。
+- **次の一手（v0.4.0 リリース作業・すべて人間 GO・不可逆・別タスク）**: ①バージョン4箇所を 0.4.0 に更新 ②readme Changelog に v0.4.0 追記 ③External services 再確認（②は新規外部通信なし＝zipcloud のまま）④build→plugin-zip→SVN 反映。`feat/v040-multi-forms` のレビュー/main マージ/push も未実施。
 
 ## 現在地
 - **公開バージョン: v0.2.3（WordPress.org・SVN rev 3605460、2026-07-13 公開）**。前バージョン v0.2.2（rev 3592043）。
@@ -69,6 +90,7 @@
   - **phase3-validation:174 / :319 も同根**（統合設計 MainInputPage は「送信時エラー表示」ではなく「必須未入力時はボタン disabled」。旧多段ステップ前提のテストが古い）＝2026-07-14 の③回帰確認で stash 比較しベースラインでも同一失敗を確認。serial のため後続テストは巻き添えスキップされる。
   - **phase9-redesign-confirm-responsive:220**（375px 幅）もプリエグジスティング（stash 比較で確認）。
   - phase6-visibility:B（`docs/bugs/phase6-visibility-flaky-page-id-7.md`、page_id=7 ハードコード）。
+  - **phase7-system-entity:231「B: ユーザーエンティティ0件で日付選択から始まる」**（2026-07-15 発見・②起因ではない既存 stale）。フロント動作は正常（店舗/担当者スキップ＋日付ピッカー表示を実画面で確認）だが、テストが見出しロール名 `日付を選択` を期待。統合設計の実見出しは `日付選択`（`src/frontend/steps/DateSelect.jsx:171`。`日付を選択` は line179 の `title=` 属性のみ）で、**Gen-C UI刷新 `3bb995b`（②より前）以来のテキスト不一致**。phase3-validation の旧多段ステップ stale と同種。要別件（テスト文言更新 or 見出しロール付与）。
 
 ## 触ってはいけない
 - デモ VPS 同居の Laravel（`api.konkatsu-scope.com`）と Python。
