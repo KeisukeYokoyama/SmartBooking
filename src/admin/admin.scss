@@ -3476,6 +3476,48 @@
 	}
 }
 
+/* ---------- フォームセレクタバー（複数フォーム機能） ---------- */
+
+.smb-form-selector-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.smb-form-selector-bar__actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.smb-form-selector-bar__hint {
+	margin-top: 8px;
+	margin-bottom: 0;
+}
+
+.smb-inline-field--grow {
+	flex: 1 1 260px;
+
+	.smb-select {
+		width: 100%;
+		min-width: 0;
+	}
+}
+
+@media (max-width: 640px) {
+	.smb-form-selector-bar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.smb-form-selector-bar__actions {
+		justify-content: flex-start;
+	}
+}
+
 /* ---------- フィールドタイプカード ---------- */
 
 .smb-field-type-cards {

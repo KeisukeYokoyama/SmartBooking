@@ -233,11 +233,18 @@ export const API = {
 		remove: ( id ) => apiDelete( 'reservations/' + id ),
 	},
 	customFields: {
-		list: () => apiGet( 'custom-fields' ),
+		list: ( formId ) =>
+			apiGet( 'custom-fields', formId ? { form_id: formId } : undefined ),
 		create: ( data ) => apiPost( 'custom-fields', data ),
 		update: ( id, data ) => apiPut( 'custom-fields/' + id, data ),
 		remove: ( id ) => apiDelete( 'custom-fields/' + id ),
 		reorder: ( items ) => apiPut( 'custom-fields/reorder', { items } ),
+	},
+	forms: {
+		list: () => apiGet( 'forms' ),
+		create: ( data ) => apiPost( 'forms', data ),
+		update: ( id, data ) => apiPut( 'forms/' + id, data ),
+		remove: ( id ) => apiDelete( 'forms/' + id ),
 	},
 	settings: {
 		get: () => apiGet( 'settings' ),

@@ -1,7 +1,7 @@
 /**
  * フォーム設定ページ。
  *
- * カスタムフィールドの CRUD + 並び替え。
+ * フォームセレクタ（複数フォーム機能 v0.4.0）+ 選択中フォームのカスタムフィールド CRUD + 並び替え。
  * カラー設定（テーマ）は「設定 → デザイン」タブに集約済みなので、ここでは扱わない。
  *
  * 参考: docs/reference-ui/screenshot-4.png, admin-form-fields.png
@@ -16,39 +16,149 @@ import { useToast } from '../components/ToastContainer';
 import CustomFieldList from './formsettings/CustomFieldList';
 import CustomFieldModal from './formsettings/CustomFieldModal';
 import FieldTypeCards from './formsettings/FieldTypeCards';
+import FormNameModal from './formsettings/FormNameModal';
+
+// サーバ側のハードキャップ (SMART_BOOKING_MAX_FORMS) と同じ値。UI 側の予防的な disabled 判定にのみ使う。
+const MAX_FORMS = 10;
 
 export default function FormSettingsPage() {
-	// フィールド一覧
-	const [fields, setFields] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [loadError, setLoadError] = useState(null);
+	// フォーム一覧・選択中フォーム
+	const [forms, setForms] = useState([]);
+	const [selectedFormId, setSelectedFormId] = useState(null);
+	const [formsLoading, setFormsLoading] = useState(true);
+	const [formsLoadError, setFormsLoadError] = useState(null);
 
-	// モーダル状態
+	// フィールド一覧（選択中フォームのもの）
+	const [fields, setFields] = useState([]);
+	const [fieldsLoading, setFieldsLoading] = useState(true);
+	const [fieldsLoadError, setFieldsLoadError] = useState(null);
+
+	// フィールド追加/編集モーダル状態
 	const [modal, setModal] = useState({ open: false, field: null, defaultType: 'text' });
 	const [submitting, setSubmitting] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleting, setDeleting] = useState(false);
 
+	// フォーム追加/名前変更モーダル状態
+	const [formModal, setFormModal] = useState({ open: false, mode: 'create', name: '', formId: null });
+	const [formSubmitting, setFormSubmitting] = useState(false);
+	const [deleteFormTarget, setDeleteFormTarget] = useState(null);
+	const [deletingForm, setDeletingForm] = useState(false);
+
 	const { showToast } = useToast();
 
-	const loadFields = useCallback(async () => {
-		setLoading(true);
-		setLoadError(null);
+	// --- フォーム一覧の読み込み ---
+
+	const loadForms = useCallback(async (forceSelectId) => {
+		setFormsLoading(true);
+		setFormsLoadError(null);
 		try {
-			const fieldsRes = await API.customFields.list();
-			setFields(Array.isArray(fieldsRes) ? fieldsRes : []);
+			const res = await API.forms.list();
+			const list = Array.isArray(res) ? res : [];
+			setForms(list);
+			setSelectedFormId((prev) => {
+				if (forceSelectId && list.some((f) => f.id === forceSelectId)) {
+					return forceSelectId;
+				}
+				if (prev && list.some((f) => f.id === prev)) {
+					return prev;
+				}
+				const defaultForm = list.find((f) => f.is_default === 1) || list[0];
+				return defaultForm ? defaultForm.id : null;
+			});
 		} catch (err) {
-			setLoadError(err.message || '読み込みに失敗しました。');
+			setFormsLoadError(err.message || 'フォーム一覧の読み込みに失敗しました。');
 		} finally {
-			setLoading(false);
+			setFormsLoading(false);
 		}
 	}, []);
 
 	useEffect(() => {
-		loadFields();
-	}, [loadFields]);
+		loadForms();
+	}, [loadForms]);
+
+	// --- 選択中フォームのフィールド読み込み ---
+
+	const loadFields = useCallback(async (formId) => {
+		setFieldsLoading(true);
+		setFieldsLoadError(null);
+		try {
+			const fieldsRes = await API.customFields.list(formId);
+			setFields(Array.isArray(fieldsRes) ? fieldsRes : []);
+		} catch (err) {
+			setFieldsLoadError(err.message || '読み込みに失敗しました。');
+		} finally {
+			setFieldsLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (selectedFormId) {
+			loadFields(selectedFormId);
+		}
+	}, [selectedFormId, loadFields]);
+
+	const selectedForm = useMemo(
+		() => forms.find((f) => f.id === selectedFormId) || null,
+		[forms, selectedFormId]
+	);
 
 	const existingKeys = useMemo(() => fields.map((f) => f.field_key), [fields]);
+
+	// --- フォーム選択・追加・名前変更・削除 ---
+
+	const handleFormChange = (e) => {
+		const id = Number(e.target.value);
+		if (id) setSelectedFormId(id);
+	};
+
+	const openCreateForm = () => setFormModal({ open: true, mode: 'create', name: '', formId: null });
+	const openRenameForm = () => {
+		if (!selectedForm) return;
+		setFormModal({ open: true, mode: 'rename', name: selectedForm.name, formId: selectedForm.id });
+	};
+	const closeFormModal = () => setFormModal({ open: false, mode: 'create', name: '', formId: null });
+
+	const submitFormModal = async (name) => {
+		setFormSubmitting(true);
+		try {
+			if (formModal.mode === 'rename' && formModal.formId) {
+				await API.forms.update(formModal.formId, { name });
+				showToast('フォーム名を変更しました', 'success');
+				closeFormModal();
+				await loadForms();
+			} else {
+				const created = await API.forms.create({ name });
+				showToast('フォームを追加しました', 'success');
+				closeFormModal();
+				await loadForms(created?.id);
+			}
+		} catch (err) {
+			showToast(err.message || '保存に失敗しました。', 'error', 6000);
+		} finally {
+			setFormSubmitting(false);
+		}
+	};
+
+	const askDeleteForm = () => {
+		if (!selectedForm || selectedForm.is_default === 1) return;
+		setDeleteFormTarget(selectedForm);
+	};
+
+	const confirmDeleteForm = async () => {
+		if (!deleteFormTarget) return;
+		setDeletingForm(true);
+		try {
+			await API.forms.remove(deleteFormTarget.id);
+			showToast('フォームを削除しました', 'success');
+			setDeleteFormTarget(null);
+			await loadForms();
+		} catch (err) {
+			showToast(err.message || '削除に失敗しました。', 'error', 6000);
+		} finally {
+			setDeletingForm(false);
+		}
+	};
 
 	// --- フィールド追加/編集 ---
 
@@ -67,11 +177,15 @@ export default function FormSettingsPage() {
 					fields.length > 0
 						? Math.max(...fields.map((f) => f.sort_order || 0)) + 10
 						: 10;
-				await API.customFields.create({ ...payload, sort_order: nextOrder });
+				await API.customFields.create({
+					...payload,
+					sort_order: nextOrder,
+					form_id: selectedFormId,
+				});
 				showToast('フィールドを追加しました', 'success');
 			}
 			closeModal();
-			await loadFields();
+			await loadFields(selectedFormId);
 		} catch (err) {
 			showToast(err.message || '保存に失敗しました。', 'error', 6000);
 		} finally {
@@ -90,7 +204,7 @@ export default function FormSettingsPage() {
 			await API.customFields.remove(deleteTarget.id);
 			showToast('フィールドを削除しました', 'success');
 			setDeleteTarget(null);
-			await loadFields();
+			await loadFields(selectedFormId);
 		} catch (err) {
 			showToast(err.message || '削除に失敗しました。', 'error', 6000);
 		} finally {
@@ -118,11 +232,13 @@ export default function FormSettingsPage() {
 			);
 		} catch (err) {
 			showToast(err.message || '並び替えに失敗しました。', 'error');
-			await loadFields();
+			await loadFields(selectedFormId);
 		}
 	};
 
 	// --- 描画 ---
+
+	const showFieldSections = !formsLoading && !formsLoadError && !fieldsLoading && !fieldsLoadError;
 
 	return (
 		<div className="smb-page smb-page--form-settings">
@@ -133,7 +249,7 @@ export default function FormSettingsPage() {
 						予約フォームで入力してもらう項目を設定します。フォームの色は「設定 → デザイン」から変更できます。
 					</p>
 				</div>
-				{!loading && !loadError && (
+				{showFieldSections && (
 					<div className="smb-page__actions">
 						<Button variant="primary" onClick={() => openAdd('text')} icon="＋">
 							フィールドを追加
@@ -142,7 +258,7 @@ export default function FormSettingsPage() {
 				)}
 			</div>
 
-			{loading && (
+			{formsLoading && (
 				<div className="smb-section-card">
 					<div className="smb-loading">
 						<Spinner label="読み込み中" />
@@ -150,16 +266,84 @@ export default function FormSettingsPage() {
 					</div>
 				</div>
 			)}
-			{loadError && !loading && (
+			{formsLoadError && !formsLoading && (
 				<div className="smb-section-card">
 					<ErrorMessage
-						message={loadError}
-						onRetry={loadFields}
-						onDismiss={() => setLoadError(null)}
+						message={formsLoadError}
+						onRetry={() => loadForms()}
+						onDismiss={() => setFormsLoadError(null)}
 					/>
 				</div>
 			)}
-			{!loading && !loadError && (
+
+			{!formsLoading && !formsLoadError && (
+				<div className="smb-section-card">
+					<div className="smb-form-selector-bar">
+						<label className="smb-inline-field smb-inline-field--grow">
+							<span className="smb-inline-field__label">フォーム</span>
+							<select
+								className="smb-select"
+								value={selectedFormId || ''}
+								onChange={handleFormChange}
+							>
+								{forms.map((f) => (
+									<option key={f.id} value={f.id}>
+										{f.name}
+									</option>
+								))}
+							</select>
+						</label>
+						<div className="smb-form-selector-bar__actions">
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={openRenameForm}
+								disabled={!selectedForm}
+							>
+								編集
+							</Button>
+							{selectedForm && selectedForm.is_default !== 1 && (
+								<Button variant="ghost" size="sm" onClick={askDeleteForm}>
+									削除
+								</Button>
+							)}
+							<Button
+								variant="primary"
+								size="sm"
+								icon="＋"
+								onClick={openCreateForm}
+								disabled={forms.length >= MAX_FORMS}
+							>
+								フォームを追加
+							</Button>
+						</div>
+					</div>
+					{forms.length >= MAX_FORMS && (
+						<p className="smb-field__help smb-form-selector-bar__hint">
+							フォームは最大{MAX_FORMS}個までです。
+						</p>
+					)}
+				</div>
+			)}
+
+			{!formsLoading && !formsLoadError && fieldsLoading && (
+				<div className="smb-section-card">
+					<div className="smb-loading">
+						<Spinner label="読み込み中" />
+						<span>読み込み中…</span>
+					</div>
+				</div>
+			)}
+			{fieldsLoadError && !fieldsLoading && (
+				<div className="smb-section-card">
+					<ErrorMessage
+						message={fieldsLoadError}
+						onRetry={() => loadFields(selectedFormId)}
+						onDismiss={() => setFieldsLoadError(null)}
+					/>
+				</div>
+			)}
+			{showFieldSections && (
 				<>
 					<div className="smb-section-card">
 						<section className="smb-section">
@@ -218,6 +402,29 @@ export default function FormSettingsPage() {
 				onCancel={() => setDeleteTarget(null)}
 			/>
 
+			<FormNameModal
+				open={formModal.open}
+				mode={formModal.mode}
+				initialName={formModal.name}
+				submitting={formSubmitting}
+				onClose={closeFormModal}
+				onSubmit={submitFormModal}
+			/>
+
+			<ConfirmDialog
+				open={!!deleteFormTarget}
+				title="フォームを削除"
+				message={
+					deleteFormTarget
+						? `「${deleteFormTarget.name}」を削除します。このフォームのフィールド定義は削除されます。過去の予約データは残ります。この操作は取り消せません。`
+						: ''
+				}
+				confirmLabel="削除する"
+				cancelLabel="キャンセル"
+				loading={deletingForm}
+				onConfirm={confirmDeleteForm}
+				onCancel={() => setDeleteFormTarget(null)}
+			/>
 		</div>
 	);
 }
