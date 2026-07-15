@@ -325,27 +325,27 @@ class Smart_Booking_Activator {
 			return false;
 		}
 
-		$prefix = $wpdb->prefix . 'smart_booking_';
-
 		// 3. 既存行の form_id バックフィル（form_id = 0 の未移行行のみ＝冪等）。
 		// AUTO_INCREMENT の実 form id は 1 以上なので、新規フォームの行が 0 になることはない。
+		// テーブル名は他所と同じく {$wpdb->prefix}smart_booking_* をインライン補間する
+		// （中間変数 $prefix を介すと plugin-check の UnescapedDBParameter 誤検知を招くため）。
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( $wpdb->prepare( "UPDATE {$prefix}custom_fields SET form_id = %d WHERE form_id = 0", $default_id ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}smart_booking_custom_fields SET form_id = %d WHERE form_id = 0", $default_id ) );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( $wpdb->prepare( "UPDATE {$prefix}reservations SET form_id = %d WHERE form_id = 0", $default_id ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}smart_booking_reservations SET form_id = %d WHERE form_id = 0", $default_id ) );
 
 		// 4. field_key の UNIQUE を単独から複合へ張り替え（バックフィル後に実行）。
 		$has_composite = self::custom_fields_index_exists( 'uniq_form_field_key' );
 		if ( ! $has_composite ) {
 			// テーブル名は内部生成値、値も含まない DDL のためプレースホルダは使用しない（使用不可・単一行）。
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query( "ALTER TABLE {$prefix}custom_fields ADD UNIQUE KEY uniq_form_field_key (form_id, field_key)" );
+			$wpdb->query( "ALTER TABLE {$wpdb->prefix}smart_booking_custom_fields ADD UNIQUE KEY uniq_form_field_key (form_id, field_key)" );
 			$has_composite = self::custom_fields_index_exists( 'uniq_form_field_key' );
 		}
 		// 複合の実在を確認してからのみ単独 uniq_field_key を落とす（一意保護を失わない順序）。
 		if ( $has_composite && self::custom_fields_index_exists( 'uniq_field_key' ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query( "ALTER TABLE {$prefix}custom_fields DROP INDEX uniq_field_key" );
+			$wpdb->query( "ALTER TABLE {$wpdb->prefix}smart_booking_custom_fields DROP INDEX uniq_field_key" );
 		}
 
 		return $has_composite;
