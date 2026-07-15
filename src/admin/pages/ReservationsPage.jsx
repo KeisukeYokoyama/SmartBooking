@@ -64,6 +64,7 @@ function filtersToParams(filters, sort, page) {
 	if (filters.date_from) p.date_from = filters.date_from;
 	if (filters.date_to) p.date_to = filters.date_to;
 	if (filters.status) p.status = filters.status;
+	if (filters.form_id) p.form_id = filters.form_id;
 	p.orderby = sort.orderby;
 	p.order = sort.order;
 	p.page = page;
@@ -84,6 +85,7 @@ export default function ReservationsPage() {
 	const [stores, setStores] = useState([]);
 	const [staff, setStaff] = useState([]);
 	const [customFields, setCustomFields] = useState([]);
+	const [forms, setForms] = useState([]);
 	const [basicsLoading, setBasicsLoading] = useState(true);
 	const [basicsError, setBasicsError] = useState(null);
 
@@ -100,6 +102,8 @@ export default function ReservationsPage() {
 
 	const storeMap = useMemo(() => new Map(stores.map((s) => [s.id, s])), [stores]);
 	const staffMap = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
+	const formMap = useMemo(() => new Map(forms.map((f) => [f.id, f])), [forms]);
+	const showFormColumn = forms.length > 1;
 	const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
 	// ---- 初期ロード（店舗 / 担当者 / カスタムフィールド）----
@@ -108,14 +112,16 @@ export default function ReservationsPage() {
 		setBasicsLoading(true);
 		setBasicsError(null);
 		try {
-			const [storeRes, staffRes, fieldsRes] = await Promise.all([
+			const [storeRes, staffRes, fieldsRes, formsRes] = await Promise.all([
 				API.stores.list(),
 				API.staff.list(),
 				API.customFields.list().catch(() => []),
+				API.forms.list().catch(() => []),
 			]);
 			setStores(Array.isArray(storeRes) ? storeRes : []);
 			setStaff(Array.isArray(staffRes) ? staffRes : []);
 			setCustomFields(Array.isArray(fieldsRes) ? fieldsRes : []);
+			setForms(Array.isArray(formsRes) ? formsRes : []);
 		} catch (err) {
 			setBasicsError(err.message || '初期データの読み込みに失敗しました。');
 		} finally {
@@ -271,6 +277,7 @@ export default function ReservationsPage() {
 			if (filters.date_from) params.date_from = filters.date_from;
 			if (filters.date_to) params.date_to = filters.date_to;
 			if (filters.status) params.status = filters.status;
+			if (filters.form_id) params.form_id = filters.form_id;
 
 			const today = new Date();
 			const ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -337,6 +344,8 @@ export default function ReservationsPage() {
 					onReset={handleReset}
 					stores={stores}
 					staff={staff}
+					forms={forms}
+					showForm={showFormColumn}
 					activeCount={activeFilterCount}
 				/>
 
@@ -383,6 +392,8 @@ export default function ReservationsPage() {
 								items={items}
 								storeMap={storeMap}
 								staffMap={staffMap}
+								formMap={formMap}
+								showForm={showFormColumn}
 								onOpenDetail={handleOpenDetail}
 								onApprove={handleApprove}
 								onCancel={handleCancel}
@@ -394,6 +405,8 @@ export default function ReservationsPage() {
 								items={items}
 								storeMap={storeMap}
 								staffMap={staffMap}
+								formMap={formMap}
+								showForm={showFormColumn}
 								sort={sort}
 								onSort={handleSort}
 								onOpenDetail={handleOpenDetail}

@@ -20,6 +20,7 @@ const EMPTY_FILTERS = {
 	date_from: '',
 	date_to: '',
 	status: '',
+	form_id: '',
 };
 
 export { EMPTY_FILTERS };
@@ -30,6 +31,8 @@ export default function ReservationFilters({
 	onReset,
 	stores = [],
 	staff = [],
+	forms = [],
+	showForm = false,
 	activeCount = 0,
 }) {
 	const [open, setOpen] = useState(true);
@@ -56,6 +59,14 @@ export default function ReservationFilters({
 	}, [staff, filters.store_id]);
 
 	const statusOptions = [{ value: '', label: 'すべてのステータス' }, ...STATUS_OPTIONS];
+
+	const formOptions = useMemo(
+		() => [
+			{ value: '', label: 'すべてのフォーム' },
+			...forms.map((f) => ({ value: String(f.id), label: f.name })),
+		],
+		[forms]
+	);
 
 	const handleStoreChange = (storeId) => {
 		// 店舗が変わったら、その店舗に属さない担当者フィルタをクリア.
@@ -128,6 +139,14 @@ export default function ReservationFilters({
 							value={filters.staff_id}
 							onChange={(e) => update({ staff_id: e.target.value })}
 						/>
+						{showForm && (
+							<Select
+								label="フォーム"
+								options={formOptions}
+								value={filters.form_id}
+								onChange={(e) => update({ form_id: e.target.value })}
+							/>
+						)}
 
 						<div className="smb-reservation-filters__date-range">
 							<div className="smb-field">

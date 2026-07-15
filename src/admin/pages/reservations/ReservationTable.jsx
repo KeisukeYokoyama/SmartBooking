@@ -59,6 +59,8 @@ export default function ReservationTable({
 	items,
 	storeMap,
 	staffMap,
+	formMap,
+	showForm = false,
 	sort,
 	onSort,
 	onOpenDetail,
@@ -100,6 +102,11 @@ export default function ReservationTable({
 						<th scope="col" className="smb-table__th">
 							店舗 / 担当者
 						</th>
+						{showForm && (
+							<th scope="col" className="smb-table__th">
+								フォーム
+							</th>
+						)}
 						{sortableHeader('status', 'ステータス')}
 						{sortableHeader('created_at', '受付日時')}
 						<th scope="col" className="smb-table__th smb-table__th--actions">
@@ -117,6 +124,9 @@ export default function ReservationTable({
 						const staffName = r.staff_is_system
 							? '—'
 							: staffMap.get(r.staff_id)?.name || '—';
+						const formName = r.form_id
+							? formMap?.get(r.form_id)?.name || '(削除済みフォーム)'
+							: '—';
 						const pending = pendingRowIds.has(r.id);
 						return (
 							<tr
@@ -159,6 +169,7 @@ export default function ReservationTable({
 										<span className="smb-table__store-sub">{staffName}</span>
 									</div>
 								</td>
+								{showForm && <td className="smb-table__td">{formName}</td>}
 								<td className="smb-table__td">
 									<StatusBadge status={r.status} />
 								</td>

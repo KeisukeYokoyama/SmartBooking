@@ -10,6 +10,8 @@ export default function ReservationCardList({
 	items,
 	storeMap,
 	staffMap,
+	formMap,
+	showForm = false,
 	onOpenDetail,
 	onApprove,
 	onCancel,
@@ -26,6 +28,9 @@ export default function ReservationCardList({
 				const staffName = r.staff_is_system
 					? '—'
 					: staffMap.get(r.staff_id)?.name || '—';
+				const formName = r.form_id
+					? formMap?.get(r.form_id)?.name || '(削除済みフォーム)'
+					: '—';
 				const pending = pendingRowIds.has(r.id);
 				return (
 					<li
@@ -51,6 +56,11 @@ export default function ReservationCardList({
 								<span className="smb-reservation-card__store">
 									{storeName} / {staffName}
 								</span>
+								{showForm && (
+									<span className="smb-reservation-card__store">
+										フォーム: {formName}
+									</span>
+								)}
 							</div>
 						</button>
 						<div className="smb-reservation-card__actions">
