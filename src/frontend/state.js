@@ -45,6 +45,9 @@ export const INITIAL_STATE = {
 	// ショートコード属性で指定された固定店舗 (0 なら未指定)。
 	fixedStoreId: 0,
 
+	// 複数フォーム対応: サーバ (resolve_form_id) が解決した有効な form_id。
+	formId: 0,
+
 	// システムエンティティ方式: ユーザー作成 (is_system=0) かつ is_active=1 のレコードの有無。
 	// false の場合、対応するステップは完全スキップし storeId/staffId=0 でサーバ側自動振り分けに委ねる。
 	hasUserStores: true,
@@ -267,6 +270,7 @@ export function reducer( state, action ) {
 				staff,
 				customFields,
 				fixedStoreId,
+				formId = 0,
 				hasUserStores = true,
 				hasUserStaff = true,
 			} = action.payload;
@@ -290,6 +294,7 @@ export function reducer( state, action ) {
 					staff: activeStaff,
 					customFields,
 					fixedStoreId,
+					formId: formId || 0,
 					hasUserStores,
 					hasUserStaff,
 				};
@@ -320,6 +325,7 @@ export function reducer( state, action ) {
 				staff: activeStaff,
 				customFields,
 				fixedStoreId,
+				formId: formId || 0,
 				hasUserStores,
 				hasUserStaff,
 			};

@@ -25,7 +25,7 @@ import MainInputPage from './steps/MainInputPage';
 import StaffSelect from './steps/StaffSelect';
 import StoreSelect from './steps/StoreSelect';
 
-export default function App({ fixedStoreId = 0 }) {
+export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 	const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
 	// 初期データ取得。
@@ -38,7 +38,7 @@ export default function App({ fixedStoreId = 0 }) {
 					publicAPI.stores(),
 					publicAPI.staff(),
 					publicAPI.settings(),
-					publicAPI.customFields(),
+					publicAPI.customFields(fixedFormId),
 				]);
 				if (cancelled) return;
 				// ショートコードから localize された hasUserStores / hasUserStaff。
@@ -66,6 +66,7 @@ export default function App({ fixedStoreId = 0 }) {
 						customFields: Array.isArray(customFields) ? customFields : [],
 						settings: settings || {},
 						fixedStoreId,
+						formId: fixedFormId,
 						hasUserStores,
 						hasUserStaff,
 					},
@@ -82,7 +83,7 @@ export default function App({ fixedStoreId = 0 }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [fixedStoreId]);
+	}, [fixedStoreId, fixedFormId]);
 
 	// CSS カスタムプロパティで色設定を適用（Gen-D で本格反映）。
 	// 設定画面デザインタブの5色（button / date_selected / time_selected / required_mark / focus）を

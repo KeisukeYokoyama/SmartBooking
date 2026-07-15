@@ -126,7 +126,11 @@ export const publicAPI = {
 	staff: ( storeId ) =>
 		apiGet( 'public/staff', storeId ? { store_id: storeId } : undefined ),
 	settings: () => apiGet( 'public/settings' ),
-	customFields: () => apiGet( 'public/custom-fields' ),
+	customFields: ( formId ) =>
+		apiGet(
+			'public/custom-fields',
+			formId ? { form_id: formId } : undefined
+		),
 	availability: ( { storeId, staffId, dateFrom, dateTo } = {} ) =>
 		apiGet( 'public/availability', {
 			store_id: storeId || undefined,
@@ -139,6 +143,7 @@ export const publicAPI = {
 	 *
 	 * @param {Object} payload
 	 * @param {number} payload.schedule_id
+	 * @param {number} [payload.form_id]       複数フォーム対応: どのフォーム経由の予約かを識別する ID
 	 * @param {string} payload.customer_name
 	 * @param {string} payload.customer_email
 	 * @param {string} payload.customer_phone

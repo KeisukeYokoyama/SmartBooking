@@ -58,6 +58,7 @@ export default function ConfirmPage({ state, dispatch }) {
 		date,
 		time,
 		settings,
+		formId,
 		submitting,
 		submitError,
 		submitErrorStatus,
@@ -140,6 +141,7 @@ export default function ConfirmPage({ state, dispatch }) {
 
 		const payload = {
 			schedule_id: scheduleId,
+			form_id: formId,
 			customer_name: String(formValues.customer_name || ''),
 			customer_email: String(formValues.customer_email || ''),
 			customer_phone: String(formValues.customer_phone || ''),

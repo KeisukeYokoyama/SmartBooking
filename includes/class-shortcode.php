@@ -42,6 +42,7 @@ class Smart_Booking_Shortcode {
 		$atts = shortcode_atts(
 			array(
 				'store_id' => 0,
+				'form_id'  => 0,
 			),
 			$atts,
 			self::SHORTCODE
@@ -49,9 +50,15 @@ class Smart_Booking_Shortcode {
 
 		$store_id = (int) $atts['store_id'];
 
+		// 存在しない form_id はデフォルトフォームへフォールバックし、常に有効な id を
+		// フロントへ渡す（フィールド取得だけでなく予約 POST の存在検証も通す。0=未指定も
+		// デフォルトへ解決される）。resolve_form_id は class-rest-api.php 経由で読み込み済み。
+		$form_id = Smart_Booking_REST_Forms::resolve_form_id( (int) $atts['form_id'] );
+
 		return sprintf(
-			'<div id="smart-booking-app" data-store-id="%d"></div>',
-			esc_attr( $store_id )
+			'<div id="smart-booking-app" data-store-id="%d" data-form-id="%d"></div>',
+			esc_attr( $store_id ),
+			esc_attr( $form_id )
 		);
 	}
 
