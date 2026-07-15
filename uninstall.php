@@ -3,7 +3,7 @@
  * Smart Booking - Uninstall
  *
  * プラグイン削除時に実行される。
- * - カスタムテーブル6つを DROP
+ * - カスタムテーブル7つを DROP
  * - `smart_booking_` プレフィックスで始まる wp_options を削除
  *
  * 仕様書 5.11 に従い、データを残す選択肢は設けない。
@@ -35,6 +35,7 @@ function smart_booking_run_uninstall() {
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smart_booking_staff" );
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smart_booking_stores" );
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smart_booking_custom_fields" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}smart_booking_forms" );
 	// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	// 削除対象のオプションを明示的に列挙する。

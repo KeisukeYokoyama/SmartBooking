@@ -3,7 +3,7 @@
  * Smart Booking - Activator
  *
  * プラグイン有効化時に実行される処理。
- * - カスタムテーブル6つを dbDelta で作成
+ * - カスタムテーブル7つを dbDelta で作成
  * - デフォルトデータ（店舗1件・担当者1件・初期カスタムフィールド3件）を投入
  *
  * 注意: register_activation_hook 経由でのみ実行する。init フックでの呼び出しは禁止。
@@ -130,6 +130,12 @@ class Smart_Booking_Activator {
 			self::create_tables();
 		}
 
+		// 0.4.0: 複数フォーム。forms テーブル + form_id 列 + field_key 複合 UNIQUE。
+		$forms_ready = true;
+		if ( version_compare( $current, '0.4.0', '<' ) ) {
+			$forms_ready = self::migrate_multi_forms();
+		}
+
 		// db_version の確定。
 		// - UNIQUE 移行が成功（実在検証 OK）した場合のみ 0.2.3 以上へ前進させる。
 		// - 失敗時は 0.2.3 未満に留め、次回有効化で再試行できるようにする（エラーを握り潰さない）。
@@ -141,6 +147,10 @@ class Smart_Booking_Activator {
 			}
 		} elseif ( version_compare( $target, '0.2.3', '>=' ) ) {
 			$target = '0.2.2';
+		}
+		// forms 移行が失敗した場合は 0.4.0 以上へ前進させず再試行させる。
+		if ( ! $forms_ready && version_compare( $target, '0.3.0', '>' ) ) {
+			$target = '0.3.0';
 		}
 		if ( version_compare( $target, $current, '>' ) ) {
 			update_option( 'smart_booking_db_version', $target );
@@ -291,6 +301,104 @@ class Smart_Booking_Activator {
 	}
 
 	/**
+	 * 0.4.0: 複数フォーム対応のスキーマ移行。冪等（2回実行して同一結果・途中失敗しても再実行で回復）。
+	 *
+	 * 実行順序（順序が正しさの本体）:
+	 *   1. create_tables() で forms テーブル・custom_fields.form_id・reservations.form_id を dbDelta で確保。
+	 *      maybe_upgrade() 経路では create_tables() が別途呼ばれないためここで確実に作る（冪等）。
+	 *   2. ensure_default_form() でデフォルトフォーム id を確保（作成失敗なら false で中断＝再試行）。
+	 *   3. 既存行（form_id = 0 のセンチネル）をデフォルトフォームへバックフィル（未移行行のみ＝冪等）。
+	 *   4. field_key の一意性を単独 uniq_field_key から複合 uniq_form_field_key へ張り替え。
+	 *      複合の実在を確認してからのみ単独を DROP する（一意保護を失わない順序）。
+	 *
+	 * @return bool 複合 UNIQUE が実在すれば true、途中失敗すれば false。
+	 */
+	private static function migrate_multi_forms() {
+		global $wpdb;
+
+		// 1. forms テーブル・form_id 列を確実に作る（冪等）。
+		self::create_tables();
+
+		// 2. デフォルトフォーム id を確保。作成失敗時は前進させず次回再試行。
+		$default_id = self::ensure_default_form();
+		if ( $default_id <= 0 ) {
+			return false;
+		}
+
+		$prefix = $wpdb->prefix . 'smart_booking_';
+
+		// 3. 既存行の form_id バックフィル（form_id = 0 の未移行行のみ＝冪等）。
+		// AUTO_INCREMENT の実 form id は 1 以上なので、新規フォームの行が 0 になることはない。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "UPDATE {$prefix}custom_fields SET form_id = %d WHERE form_id = 0", $default_id ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "UPDATE {$prefix}reservations SET form_id = %d WHERE form_id = 0", $default_id ) );
+
+		// 4. field_key の UNIQUE を単独から複合へ張り替え（バックフィル後に実行）。
+		$has_composite = self::custom_fields_index_exists( 'uniq_form_field_key' );
+		if ( ! $has_composite ) {
+			// テーブル名は内部生成値、値も含まない DDL のためプレースホルダは使用しない（使用不可・単一行）。
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->query( "ALTER TABLE {$prefix}custom_fields ADD UNIQUE KEY uniq_form_field_key (form_id, field_key)" );
+			$has_composite = self::custom_fields_index_exists( 'uniq_form_field_key' );
+		}
+		// 複合の実在を確認してからのみ単独 uniq_field_key を落とす（一意保護を失わない順序）。
+		if ( $has_composite && self::custom_fields_index_exists( 'uniq_field_key' ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->query( "ALTER TABLE {$prefix}custom_fields DROP INDEX uniq_field_key" );
+		}
+
+		return $has_composite;
+	}
+
+	/**
+	 * デフォルトフォーム（is_default=1）を確保し、その form id を返す。
+	 *
+	 * 既にデフォルトが存在すれば no-op で既存 id を返す（冪等）。無ければ「標準フォーム」を新規挿入する。
+	 *
+	 * @return int デフォルトフォームの id。作成に失敗した場合は 0。
+	 */
+	private static function ensure_default_form() {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$existing = (int) $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}smart_booking_forms WHERE is_default = 1 ORDER BY id ASC LIMIT 1" );
+		if ( $existing > 0 ) {
+			return $existing;
+		}
+
+		$now = current_time( 'mysql' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->insert(
+			$wpdb->prefix . 'smart_booking_forms',
+			array(
+				'name'       => '標準フォーム',
+				'is_default' => 1,
+				'sort_order' => 0,
+				'created_at' => $now,
+				'updated_at' => $now,
+			),
+			array( '%s', '%d', '%d', '%s', '%s' )
+		);
+
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * smart_booking_custom_fields に指定名のインデックスが実在するか。
+	 *
+	 * @param string $key_name 確認するインデックス名（Key_name）。
+	 * @return bool 実在すれば true。
+	 */
+	private static function custom_fields_index_exists( $key_name ) {
+		global $wpdb;
+		// SHOW INDEX はテーブル名を識別子として扱い、Key_name の比較値のみプレースホルダで束縛する（単一行）。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$found = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$wpdb->prefix}smart_booking_custom_fields WHERE Key_name = %s", $key_name ) );
+		return ! empty( $found );
+	}
+
+	/**
 	 * 初期設定値を投入する。add_option は既存キーがあれば no-op のため、再有効化でも上書きしない。
 	 *
 	 * @return void
@@ -346,7 +454,7 @@ class Smart_Booking_Activator {
 	}
 
 	/**
-	 * カスタムテーブル6つを作成する。
+	 * カスタムテーブル7つを作成する。
 	 *
 	 * dbDelta は冪等に動作するため、既存テーブルがあっても安全。
 	 *
@@ -425,8 +533,11 @@ class Smart_Booking_Activator {
 		) {$charset_collate};";
 
 		// smart_booking_reservations（予約データ）.
+		// v0.4.0: 複数フォーム対応で form_id を追加。既存ユーザーへは run_migrations() の 0.4.0
+		// ゲートで dbDelta 再適用＋バックフィルにより付与する（冪等）。
 		$sql_reservations = "CREATE TABLE {$prefix}reservations (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			form_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			store_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			staff_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			schedule_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -440,6 +551,7 @@ class Smart_Booking_Activator {
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
+			KEY idx_form_id (form_id),
 			KEY idx_schedule_id (schedule_id),
 			KEY idx_schedule_date (schedule_date),
 			KEY idx_status (status),
@@ -458,11 +570,29 @@ class Smart_Booking_Activator {
 			KEY idx_meta_key (meta_key(191))
 		) {$charset_collate};";
 
+		// smart_booking_forms（フォームマスター）.
+		// v0.4.0: 複数フォーム対応。各フォームは custom_fields を form_id で束ね、予約は form_id を持つ。
+		$sql_forms = "CREATE TABLE {$prefix}forms (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL DEFAULT '',
+			is_default tinyint(1) NOT NULL DEFAULT 0,
+			sort_order int(11) NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY  (id),
+			KEY idx_is_default (is_default),
+			KEY idx_sort_order (sort_order)
+		) {$charset_collate};";
+
 		// smart_booking_custom_fields（フォームフィールド定義）.
 		// v0.3.0: 条件フィールド用に condition_field_key / condition_value を追加。既存ユーザーへは
 		// maybe_upgrade() → run_migrations() の 0.3.0 ゲートで dbDelta を再適用して列を追加する（冪等）。
+		// v0.4.0: 複数フォーム対応で form_id を追加し、field_key の一意性を (form_id, field_key) の複合
+		// UNIQUE へ拡張する。既存テーブルの UNIQUE 張り替えは dbDelta の不確実性に依存させず、
+		// run_migrations() の 0.4.0 ゲート（migrate_multi_forms）が明示 ALTER で担う。
 		$sql_custom_fields = "CREATE TABLE {$prefix}custom_fields (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			form_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			field_key varchar(100) NOT NULL DEFAULT '',
 			field_label varchar(255) NOT NULL DEFAULT '',
 			field_type varchar(20) NOT NULL DEFAULT 'text',
@@ -474,7 +604,8 @@ class Smart_Booking_Activator {
 			condition_value varchar(255) DEFAULT NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
-			UNIQUE KEY uniq_field_key (field_key),
+			UNIQUE KEY uniq_form_field_key (form_id, field_key),
+			KEY idx_form_id (form_id),
 			KEY idx_sort_order (sort_order)
 		) {$charset_collate};";
 
@@ -483,6 +614,7 @@ class Smart_Booking_Activator {
 		dbDelta( $sql_schedules );
 		dbDelta( $sql_reservations );
 		dbDelta( $sql_reservation_meta );
+		dbDelta( $sql_forms );
 		dbDelta( $sql_custom_fields );
 	}
 
@@ -555,6 +687,8 @@ class Smart_Booking_Activator {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$fields_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields" );
 		if ( 0 === $fields_count ) {
+			// 初期フィールドはデフォルトフォームに束ねる（form_id を付与）。
+			$form_id  = self::ensure_default_form();
 			$defaults = array(
 				array(
 					'field_key'   => 'customer_name',
@@ -587,6 +721,7 @@ class Smart_Booking_Activator {
 				$wpdb->insert(
 					$wpdb->prefix . 'smart_booking_custom_fields',
 					array(
+						'form_id'       => $form_id,
 						'field_key'     => $field['field_key'],
 						'field_label'   => $field['field_label'],
 						'field_type'    => $field['field_type'],
@@ -596,7 +731,7 @@ class Smart_Booking_Activator {
 						'sort_order'    => $field['sort_order'],
 						'created_at'    => current_time( 'mysql' ),
 					),
-					array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
+					array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
 				);
 			}
 		}
