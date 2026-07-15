@@ -11,8 +11,10 @@ import { API } from '../api';
 import Button from '../components/Button';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ErrorMessage from '../components/ErrorMessage';
+import ShortcodeField from '../components/ShortcodeField';
 import Spinner from '../components/Spinner';
 import { useToast } from '../components/ToastContainer';
+import { buildFormShortcode } from '../utils/shortcode';
 import CustomFieldList from './formsettings/CustomFieldList';
 import CustomFieldModal from './formsettings/CustomFieldModal';
 import FieldTypeCards from './formsettings/FieldTypeCards';
@@ -318,6 +320,12 @@ export default function FormSettingsPage() {
 							</Button>
 						</div>
 					</div>
+					{selectedForm && (
+						<ShortcodeField
+							code={buildFormShortcode(selectedForm)}
+							help="このコードを固定ページや投稿に貼り付けると、このフォームの予約フォームが表示されます。"
+						/>
+					)}
 					{forms.length >= MAX_FORMS && (
 						<p className="smb-field__help smb-form-selector-bar__hint">
 							フォームは最大{MAX_FORMS}個までです。
