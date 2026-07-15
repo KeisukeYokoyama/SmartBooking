@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -151,6 +151,10 @@ WordPressの「削除」操作を実行すると、Smart Booking が作成した
 いずれの連携も有効化・設定されていない場合、Smart Booking は外部サービスへの通信を一切行いません。
 
 == Changelog ==
+
+= 0.4.1 - 2026-07-15 =
+* 改善: フォーム設定画面に、選択中フォームの埋め込み用ショートコードの表示とコピーボタンを追加しました。
+* 改善: 店舗一覧の各店舗に、店舗指定ショートコード（store_id）の表示とコピーボタンを追加しました。
 
 = 0.4.0 - 2026-07-15 =
 * 追加: 複数フォーム機能。「無料相談」「無料体験」など用途別に最大10個のフォームを作成し、ショートコード `[smart_booking form_id="2"]` で使い分けられます。フォームごとに入力項目を設定でき、予約枠（スケジュール）は全フォームで共有されます。
