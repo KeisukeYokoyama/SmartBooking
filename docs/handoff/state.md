@@ -2,7 +2,17 @@
 
 最終更新: 2026-07-15
 
-## v0.4.0 機能② 複数フォーム（ローカル完了・未push・2026-07-15）
+## v0.4.0.x UX改善: フォーム/店舗のショートコード表示（ローカル完了・未push・2026-07-15）
+
+- **ブランチ `feat/shortcode-display`（main=v0.4.0 から分岐・push なし・SVN 未操作）。バージョンは 0.4.0 のまま据え置き・readme 非変更**（パッチ 0.4.1 の判断は人間）。背景＝複数フォームの埋め込み用ショートコード `[smart_booking form_id="N"]` を管理画面で確認する場所が無く、フォームを作っても id が分からず埋め込めなかった（実ユーザーフィードバック）。
+- **実装（コミット）**:
+  - `4e31e7b` フォーム側: 新規 `src/admin/utils/shortcode.js`（組み立て集約: デフォルト→`[smart_booking]` / 他→`[smart_booking form_id="N"]`）＋新規 `src/admin/components/ShortcodeField.jsx`（コード＋コピー＋「コピーしました」一時表示・`navigator.clipboard`→`execCommand` フォールバック・`compact` variant・Toast 非依存の自己完結）。FormSettingsPage のセレクタ直下・同 `.smb-section-card` 内に常時表示。`admin.scss` に `.smb-shortcode-field*`。新規 E2E `tests/e2e/shortcode-display.spec.js`（切替追随1本）。
+  - `0e8cc52` 店舗側: StoreCard に compact 版で `[smart_booking store_id="N"]`。**システム店舗（is_system=1）は管理一覧に出ない**ため利用者作成の実店舗カードにのみ表示（`class-rest-stores.php:119` の一覧は `is_system=0` のみ）＝店舗別埋め込みが有用な多店舗運用でだけ現れる。担当者は shortcode 属性なしで対象外。
+- **設計**: shortcode 属性はサーバ `includes/class-shortcode.php` の store_id/form_id の2つ。form_id 省略/不正は `resolve_form_id` でデフォルト解決＝デフォルトフォームは省略形 `[smart_booking]`。**PHP・REST・DB は無改修**（新規エンドポイント不要・公開契約非破壊）。
+- **検証（logic-evaluator 独立判定・全 Green）**: 新規 E2E pass／DOM 実値 デフォルト`[smart_booking]`・追加`[smart_booking form_id="30"]`・店舗`[smart_booking store_id="2"]`・コピーボタン活性／回帰 **28/28 pass**（v040-selector-switch・v040-forms-crud・phase2-form-settings・phase2-stores-staff）＝新規失敗ゼロ／build 成功・**lint 新規ゼロ**（`npm run lint:js` 全体 482件は既存テスト spec の整形ドリフト＝ベースライン・私の変更ファイルは指摘ゼロ）・**PHP 非変更**（phpcs ERRORS 不変）。スクショで 1フォーム/1店舗でもレイアウト崩れなし・主張しすぎない を確認。
+- **次の一手（人間 GO）**: レビュー → main マージ / `git push`。リリースするなら **パッチ 0.4.1**（バージョン4箇所 bump＋readme Changelog 追記）を別途・人間判断。
+
+## v0.4.0 機能② 複数フォーム（実装時ローカル完了 → 現在は WordPress.org 公開済み・2026-07-15）
 
 - **ブランチ `feat/v040-multi-forms`（main から分岐・push なし・SVN 未操作）。バージョンは 0.3.0 のまま据え置き**（v0.4.0 のバージョン更新・Changelog・External services 確認はリリース作業で別途）。仕様正本は `docs/spec-amendment-v030-v040.md`「② 複数フォーム」。
 - **設計方針**: スケジュール（空き枠）はフォームで分けない＝全フォームが同一の店舗×担当者スケジュールを共有。予約枠・アトミックUPDATE競合防止・締切ロジックは一切不変。上限 `SMART_BOOKING_MAX_FORMS=10`（設定画面非公開）。
@@ -32,17 +42,15 @@
 - ✅ **E2E 最終再走**：新規 v040 5本 desktop 8/8・②touched（v030-conditional-fields/admin/address・phase3-validation）＋回帰（bug124・phase2-reservations・phase3-flow・phase2-form-settings 他）で **②起因の新規失敗ゼロ**（既知 stale のみ・wp-env CLI ETIMEDOUT フレークは再走で解消）。
 - 🔵 非ブロッキング（掃除任意・出荷影響なし）：リポジトリルートに古い `smart-booking.zip`・`.DS_Store`（`includes/.DS_Store` 含む）が残存。配布 ZIP には含まれない（.distignore 除外）。
 
-### v0.4.0 次の一手（**すべて人間 GO・不可逆**）
-1. **ローカルコミットのレビュー**（`feat/v040-multi-forms`・push していない。release commit `b1f4a3d` + handoff commit 群）。
-2. **公開経路 = v0.3.0 → v0.4.0 の通常更新**（公開順序の判断は不要）。**現在の公開バージョンは v0.3.0**（WordPress.org・2026-07-14 公開・SVN rev 3608167）。この v0.4.0 ブランチは 0.3.0 リリースコミット（`4b27463`）の上に②を積むため、既存 v0.3.0 ユーザーには `maybe_upgrade()`（0.3.0<0.4.0）で本番マイグレーションが1回発火する（上で実証済）。
-3. 人間が実施するリリース手順（Claude は認証情報を扱わない）：main へのマージ / `git push` / `git tag v0.4.0` / SVN（`~/dev/smart-booking-svn`）trunk 反映 + `tags/0.4.0` + `svn ci`。ZIP は `npx wp-scripts plugin-zip` で再生成可能。
-4. 公開後：約24時間後に https://wordpress.org/plugins/smart-booking/ で表示・Changelog を目視確認。
-5. ✅ readme 精度（②由来）：FAQ「プラグインを削除すると…カスタムテーブル…削除されます」の**「6つ」→「7つ」に修正済み**（②の forms テーブル追加＝実体7つ・uninstall.php の7テーブル DROP と整合）。
+### v0.4.0 リリース（完了・WordPress.org 公開済み）
+- **✅ 公開済み**（WordPress.org・SVN rev 3608375）。機能② 複数フォームを含む v0.3.0 → v0.4.0 の通常更新。main マージ / `git push` / SVN 公開は人間側で実施済み（Claude は認証情報を扱わない・git tag 等の詳細は人間側管理）。既存 v0.3.0 ユーザーには `maybe_upgrade()`（0.3.0<0.4.0）で本番マイグレーションが1回発火（実装時に実証済）。
+- ✅ readme 精度（②由来）：FAQ のカスタムテーブル数を **「6つ」→「7つ」に修正済み**（forms テーブル追加＝実体7つ・uninstall.php の7テーブル DROP と整合）。
 
 ## 現在地
-- **公開バージョン: v0.3.0（WordPress.org・SVN rev 3608167、2026-07-14 公開）**。公開ページで 0.3.0 表示・demo サイトも 0.3.0 へ更新済み（SVN 公開は人間側作業＝これまで state.md に未記録だった）。前バージョン v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
-- **次リリース = v0.4.0（機能② 複数フォーム）＝v0.3.0 → v0.4.0 の通常更新**。ローカル準備完了（上記 v0.4.0 セクション）・人間 GO 待ち。
-- git（v0.2.3）: 全作業を `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。v0.3.0 の git main マージ / tag 状況は人間側管理（本ツールからは未確認）。作業ツリー クリーン。
+- **公開バージョン: v0.4.0（WordPress.org・SVN rev 3608375・公開済み）**。機能② 複数フォームを含む。前バージョン v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
+- **main = v0.4.0**（機能②の8コミット＋リリース bump `b1f4a3d` がマージ済み）。v0.4.0 の SVN 公開・main マージは人間側で実施済み（本タスクの前提として確認）。
+- **進行中: v0.4.0.x UX改善（ショートコード表示）＝ブランチ `feat/shortcode-display`・push なし**（上記トップセクション）。リリースするならパッチ 0.4.1・人間判断。
+- git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
   - **BUG-1/2＋BUG-4＋自動更新フック(b)**（第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`（copy_schedules 店舗×担当者スコープ／schedules UNIQUE＋dedup 移行／admin_init maybe_upgrade）。
   - **BUG-A（Plain パーマリンク REST 依存）**（第4報）: `src/admin/api.js` / `src/frontend/api.js`（buildUrl セパレータ修正）。
