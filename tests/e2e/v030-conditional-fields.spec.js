@@ -34,7 +34,9 @@ function dbq( sql, extra = '' ) {
 }
 function insertConditionalFields() {
 	dbq(
-		`INSERT INTO ${ CF } (field_key,field_label,field_type,field_options,placeholder,is_required,sort_order,condition_field_key,condition_value,created_at) VALUES ('shiryo','資料送付','radio','["希望する","希望しない"]','',0,50,NULL,NULL,NOW()),('addr','送付先住所','textarea','[]','',1,60,'shiryo','希望する',NOW());`
+		`INSERT INTO ${ CF } (field_key,field_label,field_type,field_options,placeholder,is_required,sort_order,condition_field_key,condition_value,created_at) VALUES ('shiryo','資料送付','radio','["希望する","希望しない"]','',0,50,NULL,NULL,NOW()),('addr','送付先住所','textarea','[]','',1,60,'shiryo','希望する',NOW());` +
+			// v0.4.0: custom_fields は form_id 必須。直接 INSERT した行をデフォルトフォームへ紐付ける。
+			` UPDATE ${ CF } SET form_id = (SELECT id FROM wp_smart_booking_forms WHERE is_default = 1 LIMIT 1) WHERE form_id = 0;`
 	);
 }
 function addrMetaCount() {

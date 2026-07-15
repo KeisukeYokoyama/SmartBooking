@@ -53,7 +53,8 @@ test.describe.configure( { mode: 'serial' } );
 function addRequiredCustomField() {
 	const { execSync } = require( 'node:child_process' );
 	const path = require( 'node:path' );
-	const sql = `INSERT INTO wp_smart_booking_custom_fields (field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, created_at) VALUES ('inquiry', 'お問い合わせ内容', 'textarea', '', '', 1, 100, NOW());`;
+	// v0.4.0: custom_fields は form_id 必須。直接 INSERT した行をデフォルトフォームへ紐付ける。
+	const sql = `INSERT INTO wp_smart_booking_custom_fields (field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, created_at) VALUES ('inquiry', 'お問い合わせ内容', 'textarea', '', '', 1, 100, NOW()); UPDATE wp_smart_booking_custom_fields SET form_id = (SELECT id FROM wp_smart_booking_forms WHERE is_default = 1 LIMIT 1) WHERE form_id = 0;`;
 	execSync( `npx wp-env run cli wp db query "${ sql }"`, {
 		cwd: path.resolve( __dirname, '..', '..' ),
 		encoding: 'utf8',

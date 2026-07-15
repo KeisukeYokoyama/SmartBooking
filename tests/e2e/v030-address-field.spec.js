@@ -67,13 +67,17 @@ function insertAddressField(
 	const ck = cond_key === null ? 'NULL' : `'${ cond_key }'`;
 	const cv = cond_val === null ? 'NULL' : `'${ cond_val }'`;
 	dbq(
-		`INSERT INTO ${ CF } (field_key,field_label,field_type,field_options,placeholder,is_required,sort_order,condition_field_key,condition_value,created_at) VALUES ('${ key }','${ label }','address','${ opts }','',${ required },${ sort },${ ck },${ cv },NOW());`
+		`INSERT INTO ${ CF } (field_key,field_label,field_type,field_options,placeholder,is_required,sort_order,condition_field_key,condition_value,created_at) VALUES ('${ key }','${ label }','address','${ opts }','',${ required },${ sort },${ ck },${ cv },NOW());` +
+			// v0.4.0: custom_fields は form_id 必須。直接 INSERT した行をデフォルトフォームへ紐付ける。
+			` UPDATE ${ CF } SET form_id = (SELECT id FROM wp_smart_booking_forms WHERE is_default = 1 LIMIT 1) WHERE form_id = 0;`
 	);
 }
 function insertRadio( key, label, options, sort ) {
 	const opts = JSON.stringify( options ).replace( /'/g, "''" );
 	dbq(
-		`INSERT INTO ${ CF } (field_key,field_label,field_type,field_options,placeholder,is_required,sort_order,condition_field_key,condition_value,created_at) VALUES ('${ key }','${ label }','radio','${ opts }','',0,${ sort },NULL,NULL,NOW());`
+		`INSERT INTO ${ CF } (field_key,field_label,field_type,field_options,placeholder,is_required,sort_order,condition_field_key,condition_value,created_at) VALUES ('${ key }','${ label }','radio','${ opts }','',0,${ sort },NULL,NULL,NOW());` +
+			// v0.4.0: custom_fields は form_id 必須。直接 INSERT した行をデフォルトフォームへ紐付ける。
+			` UPDATE ${ CF } SET form_id = (SELECT id FROM wp_smart_booking_forms WHERE is_default = 1 LIMIT 1) WHERE form_id = 0;`
 	);
 }
 function metaVal( reservationId, metaKey ) {
