@@ -21,7 +21,23 @@
   - 1フォームデグレ: 管理一覧はフォーム列/フィルタ非表示（v0.3.0 同一）・CSV常時フォーム列・public は fallback。
   - Plugin Check **配布スコープ 0/0**（activator 誤検知は `2cfe05c` で解消）。php -l 全通過・phpcs ERRORS 0・build 成功。
   - 回帰ゲート: ②が触った経路の既存スイート（bug124／phase2-reservations 11/11／phase3-flow 13/13／phase2-form-settings／phase2-reservations-extra・smoke／v030-conditional-fields・admin・address 11/11）で **②起因の新規失敗ゼロ**（②で壊れた直接INSERT系4テストは form_id 追随で修正済み）。
-- **次の一手（v0.4.0 リリース作業・すべて人間 GO・不可逆・別タスク）**: ①バージョン4箇所を 0.4.0 に更新 ②readme Changelog に v0.4.0 追記 ③External services 再確認（②は新規外部通信なし＝zipcloud のまま）④build→plugin-zip→SVN 反映。`feat/v040-multi-forms` のレビュー/main マージ/push も未実施。
+### v0.4.0 リリース準備：ローカル作業 完了（2026-07-15・commit `b1f4a3d`・push なし）
+リリース ZIP を出す直前までのローカル作業は全て完了。**残りは人間 GO の不可逆操作のみ**（下記「v0.4.0 次の一手」）。
+- ✅ **バージョン4箇所を 0.4.0 に一致更新**（smart-booking.php Version / SMART_BOOKING_VERSION / readme.txt Stable tag / package.json）。grep で 4/4 一致実証。
+- ✅ **readme.txt 更新**：Changelog に 0.4.0 追記（②複数フォーム・既存エントリ不変）／FAQ に「確認メールが届かない場合」1項目追加（WP Mail SMTP・SPF/DKIM/DMARC・設定>メール通知タブ）／External services は②で新規外部通信なし＝**不変**（Google/ChatWork/zipcloud）。目視で3サービス記載の整合を確認。
+- ✅ **build 成功＋ZIP 検証**（`npx wp-scripts plugin-zip`・コミット非対象・gitignore 済み）：**30 ファイル**（v0.3.0 の 29 比 **+1＝`includes/rest/class-rest-forms.php`**＝②の唯一の新規出荷ファイル）。docs/src/tests/node_modules/.DS_Store 混入ゼロ。ZIP 内 smart-booking.php/readme.txt が 0.4.0 同梱を実証。
+- ✅ **★マイグレーション本番経路 実証★**（logic-evaluator 独立判定）：SMART_BOOKING_VERSION=0.4.0 のコードに対し v0.3.0 相当DB（form_id 無・単独UNIQUE・③条件フィールド・予約データ有・db_version=0.3.0）を人為再現 → **admin cookie 付き実HTTP `GET /wp-admin/` で admin_init→maybe_upgrade を自然発火（再有効化ではない）** → 標準フォーム1件生成・全 custom_fields/reservations が form_id=デフォルト（form_id=0 残存ゼロ）・複合 uniq_form_field_key 実在＆単独 uniq_field_key DROP・③条件関係保持・schedules UNIQUE 無傷・db_version→0.4.0。2〜3回発火で差分ゼロ（冪等・重複フォーム生成なし）。複合UNIQUE隔離を 1062 で実証。
+- ✅ **Plugin Check 配布スコープ 0/0**（検出 8E+4W は全て .distignore 除外の dev 成果物＝出荷ファイルからの検出ゼロ）・php -l 20/20・phpcs ERRORS 0。
+- ✅ **スモーク**（パーマリンク 基本/投稿名 両方）：v0.4.0 表示・REST 到達（BUG-A デグレ無し）・**1フォーム／2フォーム両方**で予約完走。
+- ✅ **E2E 最終再走**：新規 v040 5本 desktop 8/8・②touched（v030-conditional-fields/admin/address・phase3-validation）＋回帰（bug124・phase2-reservations・phase3-flow・phase2-form-settings 他）で **②起因の新規失敗ゼロ**（既知 stale のみ・wp-env CLI ETIMEDOUT フレークは再走で解消）。
+- 🔵 非ブロッキング（掃除任意・出荷影響なし）：リポジトリルートに古い `smart-booking.zip`・`.DS_Store`（`includes/.DS_Store` 含む）が残存。配布 ZIP には含まれない（.distignore 除外）。
+
+### v0.4.0 次の一手（**すべて人間 GO・不可逆**）
+1. **ローカルコミットのレビュー**（`feat/v040-multi-forms`・push していない。release commit `b1f4a3d` + 本 handoff commit）。
+2. **公開順序の判断（要確認）**：現在の公開バージョンは **v0.2.3**。**v0.3.0（①③④）はブランチ `feat/v030-store-staff-labels` にコミット済みだが WordPress.org 未公開**。この v0.4.0 ブランチは 0.3.0 リリースコミット（`4b27463`）の上に②を積み ①③④ を内包する。よって「v0.3.0 を先に公開 → その後 v0.4.0」か「v0.2.3→v0.4.0 で ①〜④ を一括公開」かを人間が決める必要がある。Changelog は 0.4.0/0.3.0 とも記載済みなので一括公開でも履歴は揃う。
+3. 人間が実施するリリース手順（Claude は認証情報を扱わない）：main へのマージ / `git push` / `git tag v0.4.0` / SVN（`~/dev/smart-booking-svn`）trunk 反映 + `tags/0.4.0` + `svn ci`。ZIP は `npx wp-scripts plugin-zip` で再生成可能。
+4. 公開後：約24時間後に https://wordpress.org/plugins/smart-booking/ で表示・Changelog を目視確認。
+5. 🟡 readme 精度メモ（②由来・任意判断・今回スコープ厳守で未編集）：FAQ「プラグインを削除すると…**6つ**のカスタムテーブル…削除されます」は②で forms テーブル追加により**実体7つ**。uninstall.php は7テーブル DROP 済で挙動は正しく、あくまで readme 文言の数値。文言更新の要否は人間判断。
 
 ## 現在地
 - **公開バージョン: v0.2.3（WordPress.org・SVN rev 3605460、2026-07-13 公開）**。前バージョン v0.2.2（rev 3592043）。
