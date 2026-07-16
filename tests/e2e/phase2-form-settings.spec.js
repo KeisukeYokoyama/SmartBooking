@@ -132,6 +132,22 @@ test.describe( 'Phase 2: フォーム設定（フィールド）', () => {
 	} );
 
 	test( 'フィールドキー重複でバリデーションエラー', async ( { page } ) => {
+		// 重複判定の対象にする非予約語のフィールドを先に作成する。
+		// （customer_name はメール変数の予約語となったため、重複ではなく予約語エラーになる。
+		//   下の「予約語」テストで別途カバーする。）
+		const res = await restCall( page, 'POST', 'custom-fields', {
+			field_label: '会社名',
+			field_key: 'company_name',
+			field_type: 'text',
+			is_required: 0,
+			sort_order: 40,
+		} );
+		expect( res.ok ).toBe( true );
+		await page.reload();
+		await page.waitForSelector( '.smb-page--form-settings', {
+			timeout: 15000,
+		} );
+
 		await page
 			.locator( '.smb-field-type-card', { hasText: '1行テキスト' } )
 			.getByRole( 'button', { name: /追加/ } )
@@ -139,13 +155,13 @@ test.describe( 'Phase 2: フォーム設定（フィールド）', () => {
 		await page
 			.getByLabel( /ラベル/, { exact: false } )
 			.first()
-			.fill( '氏名重複' );
-		// キーを初期フィールドと同じ customer_name に変更.
+			.fill( '会社名重複' );
+		// 既存の company_name と同じキーを入力する.
 		// 確実にキーを取るため label 'フィールドキー' を狙う.
 		const keyField = page.locator( '.smb-field', {
 			has: page.locator( 'label', { hasText: 'フィールドキー' } ),
 		} );
-		await keyField.locator( 'input' ).fill( 'customer_name' );
+		await keyField.locator( 'input' ).fill( 'company_name' );
 		await page
 			.locator( '.smb-modal__footer' )
 			.getByRole( 'button', { name: 'フィールドを追加' } )
@@ -153,6 +169,33 @@ test.describe( 'Phase 2: フォーム設定（フィールド）', () => {
 		await expect(
 			page.locator( '.smb-field__error', {
 				hasText: /既に使われています/,
+			} )
+		).toBeVisible();
+	} );
+
+	test( 'メール変数の予約語キーはバリデーションエラー（v0.4.2）', async ( {
+		page,
+	} ) => {
+		await page
+			.locator( '.smb-field-type-card', { hasText: '1行テキスト' } )
+			.getByRole( 'button', { name: /追加/ } )
+			.click();
+		await page
+			.getByLabel( /ラベル/, { exact: false } )
+			.first()
+			.fill( '店舗名（予約語）' );
+		// 固定メール変数と衝突する予約語キーを入力する.
+		const keyField = page.locator( '.smb-field', {
+			has: page.locator( 'label', { hasText: 'フィールドキー' } ),
+		} );
+		await keyField.locator( 'input' ).fill( 'store_name' );
+		await page
+			.locator( '.smb-modal__footer' )
+			.getByRole( 'button', { name: 'フィールドを追加' } )
+			.click();
+		await expect(
+			page.locator( '.smb-field__error', {
+				hasText: /予約語/,
 			} )
 		).toBeVisible();
 	} );

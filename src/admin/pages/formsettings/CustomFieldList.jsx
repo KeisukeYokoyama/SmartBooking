@@ -74,6 +74,14 @@ export default function CustomFieldList({ fields, onEdit, onDelete, onMove }) {
 								)}
 							</div>
 							<code className="smb-field-list__key">{field.field_key}</code>
+							{!isProtected && (
+								<span
+									className="smb-field-list__mailvar"
+									title="メール本文にこの変数を書くと、この項目の回答が差し込まれます"
+								>
+									メール変数 <code>{`{${field.field_key}}`}</code> として使用可
+								</span>
+							)}
 						</div>
 						<div className="smb-field-list__type">
 							<TypeBadge type={field.field_type} />

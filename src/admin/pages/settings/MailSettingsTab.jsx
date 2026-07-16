@@ -118,7 +118,7 @@ function hydrate(settings) {
 	return out;
 }
 
-function BodyFieldWithHelper({ label, value, onChange, helperId, disabled = false }) {
+function BodyFieldWithHelper({ label, value, onChange, helperId, customGroups = [], disabled = false }) {
 	return (
 		<div className="smb-mail-body">
 			<Textarea
@@ -131,6 +131,7 @@ function BodyFieldWithHelper({ label, value, onChange, helperId, disabled = fals
 			<TemplateHelperBinding
 				helperId={helperId}
 				onInsert={(next) => onChange(next)}
+				customGroups={customGroups}
 			/>
 		</div>
 	);
@@ -141,7 +142,7 @@ function BodyFieldWithHelper({ label, value, onChange, helperId, disabled = fals
  * セクションの DOM から直接 textarea 要素を取得して
  * TemplateVariableHelper に渡す薄いラッパ。
  */
-function TemplateHelperBinding({ helperId, onInsert }) {
+function TemplateHelperBinding({ helperId, onInsert, customGroups = [] }) {
 	const hiddenRef = useRef(null);
 
 	// マウント後、同じ親ブロックの textarea を取得して ref に保持。
@@ -166,7 +167,11 @@ function TemplateHelperBinding({ helperId, onInsert }) {
 
 	return (
 		<div ref={hiddenRef} id={helperId}>
-			<TemplateVariableHelper textareaRef={taRefProxy} onInsert={onInsert} />
+			<TemplateVariableHelper
+				textareaRef={taRefProxy}
+				onInsert={onInsert}
+				customGroups={customGroups}
+			/>
 		</div>
 	);
 }
@@ -177,6 +182,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 	const [adminToggleConfirmOpen, setAdminToggleConfirmOpen] = useState(false);
 	const [mailError, setMailError] = useState(null);
 	const [mailErrorDismissing, setMailErrorDismissing] = useState(false);
+	const [customGroups, setCustomGroups] = useState([]);
 	const { showToast } = useToast();
 
 	useEffect(() => {
@@ -199,6 +205,56 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 			.catch(() => {
 				// noop: 注意表示は補助情報のため、失敗時は無表示にとどめる。
 			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	// 各フォームのカスタムフィールドを取得し、メール本文に挿入できる変数一覧を組み立てる。
+	// 複数フォーム（v0.4.0）では同じ field_key が別フォームに存在し得るため、フォーム別に分ける。
+	// 取得失敗時は固定変数のみの表示にとどめ、タブ本体の機能には影響させない。
+	useEffect(() => {
+		let cancelled = false;
+		(async () => {
+			try {
+				const forms = await API.forms.list();
+				const list = Array.isArray(forms) ? forms : [];
+				const fieldsPerForm = await Promise.all(
+					list.map((f) => API.customFields.list(f.id).catch(() => []))
+				);
+				const groups = [];
+				list.forEach((form, idx) => {
+					const fields = Array.isArray(fieldsPerForm[idx]) ? fieldsPerForm[idx] : [];
+					const variables = [];
+					for (const fld of fields) {
+						// 保護フィールド（氏名/メール/電話）は固定変数と重複するため除外。
+						if (fld.is_protected) continue;
+						if (fld.field_type === 'address') {
+							variables.push({
+								key: `{${fld.field_key}}`,
+								desc: `${fld.field_label}（〒＋住所）`,
+							});
+							variables.push({
+								key: `{${fld.field_key}_zip}`,
+								desc: `${fld.field_label}（郵便番号）`,
+							});
+							variables.push({
+								key: `{${fld.field_key}_address}`,
+								desc: `${fld.field_label}（住所）`,
+							});
+						} else {
+							variables.push({ key: `{${fld.field_key}}`, desc: fld.field_label });
+						}
+					}
+					if (variables.length > 0) {
+						groups.push({ formId: form.id, formName: form.name, variables });
+					}
+				});
+				if (!cancelled) setCustomGroups(groups);
+			} catch {
+				// noop: 変数一覧は補助情報のため、失敗時は固定変数のみ表示にとどめる。
+			}
+		})();
 		return () => {
 			cancelled = true;
 		};
@@ -300,6 +356,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					value={values.smart_booking_mail_receipt_user_body}
 					onChange={(v) => update({ smart_booking_mail_receipt_user_body: v })}
 					helperId="helper-receipt-user"
+					customGroups={customGroups}
 				/>
 			</div>
 
@@ -334,6 +391,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					value={values.smart_booking_mail_receipt_admin_body}
 					onChange={(v) => update({ smart_booking_mail_receipt_admin_body: v })}
 					helperId="helper-receipt-admin"
+					customGroups={customGroups}
 				/>
 			</div>
 
@@ -357,6 +415,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					value={values.smart_booking_mail_approval_user_body}
 					onChange={(v) => update({ smart_booking_mail_approval_user_body: v })}
 					helperId="helper-approval-user"
+					customGroups={customGroups}
 				/>
 			</div>
 

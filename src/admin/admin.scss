@@ -3767,6 +3767,20 @@
 		border-radius: 4px;
 	}
 
+	// メール変数として使える旨のヒント（カスタムフィールドのキー直下）。
+	&__mailvar {
+		display: block;
+		margin-top: 3px;
+		font-size: 11px;
+		color: var(--smb-color-text-muted);
+
+		code {
+			font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+			font-size: 11px;
+			color: var(--smb-color-text-subtle);
+		}
+	}
+
 	&__actions {
 		display: inline-flex;
 		gap: 6px;
@@ -4162,6 +4176,33 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
+	}
+
+	// カスタムフィールド由来の変数（フォーム別グループ）。
+	&__custom {
+		margin-top: 10px;
+		padding-top: 10px;
+		border-top: 1px dashed var(--smb-color-border);
+		display: grid;
+		gap: 10px;
+	}
+
+	&__group {
+		display: grid;
+		gap: 6px;
+	}
+
+	&__group-title {
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--smb-color-text-muted);
+	}
+
+	&__note {
+		margin: 0;
+		font-size: 11px;
+		color: var(--smb-color-text-muted);
+		line-height: 1.5;
 	}
 }
 

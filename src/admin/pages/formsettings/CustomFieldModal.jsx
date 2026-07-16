@@ -37,6 +37,18 @@ const TYPE_OPTIONS = FIELD_TYPES.map((t) => ({ value: t.type, label: t.label }))
 const NEEDS_OPTIONS = ['select', 'radio', 'checkbox'];
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
 
+// メール変数の固定8変数と衝突するキーは使用不可（サーバの RESERVED_TEMPLATE_KEYS と一致させる）。
+const RESERVED_KEYS = [
+	'customer_name',
+	'customer_email',
+	'customer_phone',
+	'reservation_id',
+	'schedule_date',
+	'schedule_time',
+	'store_name',
+	'staff_name',
+];
+
 /**
  * ラベルから field_key 候補を推測する。
  * - 日本語や記号は除去。英数字がなければ `field_` プレフィックスを付ける。
@@ -207,17 +219,22 @@ export default function CustomFieldModal({
 			e.field_label = 'ラベルを入力してください。';
 		}
 		if (!isProtected) {
-			if (!values.field_key.trim()) {
-				e.field_key = 'フィールドキーを入力してください。';
-			} else if (!KEY_RE.test(values.field_key)) {
-				e.field_key =
-					'英小文字で始まり、英数字とアンダースコアのみ使えます。例: company_name';
-			} else {
-				// 重複チェック（自分以外）
-				const dup = existingKeys.some(
-					(k) => k === values.field_key && (!field || field.field_key !== k)
-				);
-				if (dup) e.field_key = 'このフィールドキーは既に使われています。';
+			const key = values.field_key.trim();
+			// 空欄は許容（サーバが field_N を自動採番するため、英字キーを考えなくても作成できる）。
+			if (key) {
+				if (!KEY_RE.test(key)) {
+					e.field_key =
+						'英小文字で始まり、英数字とアンダースコアのみ使えます。例: company_name';
+				} else if (RESERVED_KEYS.includes(key)) {
+					e.field_key =
+						'このキーはメール変数の予約語のため使用できません。別のキー名にしてください。';
+				} else {
+					// 重複チェック（自分以外）
+					const dup = existingKeys.some(
+						(k) => k === values.field_key && (!field || field.field_key !== k)
+					);
+					if (dup) e.field_key = 'このフィールドキーは既に使われています。';
+				}
 			}
 		}
 		if (needsOptions && values.field_options.length === 0) {
@@ -288,17 +305,16 @@ export default function CustomFieldModal({
 
 				<Input
 					label="フィールドキー"
-					required={!isProtected}
 					value={values.field_key}
 					onChange={onKeyChange}
 					error={errors.field_key}
 					readOnly={isProtected}
 					disabled={isProtected}
-					placeholder="company_name"
+					placeholder="company_name（空欄なら自動で割り当て）"
 					help={
 						isProtected
 							? '初期フィールドのキーは変更できません。'
-							: '英数字とアンダースコアのみ。メール本文などで {キー名} として利用できます。'
+							: '任意。空欄なら自動で割り当てます。メール本文に {キー名} と書くと、この項目の回答がそのまま差し込まれます。'
 					}
 				/>
 

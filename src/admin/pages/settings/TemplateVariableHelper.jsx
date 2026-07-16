@@ -35,11 +35,26 @@ function insertAtCursor(textareaRef, text) {
 	return next;
 }
 
-export default function TemplateVariableHelper({ textareaRef, onInsert }) {
+export default function TemplateVariableHelper({ textareaRef, onInsert, customGroups = [] }) {
 	const handleClick = (variable) => {
 		const next = insertAtCursor(textareaRef, variable);
 		if (next !== null && onInsert) onInsert(next);
 	};
+
+	const renderChip = (v) => (
+		<button
+			key={v.key}
+			type="button"
+			className="smb-var-chip"
+			onClick={() => handleClick(v.key)}
+			title={v.desc}
+		>
+			<code>{v.key}</code>
+			<span className="smb-var-chip__desc">{v.desc}</span>
+		</button>
+	);
+
+	const hasCustom = Array.isArray(customGroups) && customGroups.length > 0;
 
 	return (
 		<div className="smb-var-helper">
@@ -49,20 +64,25 @@ export default function TemplateVariableHelper({ textareaRef, onInsert }) {
 					クリックで本文のカーソル位置に挿入
 				</span>
 			</div>
-			<div className="smb-var-helper__list">
-				{MAIL_VARIABLES.map((v) => (
-					<button
-						key={v.key}
-						type="button"
-						className="smb-var-chip"
-						onClick={() => handleClick(v.key)}
-						title={v.desc}
-					>
-						<code>{v.key}</code>
-						<span className="smb-var-chip__desc">{v.desc}</span>
-					</button>
-				))}
-			</div>
+			<div className="smb-var-helper__list">{MAIL_VARIABLES.map(renderChip)}</div>
+
+			{hasCustom && (
+				<div className="smb-var-helper__custom">
+					{customGroups.map((g) => (
+						<div key={g.formId} className="smb-var-helper__group">
+							<span className="smb-var-helper__group-title">
+								カスタム項目（{g.formName}）
+							</span>
+							<div className="smb-var-helper__list">
+								{g.variables.map(renderChip)}
+							</div>
+						</div>
+					))}
+					<p className="smb-var-helper__note">
+						※ カスタム項目の変数は、予約に使われたフォームの回答で置き換わります。
+					</p>
+				</div>
+			)}
 		</div>
 	);
 }

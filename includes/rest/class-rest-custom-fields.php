@@ -28,6 +28,28 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	const ALLOWED_TYPES = array( 'text', 'email', 'tel', 'textarea', 'select', 'radio', 'checkbox', 'address' );
 
 	/**
+	 * メールテンプレートの固定変数と衝突する予約語（field_key に使用不可）。
+	 *
+	 * これらを field_key に許すと、メール本文の {store_name} 等が常に固定変数として
+	 * 展開され、カスタムフィールドの回答が差し込まれない（固定 8 変数が優先されるため）。
+	 * 混乱を避けるため作成時に禁止する。customer_name / customer_email / customer_phone は
+	 * 保護フィールドとして各フォームに既存するので、ユーザーが同名で作成しようとしても
+	 * 複合 UNIQUE 衝突で採番される（この防御が主に効くのは残り 5 語）。
+	 *
+	 * @see Smart_Booking_Reservation_Context::template_vars()
+	 */
+	const RESERVED_TEMPLATE_KEYS = array(
+		'customer_name',
+		'customer_email',
+		'customer_phone',
+		'reservation_id',
+		'schedule_date',
+		'schedule_time',
+		'store_name',
+		'staff_name',
+	);
+
+	/**
 	 * ルート登録。
 	 *
 	 * @return void
@@ -300,10 +322,13 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 
 		$key = sanitize_key( (string) $request->get_param( 'field_key' ) );
 		if ( '' === $key ) {
-			// 自動生成: field_N.
+			// 自動生成: field_N（日本語ラベル等でキー候補が空でも作成を完了できる）。
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$max = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields" );
 			$key = 'field_' . ( $max + 1 );
+		} elseif ( in_array( $key, self::RESERVED_TEMPLATE_KEYS, true ) ) {
+			// 明示指定されたキーがメール変数の予約語なら拒否する（採番済みの field_N は該当しない）。
+			return $this->error( 'smb_field_key_reserved', 'このフィールドキーはメール変数の予約語のため使用できません。別のキー名を指定してください。', 400 );
 		}
 
 		// 既存 key との衝突チェック（同一フォーム内で一意にする＝複合 UNIQUE(form_id, field_key)）.
