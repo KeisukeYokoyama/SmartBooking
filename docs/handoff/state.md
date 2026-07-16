@@ -10,6 +10,7 @@
   - `d4d0985` docs: v0.4.1 を公開済み（SVN rev 3608476）に訂正・v0.4.2 を次バージョンに設定。
   - `b1ae78a` docs(bugs): 外部報告2件の調査正本を起票。
   - `ab5616c` feat: 実装本体（下記）。
+  - `497ce00` fix(ux): ux-evaluator 指摘反映（変数チップの改行防止／address 3変数をフィールド一覧・モーダルでも明示／空欄作成時に自動採番キーをトースト提示）。
 - **実装（案A＝メール変数展開）**:
   - `includes/class-reservation-context.php`: `template_vars()` にカスタムフィールドの `{field_key}`→回答値を追加（`custom_field_vars()`）。**address は `{key}`/`{key}_zip`/`{key}_address` の3変数**（結合は `〒郵便番号 住所`＝ReservationDetailModal と同形式・ハイフン無し）、**checkbox は「、」結合**、**条件非表示(meta無)は空文字**、**固定8変数と衝突時は固定を優先**（カスタムを先に組み固定で上書き）。`build()` の custom_field_defs を**予約の form_id でスコープ**（複数フォームで同一 field_key を混ぜない）。**マイグレーション不要**（保存済み meta を遡って展開）。ChatWork/GCal は `formatted[]` のみ消費で無影響（調査済み）。
   - `includes/rest/class-rest-custom-fields.php`: `RESERVED_TEMPLATE_KEYS`（固定8変数キー）を新規作成時に禁止（`smb_field_key_reserved` 400）。空キーは従来どおり `field_N` 自動採番。
@@ -20,6 +21,7 @@
   - **wp-env 実測（eval-file・14/15、1件は検証スクリプト側の期待値タイポでコード出力は正）**：radio/checkbox「、」/address 3変数＋結合/条件非表示→空文字/複数フォームスコープ（同一 `{field_docs}` が form 毎に別値）/固定変数優先（`{store_name}`=店舗名）/予約語 REST 拒否/空キー自動採番 `field_N`。
   - **新規E2E `tests/e2e/v042-mail-custom-fields.spec.js` 2/2**（smb-mail-catcher の pre_wp_mail 捕捉でユーザー宛・管理者宛の両本文に展開／未入力は空文字・生キー残留なし）。
   - **回帰ゲート 新規失敗ゼロ**：phase4-email 5/5（固定変数 render 不変＝デグレ無し）・phase2-form-settings 10/10・v030-conditional-fields/admin/address・v040-forms-crud/form-reservation/fallback・phase2-settings。**phase2-form-settings のキー重複テストは、予約語 `customer_name` が新挙動で予約語エラーになるため非予約語キー（company_name）へ更新＋予約語の正例テストを追加**（挙動はブロック維持・メッセージがより的確化＝デグレではない）。
+  - **UX 検証（ux-evaluator 独立判定・実機スクショ desktop/mobile）＝総合 Green**。report1 の混乱（日本語ラベルのみで `{field_N}` が生で届く）が実質解消を実機確認。指摘は 🟡1（変数チップの375px改行）＋🔵3。🟡＋🔵2（address 3変数の非対称説明・自動採番キーの不可視）を `497ce00` で反映。残る🔵1＝キー表示の配色コントラスト（約4.2:1）は**本改修固有でなく既存パターン踏襲のため据え置き**（次回配色見直し時に検討）。反映後に phase2-form-settings 10/10・v042 2/2 再走 Green。
 - **v0.4.2 次の一手（人間 GO・不可逆）**: ①レビュー ②リリース準備タスク（バージョン4箇所 0.4.2 bump＋readme Changelog／Stable tag＋build＋ZIP＋Plugin Check 再走）③main マージ / push / tag / SVN 公開。**バージョンは現状 0.4.1 据え置き**。
 
 ## v0.4.1 UX改善: フォーム/店舗のショートコード表示（**WordPress.org 公開済み・2026-07-15・SVN rev 3608476**）
