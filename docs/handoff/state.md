@@ -22,7 +22,18 @@
   - **新規E2E `tests/e2e/v042-mail-custom-fields.spec.js` 2/2**（smb-mail-catcher の pre_wp_mail 捕捉でユーザー宛・管理者宛の両本文に展開／未入力は空文字・生キー残留なし）。
   - **回帰ゲート 新規失敗ゼロ**：phase4-email 5/5（固定変数 render 不変＝デグレ無し）・phase2-form-settings 10/10・v030-conditional-fields/admin/address・v040-forms-crud/form-reservation/fallback・phase2-settings。**phase2-form-settings のキー重複テストは、予約語 `customer_name` が新挙動で予約語エラーになるため非予約語キー（company_name）へ更新＋予約語の正例テストを追加**（挙動はブロック維持・メッセージがより的確化＝デグレではない）。
   - **UX 検証（ux-evaluator 独立判定・実機スクショ desktop/mobile）＝総合 Green**。report1 の混乱（日本語ラベルのみで `{field_N}` が生で届く）が実質解消を実機確認。指摘は 🟡1（変数チップの375px改行）＋🔵3。🟡＋🔵2（address 3変数の非対称説明・自動採番キーの不可視）を `497ce00` で反映。残る🔵1＝キー表示の配色コントラスト（約4.2:1）は**本改修固有でなく既存パターン踏襲のため据え置き**（次回配色見直し時に検討）。反映後に phase2-form-settings 10/10・v042 2/2 再走 Green。
-- **v0.4.2 次の一手（人間 GO・不可逆）**: ①レビュー ②リリース準備タスク（バージョン4箇所 0.4.2 bump＋readme Changelog／Stable tag＋build＋ZIP＋Plugin Check 再走）③main マージ / push / tag / SVN 公開。**バージョンは現状 0.4.1 据え置き**。
+### v0.4.2 リリース準備：ローカル完了（2026-07-16・commit `d99a8d0`・push なし）
+リリース ZIP を出す直前までのローカル作業は全て完了。**残りは人間 GO の不可逆操作のみ**（下記「v0.4.2 次の一手」）。実装本体（`ab5616c`/`497ce00`）の上に、リリース bump を別コミット `d99a8d0` で積んだ。
+- ✅ **バージョン4箇所を 0.4.2 に一致更新**（smart-booking.php Version / SMART_BOOKING_VERSION / readme.txt Stable tag / package.json）。grep 4/4 一致実証・smart-booking.php／package.json に 0.4.1 残存ゼロ（readme は Changelog 履歴の 0.4.1 のみ）。
+- ✅ **readme Changelog に 0.4.2 追記**（カスタムフィールドのメール変数展開＋フィールドキー任意化＋メール未達切り分け FAQ 追記・既存エントリ不変。readme 慣習 `= x.y.z - date =`／`*` に整形）。**External services は本件で外部通信なし＝不変**（Google/ChatWork/zipcloud・目視確認）。Upgrade Notice は 0.3.0/0.4.0/0.4.1 と同様にエントリ追加せず。
+- ✅ **build 成功＋ZIP 検証**（`npx wp-scripts plugin-zip`・コミット非対象・gitignore 済み）：**30 ファイル**（v0.4.1 と同数＝**増減ゼロ**。v0.4.2 は既存 PHP＋build/admin.js バンドル＋readme に収まり新規出荷ファイルなし）。docs/src/tests/node_modules/.DS_Store/.git 混入ゼロ・ZIP 内 smart-booking.php Version／SMART_BOOKING_VERSION／readme Stable tag／Changelog が 0.4.2 同梱を実証。
+- ✅ **★マイグレーションゲート無害 実証★**（logic-evaluator 独立判定）：本リリースは DB スキーマ変更なし（メール変数展開は保存済み meta の読み取りのみ）。SMART_BOOKING_VERSION 0.4.1→0.4.2 で、db_version=0.4.1 環境の admin cookie 付き実HTTP `GET /wp-admin/`→admin_init→maybe_upgrade が1回発火するが全バージョンゲート（0.2.0/0.2.3/0.3.0/0.4.0）が false ＝**スキーマ副作用ゼロ**（4テーブル `SHOW CREATE TABLE` md5 不変・custom_fields/schedules の UNIQUE 2本不変）、**唯一 db_version が 0.4.2 へ前進**、2回目は非発火（冪等）。
+- ✅ **Plugin Check 配布スコープ 0/0・php -l 21/21・phpcs ERRORS 0**（WARNINGS 35 は既存方針の整形ドリフト据え置き＝ゲート外）。
+- ✅ **スモーク**（基本/投稿名 両パーマリンク）：admin 5ページ boot・v0.4.2 表示・BUG-A デグレなし・フロント予約完走。**メール変数展開を実測**（pre_wp_mail 捕捉：ユーザー宛・管理者宛の両本文に `会社: テスト商事`・checkbox「、」結合・address `〒1500002 東京都渋谷区渋谷` 結合が展開、生キー `{field}` 残留なし。未入力は空文字）。
+- ✅ **E2E**：新規 v042-mail-custom-fields 2/2（投稿名・Plain 双方）＋phase4-email 5/5（固定変数 render 不変＝メールデグレ無し）＋phase2-form-settings 10/10＋v030-conditional/address・v040-forms-crud/form-reservation/fallback／touched 36 全 pass＝**新規失敗ゼロ**。既知 stale は非ブロック（未走）。ベースライン差分：作業ツリー変更はバージョン文字列＋Changelog のみ＝PHP ランタイム非改変ゆえ stash 比較は同一。
+- 🔵 非ブロッキング（掃除任意・出荷影響なし）：リポジトリルートに古い `smart-booking.zip`・`.DS_Store` 等の dev 成果物残存（配布 ZIP には .distignore 除外で非混入）。
+
+- **v0.4.2 次の一手（すべて人間 GO・不可逆）**: ①レビュー ②main マージ / `git push` / `git tag v0.4.2` ③SVN（`~/dev/smart-booking-svn`）trunk 反映 + `tags/0.4.2` + `svn ci` で WordPress.org 公開（Claude は認証情報を扱わない）。ZIP は `npx wp-scripts plugin-zip` で再生成可能。**ローカルのバージョンは 0.4.2 に更新済み**（リリース準備完了）。
 
 ## v0.4.1 UX改善: フォーム/店舗のショートコード表示（**WordPress.org 公開済み・2026-07-15・SVN rev 3608476**）
 
@@ -79,7 +90,7 @@
 ## 現在地
 - **公開バージョン: v0.4.1（WordPress.org・SVN rev 3608476・公開済み・2026-07-15）**。フォーム/店舗のショートコード表示（UX改善）を含む。前バージョン v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
 - **main = v0.4.1**（機能②の8コミット＋v0.4.0 bump `b1f4a3d`、ショートコード表示3コミット＋v0.4.1 bump `1ffde47`＋handoff `190e969` がマージ済み）。**main は push 済み・`git tag v0.4.1` 作成済み**。v0.4.1 の SVN 公開・main マージ・tag は人間側で実施済み（Claude は認証情報を扱わない）。
-- **次バージョン: v0.4.2（外部ユーザー報告2件対応・不具合修正）**。調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。
+- **次バージョン: v0.4.2（外部ユーザー報告2件対応・不具合修正）**。調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。**リリース準備ローカル完了（2026-07-16・commit `d99a8d0` で 0.4.2 bump＋Changelog・push なし。上記「v0.4.2 リリース準備」節）。残りは人間 GO の不可逆操作（main マージ / push / tag / SVN 公開）のみ**。
 - git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
   - **BUG-1/2＋BUG-4＋自動更新フック(b)**（第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`（copy_schedules 店舗×担当者スコープ／schedules UNIQUE＋dedup 移行／admin_init maybe_upgrade）。
