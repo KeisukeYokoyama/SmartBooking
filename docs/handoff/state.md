@@ -2,6 +2,26 @@
 
 最終更新: 2026-07-16
 
+## v0.4.2 不具合修正: カスタムフィールドのメール変数対応（実装・検証 完了／ローカル・未push・2026-07-16）
+
+- **ブランチ `feat/v042-custom-field-mail-vars`（main=v0.4.1 から分岐・push なし・SVN 未操作）。バージョンは 0.4.1 据え置き**（bump/Changelog/Stable tag はリリース準備タスクで別途）。調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`、仕様追補 `docs/spec-amendment-v042-custom-field-mail-vars.md`（spec 本体は非編集）。
+- **背景**：外部 Web 制作者の報告2件。報告1＝「資料送付項目を追加してテスト送信したらフィールドキーが未展開のまま届く」（原因：カスタムフィールドがメール変数として展開されず、CustomFieldModal:301 の UI 説明文が存在しない機能を約束）。報告2＝「管理者宛メールだけ届かない（自動返信は届く）」（コードは正常＝wp_mail 2回呼び出しを実測、未達は配信性問題）。方針は人間決定済み＝報告1=案A+関連改善／報告2=コード修正なし・FAQ 追記のみ。
+- **コミット（依存順）**:
+  - `d4d0985` docs: v0.4.1 を公開済み（SVN rev 3608476）に訂正・v0.4.2 を次バージョンに設定。
+  - `b1ae78a` docs(bugs): 外部報告2件の調査正本を起票。
+  - `ab5616c` feat: 実装本体（下記）。
+- **実装（案A＝メール変数展開）**:
+  - `includes/class-reservation-context.php`: `template_vars()` にカスタムフィールドの `{field_key}`→回答値を追加（`custom_field_vars()`）。**address は `{key}`/`{key}_zip`/`{key}_address` の3変数**（結合は `〒郵便番号 住所`＝ReservationDetailModal と同形式・ハイフン無し）、**checkbox は「、」結合**、**条件非表示(meta無)は空文字**、**固定8変数と衝突時は固定を優先**（カスタムを先に組み固定で上書き）。`build()` の custom_field_defs を**予約の form_id でスコープ**（複数フォームで同一 field_key を混ぜない）。**マイグレーション不要**（保存済み meta を遡って展開）。ChatWork/GCal は `formatted[]` のみ消費で無影響（調査済み）。
+  - `includes/rest/class-rest-custom-fields.php`: `RESERVED_TEMPLATE_KEYS`（固定8変数キー）を新規作成時に禁止（`smb_field_key_reserved` 400）。空キーは従来どおり `field_N` 自動採番。
+  - 管理UI: `TemplateVariableHelper`/`MailSettingsTab` に**フォーム別カスタム変数チップ**を動的表示（forms+customFields を取得・クリック挿入・複数フォーム注記・取得失敗はフォールバック無害）。`CustomFieldModal` は**キー欄を任意化**（空欄=自動採番）＋説明文を実装に一致＋予約語バリデーション。`CustomFieldList` にキーの「メール変数 {key} として使用可」ヒント。`admin.scss` に `.smb-field-list__mailvar` / `.smb-var-helper__custom` 系。
+  - `readme.txt`: FAQ「確認メールが届かない」に、送信失敗バナーが出なくても受信側で迷惑メール判定・拒否され得る旨（管理者宛のみ未達の非対称含む）を追記。
+- **検証（全 Green）**:
+  - build 成功 / php -l OK / **phpcs ERRORS 0・WARNINGS 0**（挿入で崩れた整列は修正済み） / JS lint 新規ゼロ / **Plugin Check 配布スコープ 0/0**（検出は全て .distignore 除外の dev 成果物＝.DS_Store 等）。
+  - **wp-env 実測（eval-file・14/15、1件は検証スクリプト側の期待値タイポでコード出力は正）**：radio/checkbox「、」/address 3変数＋結合/条件非表示→空文字/複数フォームスコープ（同一 `{field_docs}` が form 毎に別値）/固定変数優先（`{store_name}`=店舗名）/予約語 REST 拒否/空キー自動採番 `field_N`。
+  - **新規E2E `tests/e2e/v042-mail-custom-fields.spec.js` 2/2**（smb-mail-catcher の pre_wp_mail 捕捉でユーザー宛・管理者宛の両本文に展開／未入力は空文字・生キー残留なし）。
+  - **回帰ゲート 新規失敗ゼロ**：phase4-email 5/5（固定変数 render 不変＝デグレ無し）・phase2-form-settings 10/10・v030-conditional-fields/admin/address・v040-forms-crud/form-reservation/fallback・phase2-settings。**phase2-form-settings のキー重複テストは、予約語 `customer_name` が新挙動で予約語エラーになるため非予約語キー（company_name）へ更新＋予約語の正例テストを追加**（挙動はブロック維持・メッセージがより的確化＝デグレではない）。
+- **v0.4.2 次の一手（人間 GO・不可逆）**: ①レビュー ②リリース準備タスク（バージョン4箇所 0.4.2 bump＋readme Changelog／Stable tag＋build＋ZIP＋Plugin Check 再走）③main マージ / push / tag / SVN 公開。**バージョンは現状 0.4.1 据え置き**。
+
 ## v0.4.1 UX改善: フォーム/店舗のショートコード表示（**WordPress.org 公開済み・2026-07-15・SVN rev 3608476**）
 
 - **ブランチ `feat/shortcode-display`（main=v0.4.0 から分岐・push なし・SVN 未操作）。バージョンは 0.4.0 のまま据え置き・readme 非変更**（パッチ 0.4.1 の判断は人間）。背景＝複数フォームの埋め込み用ショートコード `[smart_booking form_id="N"]` を管理画面で確認する場所が無く、フォームを作っても id が分からず埋め込めなかった（実ユーザーフィードバック）。
