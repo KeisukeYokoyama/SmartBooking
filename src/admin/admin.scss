@@ -4211,6 +4211,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+	max-width: 100%;
 	padding: 4px 8px;
 	font-size: 11px;
 	background: var(--smb-color-bg-elev);
@@ -4223,10 +4224,14 @@
 	code {
 		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 		color: var(--smb-color-primary);
+		// 変数キーを途中で改行させない（手入力時の誤コピー防止・モバイル375pxでの分断対策）。
+		white-space: nowrap;
 	}
 
 	&__desc {
 		color: var(--smb-color-text-muted);
+		// 説明文が長い場合はキー(code)ではなく説明側で折り返す。
+		overflow-wrap: anywhere;
 	}
 
 	&:hover {

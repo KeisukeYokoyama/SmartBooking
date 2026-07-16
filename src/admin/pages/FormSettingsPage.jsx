@@ -179,12 +179,22 @@ export default function FormSettingsPage() {
 					fields.length > 0
 						? Math.max(...fields.map((f) => f.sort_order || 0)) + 10
 						: 10;
-				await API.customFields.create({
+				const created = await API.customFields.create({
 					...payload,
 					sort_order: nextOrder,
 					form_id: selectedFormId,
 				});
-				showToast('フィールドを追加しました', 'success');
+				// キー欄を空欄で作成した場合はサーバが field_N を自動採番するため、
+				// 割り当てられたメール変数名をトーストで知らせる（変数名が分からず困るのを防ぐ）。
+				const assignedKey = created && created.field_key ? created.field_key : '';
+				if (!payload.field_key && assignedKey) {
+					showToast(
+						`フィールドを追加しました（メール変数: {${assignedKey}}）`,
+						'success'
+					);
+				} else {
+					showToast('フィールドを追加しました', 'success');
+				}
 			}
 			closeModal();
 			await loadFields(selectedFormId);

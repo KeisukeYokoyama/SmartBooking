@@ -79,7 +79,18 @@ export default function CustomFieldList({ fields, onEdit, onDelete, onMove }) {
 									className="smb-field-list__mailvar"
 									title="メール本文にこの変数を書くと、この項目の回答が差し込まれます"
 								>
-									メール変数 <code>{`{${field.field_key}}`}</code> として使用可
+									{field.field_type === 'address' ? (
+										<>
+											メール変数{' '}
+											<code>{`{${field.field_key}}`}</code>（〒＋住所）・
+											<code>{`{${field.field_key}_zip}`}</code>（郵便番号）・
+											<code>{`{${field.field_key}_address}`}</code>（住所）として使用可
+										</>
+									) : (
+										<>
+											メール変数 <code>{`{${field.field_key}}`}</code> として使用可
+										</>
+									)}
 								</span>
 							)}
 						</div>
