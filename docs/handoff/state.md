@@ -1,8 +1,8 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-07-15
+最終更新: 2026-07-16
 
-## v0.4.1 UX改善: フォーム/店舗のショートコード表示（リリース準備 完了・未push・2026-07-15）
+## v0.4.1 UX改善: フォーム/店舗のショートコード表示（**WordPress.org 公開済み・2026-07-15・SVN rev 3608476**）
 
 - **ブランチ `feat/shortcode-display`（main=v0.4.0 から分岐・push なし・SVN 未操作）。バージョンは 0.4.0 のまま据え置き・readme 非変更**（パッチ 0.4.1 の判断は人間）。背景＝複数フォームの埋め込み用ショートコード `[smart_booking form_id="N"]` を管理画面で確認する場所が無く、フォームを作っても id が分からず埋め込めなかった（実ユーザーフィードバック）。
 - **実装（コミット）**:
@@ -55,9 +55,9 @@
 - ✅ readme 精度（②由来）：FAQ のカスタムテーブル数を **「6つ」→「7つ」に修正済み**（forms テーブル追加＝実体7つ・uninstall.php の7テーブル DROP と整合）。
 
 ## 現在地
-- **公開バージョン: v0.4.0（WordPress.org・SVN rev 3608375・公開済み）**。機能② 複数フォームを含む。前バージョン v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
-- **main = v0.4.0**（機能②の8コミット＋リリース bump `b1f4a3d` がマージ済み）。v0.4.0 の SVN 公開・main マージは人間側で実施済み（本タスクの前提として確認）。
-- **v0.4.1（ショートコード表示 UX改善）リリース準備 完了＝ブランチ `feat/shortcode-display`・push なし**（上記トップセクション・release bump commit `1ffde47`）。人間 GO で main マージ / push / `git tag v0.4.1` / SVN 公開。
+- **公開バージョン: v0.4.1（WordPress.org・SVN rev 3608476・公開済み・2026-07-15）**。フォーム/店舗のショートコード表示（UX改善）を含む。前バージョン v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
+- **main = v0.4.1**（機能②の8コミット＋v0.4.0 bump `b1f4a3d`、ショートコード表示3コミット＋v0.4.1 bump `1ffde47`＋handoff `190e969` がマージ済み）。**main は push 済み・`git tag v0.4.1` 作成済み**。v0.4.1 の SVN 公開・main マージ・tag は人間側で実施済み（Claude は認証情報を扱わない）。
+- **次バージョン: v0.4.2（外部ユーザー報告2件対応・不具合修正）**。調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。
 - git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
   - **BUG-1/2＋BUG-4＋自動更新フック(b)**（第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`（copy_schedules 店舗×担当者スコープ／schedules UNIQUE＋dedup 移行／admin_init maybe_upgrade）。
