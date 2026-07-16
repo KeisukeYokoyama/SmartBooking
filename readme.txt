@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.4.1
+Stable tag: 0.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -153,6 +153,11 @@ WordPressの「削除」操作を実行すると、Smart Booking が作成した
 いずれの連携も有効化・設定されていない場合、Smart Booking は外部サービスへの通信を一切行いません。
 
 == Changelog ==
+
+= 0.4.2 - 2026-07-16 =
+* 追加: カスタムフィールドの回答をメール本文に埋め込めるようになりました。メールテンプレートに `{フィールドキー}` を記入すると回答値に置き換わります。設定 > メール通知タブの変数一覧からクリックで挿入できます。
+* 改善: フィールド作成時のキー入力が任意になりました。日本語ラベルのみで作成でき、キーは自動生成されます。
+* 改善: FAQに、メールが届かない場合の切り分け（送信失敗表示が出ない未達のケース）についての説明を追記しました。
 
 = 0.4.1 - 2026-07-15 =
 * 改善: フォーム設定画面に、選択中フォームの埋め込み用ショートコードの表示とコピーボタンを追加しました。
