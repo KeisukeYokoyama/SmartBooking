@@ -69,7 +69,7 @@ function hydrateOverrides(mailOverrides) {
 	return out;
 }
 
-export default function FormMailTab({ selectedForm, fields, onSaved }) {
+export default function FormMailTab({ selectedForm, fields, onSaved, onDirtyChange }) {
 	// 共通テンプレート（プリセット元 & OFF時プレビュー元）。取得失敗は致命にせず空扱い。
 	const [commonTemplates, setCommonTemplates] = useState({});
 	const [overrides, setOverrides] = useState(() =>
@@ -99,13 +99,16 @@ export default function FormMailTab({ selectedForm, fields, onSaved }) {
 		};
 	}, []);
 
-	// 選択中フォームが変わったら（別フォームに切り替えた／保存後に再読込された）再 hydrate する。
+	// 選択中フォームが変わったら（別フォームに切り替えた）再 hydrate する。
+	// 依存を selectedForm.id にとどめ、同一フォームのオブジェクト参照が保存後の再読込等で
+	// 差し替わっただけの場合（改名・loadForms の再取得）は未保存の編集を巻き込んで破棄しない。
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	useEffect(() => {
 		if (!selectedForm) return;
 		const next = hydrateOverrides(selectedForm.mail_overrides);
 		setOverrides(next);
 		setInitial(next);
-	}, [selectedForm]);
+	}, [selectedForm?.id]);
 
 	// 変数ヘルパーは選択中フォームの変数のみ（v0.4.2 のフォーム別ヘルパーを再利用）。
 	const customGroups = useMemo(() => {
@@ -150,8 +153,38 @@ export default function FormMailTab({ selectedForm, fields, onSaved }) {
 		return a.enabled !== b.enabled || a.subject !== b.subject || a.body !== b.body;
 	});
 
+	// 未保存の変更をページ側（タブ切替・フォーム切替の確認ダイアログ）に伝える。
+	useEffect(() => {
+		onDirtyChange && onDirtyChange(isDirty);
+	}, [isDirty, onDirtyChange]);
+
+	/**
+	 * enabled=true の各種別について、件名・本文が両方入力済みかを検証する。
+	 * 未入力の種別があれば見出し名を名指ししたトーストを出し、保存処理を進めない
+	 * （サーバ側の smb_form_mail_override_incomplete はバックストップとして残る）。
+	 *
+	 * @return {boolean} 検証OKなら true
+	 */
+	const validateBeforeSave = () => {
+		const incompleteLabels = MAIL_TYPES.filter((type) => {
+			const o = overrides[type];
+			return o.enabled && (!o.subject.trim() || !o.body.trim());
+		}).map((type) => MAIL_TYPE_META[type].label);
+
+		if (incompleteLabels.length > 0) {
+			showToast(
+				`「${incompleteLabels.join('」「')}」の件名と本文を入力してください。`,
+				'error',
+				6000
+			);
+			return false;
+		}
+		return true;
+	};
+
 	const handleSave = async () => {
 		if (!selectedForm) return;
+		if (!validateBeforeSave()) return;
 		setSaving(true);
 		try {
 			// 3種別すべて（OFF分の下書きも含めて）を送る。

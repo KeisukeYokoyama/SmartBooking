@@ -17,9 +17,15 @@ import { buildFormVariables } from '../../utils/mailVariables';
 import BodyFieldWithHelper from './MailBodyField';
 
 // フォーム設定「メール」タブへの遷移先（フルリロード。同ディレクトリの admin.php へ相対）。
-const FORM_MAIL_TAB_URL =
+// smb_form を付けることで、そのフォームのメールタブを直接開ける
+// （付けないとデフォルトフォームが開き、専用文面を編集しているフォームと異なる可能性がある）。
+const FORM_MAIL_TAB_BASE_URL =
 	(typeof window !== 'undefined' ? window.location.pathname : '') +
 	'?page=smart-booking-form-settings&smb_tab=mail';
+
+function buildFormMailTabUrl(formId) {
+	return `${FORM_MAIL_TAB_BASE_URL}&smb_form=${formId}`;
+}
 
 const MAIL_KEYS = [
 	'smart_booking_mail_from_name',
@@ -126,21 +132,30 @@ function hydrate(settings) {
 /**
  * 専用文面（フォーム設定 > メール）を使用中のフォームがあれば注記する。
  * 対象フォームが無ければ何も描画しない＝現行と完全に同じ見た目を保つ。
+ * 各フォーム名は、そのフォームのメールタブへ直接遷移するリンクにする
+ * （smb_form 付きの URL。デフォルトフォームへの誤誘導を避けるため）。
+ *
+ * @param {Object[]} forms 専用文面が有効なフォームの配列 [{id, name}, ...]
  */
-function OverrideNote({ formNames }) {
-	if (!formNames || formNames.length === 0) return null;
+function OverrideNote({ forms }) {
+	if (!forms || forms.length === 0) return null;
 	return (
 		<div className="smb-settings-section__override-note">
 			<p>
-				※ {formNames.join('、')}{' '}
+				※{' '}
+				{forms.map((form, i) => (
+					<span key={form.id}>
+						{i > 0 && '、'}
+						<a
+							href={buildFormMailTabUrl(form.id)}
+							className="smb-settings-section__override-link"
+						>
+							{form.name}
+						</a>
+					</span>
+				))}{' '}
 				は専用文面を使用中（このテンプレートの変更は反映されません）
 			</p>
-			<a
-				href={FORM_MAIL_TAB_URL}
-				className="smb-settings-section__override-link"
-			>
-				フォーム設定のメールタブを開く
-			</a>
 		</div>
 	);
 }
@@ -258,14 +273,14 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 	const isDirty = MAIL_KEYS.some((k) => values[k] !== initial[k]);
 	const adminNotifyOn = 1 === Number(values.smart_booking_mail_admin_notify_enabled);
 
-	// 種別ごとに「このフォームの専用文面が有効」なフォーム名を集計する（共通側の注記に使う）。
-	const overrideFormNamesByType = useMemo(() => {
+	// 種別ごとに「このフォームの専用文面が有効」なフォーム（id・name）を集計する（共通側の注記に使う）。
+	const overrideFormsByType = useMemo(() => {
 		const result = { reception_user: [], reception_admin: [], approval_user: [] };
 		formsForOverride.forEach((form) => {
 			const overrides = form.mail_overrides || {};
 			Object.keys(result).forEach((type) => {
 				if (overrides[type] && overrides[type].enabled) {
-					result[type].push(form.name);
+					result[type].push({ id: form.id, name: form.name });
 				}
 			});
 		});
@@ -310,7 +325,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					<p className="smb-settings-section__lead">
 						予約を送信した直後にユーザーに届くメール。
 					</p>
-					<OverrideNote formNames={overrideFormNamesByType.reception_user} />
+					<OverrideNote forms={overrideFormsByType.reception_user} />
 				</div>
 				<Input
 					label="件名"
@@ -335,7 +350,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					<p className="smb-settings-section__lead">
 						予約が入ったときに店舗メール（To）と担当者メール（CC）へ届きます。「管理者へのメール」がオンのときは、加えて WordPress の管理者メールにも同時に通知が送られます。
 					</p>
-					<OverrideNote formNames={overrideFormNamesByType.reception_admin} />
+					<OverrideNote forms={overrideFormsByType.reception_admin} />
 				</div>
 				<div className="smb-settings-toggle-row">
 					<Switch
@@ -371,7 +386,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					<p className="smb-settings-section__lead">
 						管理者が予約を「承認」に変更したときにユーザーに届くメール。
 					</p>
-					<OverrideNote formNames={overrideFormNamesByType.approval_user} />
+					<OverrideNote forms={overrideFormsByType.approval_user} />
 				</div>
 				<Input
 					label="件名"

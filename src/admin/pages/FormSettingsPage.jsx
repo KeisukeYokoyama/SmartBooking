@@ -33,6 +33,11 @@ const TABS = [
 export default function FormSettingsPage() {
 	// タブ（v0.5.0: フィールド設定 / メール）
 	const [activeTab, setActiveTab] = useState('fields');
+	// メールタブの未保存状態（FormMailTab から通知される）。
+	const [mailDirty, setMailDirty] = useState(false);
+	// 未保存警告で保留中の遷移先（タブ切替 or フォーム切替のどちらか一方のみ入る）。
+	const [pendingTab, setPendingTab] = useState(null);
+	const [pendingFormId, setPendingFormId] = useState(null);
 
 	// フォーム一覧・選択中フォーム
 	const [forms, setForms] = useState([]);
@@ -128,7 +133,41 @@ export default function FormSettingsPage() {
 
 	const handleFormChange = (e) => {
 		const id = Number(e.target.value);
-		if (id) setSelectedFormId(id);
+		if (!id) return;
+		// メールタブで未保存の変更がある間にフォームを切り替えようとしたら確認する
+		// （select は controlled のため、確認するまで選択値は現状のまま自動的に戻る）。
+		if (activeTab === 'mail' && mailDirty && id !== selectedFormId) {
+			setPendingFormId(id);
+			return;
+		}
+		setSelectedFormId(id);
+	};
+
+	const handleTabChange = (next) => {
+		if (next === activeTab) return;
+		// メールタブに未保存の変更がある間に別タブへ移ろうとしたら確認する。
+		if (activeTab === 'mail' && mailDirty) {
+			setPendingTab(next);
+			return;
+		}
+		setActiveTab(next);
+	};
+
+	const confirmDiscardMailChanges = () => {
+		setMailDirty(false);
+		if (pendingFormId !== null) {
+			setSelectedFormId(pendingFormId);
+			setPendingFormId(null);
+		}
+		if (pendingTab !== null) {
+			setActiveTab(pendingTab);
+			setPendingTab(null);
+		}
+	};
+
+	const cancelDiscardMailChanges = () => {
+		setPendingFormId(null);
+		setPendingTab(null);
 	};
 
 	const openCreateForm = () => setFormModal({ open: true, mode: 'create', name: '', formId: null });
@@ -362,7 +401,12 @@ export default function FormSettingsPage() {
 			)}
 
 			{!formsLoading && !formsLoadError && (
-				<TabNav tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
+				<TabNav
+					tabs={TABS}
+					activeKey={activeTab}
+					onChange={handleTabChange}
+					dirtyKeys={mailDirty ? ['mail'] : []}
+				/>
 			)}
 
 			{activeTab === 'fields' && (
@@ -425,6 +469,7 @@ export default function FormSettingsPage() {
 						selectedForm={selectedForm}
 						fields={fields}
 						onSaved={() => loadForms(selectedFormId)}
+						onDirtyChange={setMailDirty}
 					/>
 				</div>
 			)}
@@ -477,6 +522,17 @@ export default function FormSettingsPage() {
 				loading={deletingForm}
 				onConfirm={confirmDeleteForm}
 				onCancel={() => setDeleteFormTarget(null)}
+			/>
+
+			<ConfirmDialog
+				open={pendingTab !== null || pendingFormId !== null}
+				title="未保存の変更があります"
+				message="保存していない変更は移動すると失われます。続行しますか？"
+				confirmLabel="変更を破棄して移動"
+				cancelLabel="このまま編集を続ける"
+				variant="danger"
+				onConfirm={confirmDiscardMailChanges}
+				onCancel={cancelDiscardMailChanges}
 			/>
 		</div>
 	);
