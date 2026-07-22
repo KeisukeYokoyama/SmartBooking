@@ -136,6 +136,12 @@ class Smart_Booking_Activator {
 			$forms_ready = self::migrate_multi_forms();
 		}
 
+		// 0.5.0: フォーム別メール文面。forms に mail_overrides 列を追加する（dbDelta 冪等・欠損列のみ ADD）。
+		// UNIQUE と違い列追加は冪等なので、失敗リトライ用の readiness cap は不要。
+		if ( version_compare( $current, '0.5.0', '<' ) ) {
+			self::create_tables();
+		}
+
 		// db_version の確定。
 		// - UNIQUE 移行が成功（実在検証 OK）した場合のみ 0.2.3 以上へ前進させる。
 		// - 失敗時は 0.2.3 未満に留め、次回有効化で再試行できるようにする（エラーを握り潰さない）。
@@ -572,11 +578,14 @@ class Smart_Booking_Activator {
 
 		// smart_booking_forms（フォームマスター）.
 		// v0.4.0: 複数フォーム対応。各フォームは custom_fields を form_id で束ね、予約は form_id を持つ。
+		// v0.5.0: フォーム別メール文面。mail_overrides（JSON）で種別ごとに件名/本文を上書きする（NULL=共通使用）。
+		//   既存ユーザーへは run_migrations() の 0.5.0 ゲートで dbDelta 再適用により列を追加する（冪等）。
 		$sql_forms = "CREATE TABLE {$prefix}forms (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(255) NOT NULL DEFAULT '',
 			is_default tinyint(1) NOT NULL DEFAULT 0,
 			sort_order int(11) NOT NULL DEFAULT 0,
+			mail_overrides longtext NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
