@@ -35,9 +35,9 @@ export default function FormSettingsPage() {
 	const [activeTab, setActiveTab] = useState('fields');
 	// メールタブの未保存状態（FormMailTab から通知される）。
 	const [mailDirty, setMailDirty] = useState(false);
-	// 未保存警告で保留中の遷移先（タブ切替 or フォーム切替のどちらか一方のみ入る）。
-	const [pendingTab, setPendingTab] = useState(null);
-	const [pendingFormId, setPendingFormId] = useState(null);
+	// 未保存警告で保留中のアクション（タブ切替 / フォーム切替 / フォーム追加モーダルを開く、のいずれか）。
+	// null なら確認ダイアログは非表示。値は「破棄を確認した後に実行するコールバック」。
+	const [pendingAction, setPendingAction] = useState(null);
 
 	// フォーム一覧・選択中フォーム
 	const [forms, setForms] = useState([]);
@@ -131,46 +131,41 @@ export default function FormSettingsPage() {
 
 	// --- フォーム選択・追加・名前変更・削除 ---
 
-	const handleFormChange = (e) => {
-		const id = Number(e.target.value);
-		if (!id) return;
-		// メールタブで未保存の変更がある間にフォームを切り替えようとしたら確認する
-		// （select は controlled のため、確認するまで選択値は現状のまま自動的に戻る）。
-		if (activeTab === 'mail' && mailDirty && id !== selectedFormId) {
-			setPendingFormId(id);
+	// メールタブに未保存の変更がある間は action を即実行せず保留し、確認ダイアログを出す。
+	// 未編集時・メールタブ以外では素通りする（誤発火させない）。
+	const guardMailDirty = (action) => {
+		if (activeTab === 'mail' && mailDirty) {
+			setPendingAction(() => action);
 			return;
 		}
-		setSelectedFormId(id);
+		action();
+	};
+
+	const handleFormChange = (e) => {
+		const id = Number(e.target.value);
+		if (!id || id === selectedFormId) return;
+		// select は controlled のため、確認するまで選択値は現状のまま自動的に戻る。
+		guardMailDirty(() => setSelectedFormId(id));
 	};
 
 	const handleTabChange = (next) => {
 		if (next === activeTab) return;
-		// メールタブに未保存の変更がある間に別タブへ移ろうとしたら確認する。
-		if (activeTab === 'mail' && mailDirty) {
-			setPendingTab(next);
-			return;
-		}
-		setActiveTab(next);
+		guardMailDirty(() => setActiveTab(next));
 	};
 
 	const confirmDiscardMailChanges = () => {
 		setMailDirty(false);
-		if (pendingFormId !== null) {
-			setSelectedFormId(pendingFormId);
-			setPendingFormId(null);
-		}
-		if (pendingTab !== null) {
-			setActiveTab(pendingTab);
-			setPendingTab(null);
-		}
+		const action = pendingAction;
+		setPendingAction(null);
+		if (action) action();
 	};
 
 	const cancelDiscardMailChanges = () => {
-		setPendingFormId(null);
-		setPendingTab(null);
+		setPendingAction(null);
 	};
 
-	const openCreateForm = () => setFormModal({ open: true, mode: 'create', name: '', formId: null });
+	const openCreateForm = () =>
+		guardMailDirty(() => setFormModal({ open: true, mode: 'create', name: '', formId: null }));
 	const openRenameForm = () => {
 		if (!selectedForm) return;
 		setFormModal({ open: true, mode: 'rename', name: selectedForm.name, formId: selectedForm.id });
@@ -463,7 +458,7 @@ export default function FormSettingsPage() {
 				</>
 			)}
 
-			{activeTab === 'mail' && !formsLoading && !formsLoadError && selectedForm && (
+			{activeTab === 'mail' && !formsLoadError && selectedForm && (
 				<div className="smb-section-card">
 					<FormMailTab
 						selectedForm={selectedForm}
@@ -525,7 +520,7 @@ export default function FormSettingsPage() {
 			/>
 
 			<ConfirmDialog
-				open={pendingTab !== null || pendingFormId !== null}
+				open={pendingAction !== null}
 				title="未保存の変更があります"
 				message="保存していない変更は移動すると失われます。続行しますか？"
 				confirmLabel="変更を破棄して移動"
