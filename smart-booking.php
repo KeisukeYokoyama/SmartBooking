@@ -3,7 +3,7 @@
  * Plugin Name:       Smart Booking
  * Plugin URI:        https://www.wp-smart-booking.com/
  * Description:       無料で多機能。最短5分で導入できるWordPress予約プラグイン
- * Version:           0.4.2
+ * Version:           0.5.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            株式会社リベルダージ
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SMART_BOOKING_VERSION', '0.4.2' );
+define( 'SMART_BOOKING_VERSION', '0.5.0' );
 // 複数フォームの上限（性能ではなく UI 崩壊防止のためのハードキャップ）。設定画面には出さない。
 define( 'SMART_BOOKING_MAX_FORMS', 10 );
 define( 'SMART_BOOKING_PLUGIN_FILE', __FILE__ );
