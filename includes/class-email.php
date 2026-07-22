@@ -78,10 +78,16 @@ class Smart_Booking_Email {
 
 		$formatted = $context['formatted'];
 
+		list( $user_subject, $user_body ) = $this->resolve_template(
+			$context,
+			'reception_user',
+			'smart_booking_mail_receipt_user_subject',
+			'smart_booking_mail_receipt_user_body'
+		);
 		$this->send(
 			(string) $formatted['customer_email'],
-			(string) get_option( 'smart_booking_mail_receipt_user_subject', '' ),
-			(string) get_option( 'smart_booking_mail_receipt_user_body', '' ),
+			$user_subject,
+			$user_body,
 			$context,
 			array(),
 			'user'
@@ -129,10 +135,16 @@ class Smart_Booking_Email {
 			return;
 		}
 
+		list( $admin_subject, $admin_body ) = $this->resolve_template(
+			$context,
+			'reception_admin',
+			'smart_booking_mail_receipt_admin_subject',
+			'smart_booking_mail_receipt_admin_body'
+		);
 		$this->send(
 			$to_list,
-			(string) get_option( 'smart_booking_mail_receipt_admin_subject', '' ),
-			(string) get_option( 'smart_booking_mail_receipt_admin_body', '' ),
+			$admin_subject,
+			$admin_body,
 			$context,
 			$cc_list,
 			'admin'
@@ -152,13 +164,94 @@ class Smart_Booking_Email {
 
 		$formatted = $context['formatted'];
 
+		list( $subject, $body ) = $this->resolve_template(
+			$context,
+			'approval_user',
+			'smart_booking_mail_approval_user_subject',
+			'smart_booking_mail_approval_user_body'
+		);
 		$this->send(
 			(string) $formatted['customer_email'],
-			(string) get_option( 'smart_booking_mail_approval_user_subject', '' ),
-			(string) get_option( 'smart_booking_mail_approval_user_body', '' ),
+			$subject,
+			$body,
 			$context,
 			array(),
 			'user'
+		);
+	}
+
+	/**
+	 * 送信する 1 通の件名・本文を解決する。
+	 *
+	 * 既定は共通テンプレート（wp_options）を「一切加工せず」用いる（＝既存挙動を 1 文字も変えない）。
+	 * 予約の form_id に該当種別の専用文面が有効なときだけ、それで上書きする。
+	 *
+	 * @param array  $context            Reservation context.
+	 * @param string $type               メール種別（reception_user / reception_admin / approval_user）.
+	 * @param string $subject_option_key 共通件名の option キー.
+	 * @param string $body_option_key    共通本文の option キー.
+	 * @return array array( string $subject, string $body ).
+	 */
+	private function resolve_template( $context, $type, $subject_option_key, $body_option_key ) {
+		// 既定は共通テンプレート（override が無効な経路では option 値を無加工で返す）。
+		$subject = (string) get_option( $subject_option_key, '' );
+		$body    = (string) get_option( $body_option_key, '' );
+
+		$override = $this->get_form_override( $context, $type );
+		if ( null !== $override ) {
+			$subject = (string) $override['subject'];
+			$body    = (string) $override['body'];
+		}
+
+		return array( $subject, $body );
+	}
+
+	/**
+	 * 予約の form_id に紐づくフォーム別メール上書きを取得する。
+	 *
+	 * 有効な専用文面（enabled かつ件名・本文の両方が非空）のときだけ配列を返す。
+	 * それ以外（form_id 不明 / 行無し / 削除済み / 空 / NULL / 不正 JSON / 無効種別 /
+	 * 件名または本文が空）はすべて null を返し、呼び出し側は共通テンプレートを使う。
+	 *
+	 * @param array  $context Reservation context.
+	 * @param string $type    メール種別（reception_user / reception_admin / approval_user）.
+	 * @return array|null array( 'subject' => string, 'body' => string ) または null.
+	 */
+	private function get_form_override( $context, $type ) {
+		global $wpdb;
+
+		$form_id = isset( $context['reservation']['form_id'] ) ? (int) $context['reservation']['form_id'] : 0;
+		if ( $form_id <= 0 ) {
+			return null;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$raw = $wpdb->get_var( $wpdb->prepare( "SELECT mail_overrides FROM {$wpdb->prefix}smart_booking_forms WHERE id = %d", $form_id ) );
+		if ( ! is_string( $raw ) || '' === $raw ) {
+			return null;
+		}
+
+		$decoded = json_decode( $raw, true );
+		if ( ! is_array( $decoded ) || ! isset( $decoded[ $type ] ) || ! is_array( $decoded[ $type ] ) ) {
+			return null;
+		}
+
+		$data = $decoded[ $type ];
+		// 無効種別は subject/body を読まない（OFF は共通そのまま＝デグレ防止）。
+		if ( empty( $data['enabled'] ) ) {
+			return null;
+		}
+
+		$subject = isset( $data['subject'] ) ? (string) $data['subject'] : '';
+		$body    = isset( $data['body'] ) ? (string) $data['body'] : '';
+		// enabled でも件名 / 本文が空なら安全側で共通へフォールバックする。
+		if ( '' === trim( $subject ) || '' === trim( $body ) ) {
+			return null;
+		}
+
+		return array(
+			'subject' => $subject,
+			'body'    => $body,
 		);
 	}
 

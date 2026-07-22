@@ -22,6 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Smart_Booking_REST_Forms extends Smart_Booking_REST_Base {
 
 	/**
+	 * mail_overrides で扱うメール種別キー（この 3 種で厳密に固定）。
+	 *
+	 * @var string[]
+	 */
+	const MAIL_OVERRIDE_TYPES = array( 'reception_user', 'reception_admin', 'approval_user' );
+
+	/**
 	 * ルート登録。
 	 *
 	 * @return void
@@ -140,15 +147,80 @@ class Smart_Booking_REST_Forms extends Smart_Booking_REST_Base {
 		$id = (int) $row['id'];
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d", $id ) );
+
+		// mail_overrides を UI hydrate 用に正規化する（列が無い古い環境でも isset ガードで安全＝全種別 disabled）。
+		$decoded = ( isset( $row['mail_overrides'] ) && '' !== (string) $row['mail_overrides'] )
+			? json_decode( (string) $row['mail_overrides'], true )
+			: null;
+
 		return array(
-			'id'          => $id,
-			'name'        => (string) $row['name'],
-			'is_default'  => (int) $row['is_default'] ? 1 : 0,
-			'sort_order'  => (int) $row['sort_order'],
-			'field_count' => $field_count,
-			'created_at'  => $row['created_at'],
-			'updated_at'  => $row['updated_at'],
+			'id'             => $id,
+			'name'           => (string) $row['name'],
+			'is_default'     => (int) $row['is_default'] ? 1 : 0,
+			'sort_order'     => (int) $row['sort_order'],
+			'field_count'    => $field_count,
+			'mail_overrides' => $this->normalize_mail_overrides( $decoded ),
+			'created_at'     => $row['created_at'],
+			'updated_at'     => $row['updated_at'],
 		);
+	}
+
+	/**
+	 * mail_overrides を「常に 3 種別を持つ」正規化配列へ整形する（読み取り整形用）。
+	 *
+	 * GET の UI hydrate と保存時の形を揃えるためのヘルパー。ここではサニタイズしない。
+	 * 欠落種別・欠落キーは enabled=false / subject='' / body='' で補う。
+	 *
+	 * @param mixed $raw json_decode 済みの配列、または null / 非配列.
+	 * @return array 3 種別（reception_user / reception_admin / approval_user）の連想配列.
+	 */
+	private function normalize_mail_overrides( $raw ) {
+		$normalized = array();
+		$src        = is_array( $raw ) ? $raw : array();
+		foreach ( self::MAIL_OVERRIDE_TYPES as $type ) {
+			$entry               = ( isset( $src[ $type ] ) && is_array( $src[ $type ] ) ) ? $src[ $type ] : array();
+			$normalized[ $type ] = array(
+				'enabled' => ! empty( $entry['enabled'] ),
+				'subject' => isset( $entry['subject'] ) ? (string) $entry['subject'] : '',
+				'body'    => isset( $entry['body'] ) ? (string) $entry['body'] : '',
+			);
+		}
+		return $normalized;
+	}
+
+	/**
+	 * mail_overrides を保存用にサニタイズ・検証する。
+	 *
+	 * 件名は sanitize_text_field、本文は wp_kses_post（既存メールテンプレの html 基準と同一）。
+	 * enabled=true の種別は件名・本文の両方が必須。enabled=false でも文面は保持して格納する
+	 * （OFF は破棄しない＝再 ON で復活）。
+	 *
+	 * @param mixed $raw リクエストの mail_overrides（配列想定）.
+	 * @return array|WP_Error 3 種別の連想配列、または検証失敗時の WP_Error.
+	 */
+	private function sanitize_mail_overrides( $raw ) {
+		if ( ! is_array( $raw ) ) {
+			return $this->error( 'smb_form_mail_overrides_invalid', 'メール文面の形式が正しくありません。', 400 );
+		}
+
+		$sanitized = array();
+		foreach ( self::MAIL_OVERRIDE_TYPES as $type ) {
+			$entry   = ( isset( $raw[ $type ] ) && is_array( $raw[ $type ] ) ) ? $raw[ $type ] : array();
+			$enabled = ! empty( $entry['enabled'] );
+			$subject = sanitize_text_field( (string) ( isset( $entry['subject'] ) ? $entry['subject'] : '' ) );
+			$body    = wp_kses_post( (string) ( isset( $entry['body'] ) ? $entry['body'] : '' ) );
+
+			if ( $enabled && ( '' === trim( $subject ) || '' === trim( $body ) ) ) {
+				return $this->error( 'smb_form_mail_override_incomplete', '専用文面を使う項目は、件名と本文の両方を入力してください。', 400 );
+			}
+
+			$sanitized[ $type ] = array(
+				'enabled' => $enabled,
+				'subject' => $subject,
+				'body'    => $body,
+			);
+		}
+		return $sanitized;
 	}
 
 	/**
@@ -238,7 +310,10 @@ class Smart_Booking_REST_Forms extends Smart_Booking_REST_Base {
 	}
 
 	/**
-	 * 更新（名前変更のみ）。デフォルトフォームも改名可。
+	 * 更新（部分更新）。name の改名と mail_overrides の保存に対応する。
+	 *
+	 * name のみ送れば従来どおり改名（FormNameModal）。mail_overrides のみ送れば
+	 * メール文面のみ更新（メールタブ）。どちらも省略なら 400。デフォルトフォームも改名可。
 	 *
 	 * @param WP_REST_Request $request リクエスト.
 	 * @return WP_REST_Response|WP_Error
@@ -252,20 +327,43 @@ class Smart_Booking_REST_Forms extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_form_not_found', '指定されたフォームが見つかりません。', 404 );
 		}
 
-		$name = sanitize_text_field( (string) $request->get_param( 'name' ) );
-		if ( '' === $name ) {
-			return $this->error( 'smb_form_name_required', 'フォーム名を入力してください。', 400 );
+		$update  = array();
+		$formats = array();
+
+		// name は送られたときだけ更新（未送信＝改名しない）。既存 FormNameModal は従来どおり動く。
+		if ( null !== $request->get_param( 'name' ) ) {
+			$name = sanitize_text_field( (string) $request->get_param( 'name' ) );
+			if ( '' === $name ) {
+				return $this->error( 'smb_form_name_required', 'フォーム名を入力してください。', 400 );
+			}
+			$update['name'] = $name;
+			$formats[]      = '%s';
 		}
+
+		// mail_overrides は送られたときだけ更新（サニタイズ・検証してから JSON 化）。
+		$raw_overrides = $request->get_param( 'mail_overrides' );
+		if ( null !== $raw_overrides ) {
+			$sanitized = $this->sanitize_mail_overrides( $raw_overrides );
+			if ( is_wp_error( $sanitized ) ) {
+				return $sanitized;
+			}
+			$update['mail_overrides'] = wp_json_encode( $sanitized );
+			$formats[]                = '%s';
+		}
+
+		if ( empty( $update ) ) {
+			return $this->error( 'smb_form_no_fields', '更新する項目がありません。', 400 );
+		}
+
+		$update['updated_at'] = $this->now_mysql();
+		$formats[]            = '%s';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->update(
 			$wpdb->prefix . 'smart_booking_forms',
-			array(
-				'name'       => $name,
-				'updated_at' => $this->now_mysql(),
-			),
+			$update,
 			array( 'id' => $id ),
-			array( '%s', '%s' ),
+			$formats,
 			array( '%d' )
 		);
 
