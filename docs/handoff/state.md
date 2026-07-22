@@ -20,7 +20,18 @@
   - **C マイグレーション**: mail_overrides 列 DROP＋db_version=0.4.2 から 0.5.0 ゲート発火→列追加（longtext NULL）。他6テーブル `SHOW CREATE TABLE` md5 不変・schedules/custom_fields の UNIQUE 不変。2回目 no-op（冪等）。
   - **D 回帰＋新規E2E**: 触った経路の既存スイート 23/23（v040-forms-crud 改名含む・phase4-email 5/5 メールデグレ無し・v042-mail-custom-fields 2/2・phase2-form-settings 10/10 他）＝新規失敗ゼロ。新規 E2E `v050-form-mail-overrides` 4/4・`v050-form-mail-tab` 2/2。既知 stale（phase3/6/7/9 系）は非ブロック。
   - **UX（ux-evaluator 独立判定・実機 desktop/mobile）＝最終 Green**。指摘 🔴3件（未保存破棄／共通側リンク smb_form 欠落／フォーム追加ガードのサイレント消失）は上記 fix で全解消・回帰なし・誤発火なしを実機再確認。🔵1＝wp-env の共通メール option に旧検証セッション由来の非デフォルト値残存（コード無関係・配布物無影響）。
-- **v0.5.0 次の一手（リリース準備タスク・別途）**: バージョン4箇所を 0.5.0 に一致更新＋readme Changelog 追記（フォーム別メール文面）＋External services 不変確認（本件で外部通信なし）＋build/ZIP 検証＋マイグレーション本番経路の実証＋スモーク。その後の main マージ / push / tag / SVN 公開は**人間 GO の不可逆操作**（Claude は認証情報を扱わない）。
+### v0.5.0 リリース準備：ローカル完了（2026-07-22・commit `533f620`・push なし）
+機能実装7コミット＋handoff の上に、リリース bump を別コミット `533f620` で積んだ。**残りは人間 GO の不可逆操作のみ**（下記「v0.5.0 次の一手」）。
+- ✅ **バージョン4箇所を 0.5.0 に一致更新**（smart-booking.php Version / SMART_BOOKING_VERSION / readme.txt Stable tag / package.json）。grep 4/4 一致実証・smart-booking.php／package.json に 0.4.2 残存ゼロ（readme は Changelog 履歴の 0.4.2 のみ）。
+- ✅ **readme Changelog に 0.5.0 追記**（フォーム別メール文面＋専用文面編集画面の変数ヘルパー・既存エントリ不変・readme 書式に整合）。**External services は本件で外部通信の追加なし＝不変**（Google/ChatWork/zipcloud・目視確認）。
+- ✅ **build 成功＋ZIP 検証**（`npx wp-scripts plugin-zip`・gitignore 済み・非コミット）：**30 ファイル**（v0.4.2 と同数＝**増減ゼロ**。v0.5.0 の新規 React ソース3本は build/admin.js にバンドル・PHP 変更は既存出荷ファイルの編集ゆえ新規出荷ファイルなし）。docs/src/tests/node_modules/.DS_Store/.git/package.json 混入ゼロ・ZIP 内 smart-booking.php Version／SMART_BOOKING_VERSION／readme Stable tag／Changelog が 0.5.0 同梱を実証。
+- ✅ **★マイグレーション本番更新経路 実証★**（logic-evaluator 独立判定）：SMART_BOOKING_VERSION=0.5.0 のコードに対し、`mail_overrides` 列 DROP＋db_version=0.4.2 の既存ユーザー状態を再現 → **admin cookie 付き実HTTP `GET /wp-admin/`（admin_init→maybe_upgrade 自然発火・再有効化ではない）** で1回発火 → `mail_overrides`（longtext・NULL 許容）追加・**他6テーブル `SHOW CREATE TABLE` md5 不変**・schedules/custom_fields の UNIQUE 不変・db_version 0.4.2→0.5.0 前進。**2回目 GET は no-op（列重複なし・md5 不変・冪等）**。移行直後の全 override NULL 状態でユーザー宛/管理者宛メールが共通 option render と **byte 一致**。
+- ✅ **Plugin Check 配布スコープ 0/0**（検出は全て .distignore 除外の dev 成果物）・php -l 28/28・phpcs 変更3ファイル ERRORS 0/WARNINGS 0。
+- ✅ **スモーク**（基本/投稿名 両パーマリンク）：admin 5ページ boot・v0.5.0 表示・BUG-A デグレなし・フロント予約完走・**出し分け実測**（pre_wp_mail 捕捉：フォームB受付ユーザー専用ON→専用文面＋B変数展開／管理者宛は共通＝種別独立／A予約は共通）。
+- ✅ **E2E**：新規 v050-form-mail-overrides 4/4＋v050-form-mail-tab 2/2＝6/6、回帰（v040-forms-crud・phase4-email 5/5 メールデグレ無し・v042-mail-custom-fields・phase2-form-settings 11/11）21/21＝**新規失敗ゼロ**。既知 stale は非ブロック。
+- 🔵 非ブロッキング（掃除任意・出荷影響なし）：①`tests/e2e/v050-form-mail-overrides.spec.js` の adminREST ヘルパが `/wp-json/` をハードコードし Plain パーマリンク時のみ test A が harness 起因で失敗（product は localized `?rest_route=`・test B は両構造 pass・出し分けは投稿名で実証）。将来 helper を localized restUrl 化する余地（テストの書き方）。②リポジトリ root の `smart-booking.zip`・`.DS_Store` 残存（配布 ZIP には .distignore 除外で非混入）。
+
+- **v0.5.0 次の一手（すべて人間 GO・不可逆）**: ①レビュー ②main マージ / `git push` / `git tag v0.5.0` ③SVN（`~/dev/smart-booking-svn`）trunk 反映 + `tags/0.5.0` + `svn ci` で WordPress.org 公開（Claude は認証情報を扱わない）。ZIP は `npx wp-scripts plugin-zip` で再生成可能。**ローカルのバージョンは 0.5.0 に更新済み**（リリース準備完了）。
 
 ## v0.4.2 不具合修正: カスタムフィールドのメール変数対応（実装・検証 完了／2026-07-16。以下は当時の記録・v0.4.2 は WordPress.org 公開済み）
 
@@ -110,7 +121,7 @@
 ## 現在地
 - **公開バージョン: v0.4.2（WordPress.org・SVN rev 3609790・公開済み）**。カスタムフィールドのメール変数対応＋メール未達切り分け FAQ を含む。前バージョン v0.4.1（rev 3608476、2026-07-15）・v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
 - **main = v0.4.2**。v0.4.2 の SVN 公開・main マージ・tag は人間側で実施済み（Claude は認証情報を扱わない）。
-- **開発中（未 push・ローカル）: v0.5.0 フォーム別メール文面**。ブランチ `feat/v050-form-mail-overrides`（main=v0.4.2 から分岐）に実装・検証を完了（上記「v0.5.0」節。バージョンは 0.4.2 据え置き）。次はリリース準備タスク（人間 GO）。
+- **開発中（未 push・ローカル）: v0.5.0 フォーム別メール文面**。ブランチ `feat/v050-form-mail-overrides`（main=v0.4.2 から分岐）に実装・検証・**リリース準備（バージョン 0.5.0 bump＋Changelog、commit `533f620`）まで完了**（上記「v0.5.0」節）。**残りは人間 GO の不可逆操作のみ**（main マージ / push / tag / SVN 公開）。
 - **旧・次バージョンとして起票されていた v0.4.2（外部ユーザー報告2件対応・不具合修正）は上記のとおり公開済み**。以下は当時の記録:調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。**リリース準備ローカル完了（2026-07-16・commit `d99a8d0` で 0.4.2 bump＋Changelog・push なし。上記「v0.4.2 リリース準備」節）。残りは人間 GO の不可逆操作（main マージ / push / tag / SVN 公開）のみ**。
 - git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
