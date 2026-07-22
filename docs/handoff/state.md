@@ -1,8 +1,28 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-07-16
+最終更新: 2026-07-22
 
-## v0.4.2 不具合修正: カスタムフィールドのメール変数対応（実装・検証 完了／ローカル・未push・2026-07-16）
+## v0.5.0 機能追加: フォーム別メール文面（実装・検証 完了／ローカル・未push・2026-07-22）
+
+- **ブランチ `feat/v050-form-mail-overrides`（main=v0.4.2 から分岐・push なし・SVN 未操作）。バージョンは 0.4.2 据え置き**（bump/Changelog/Stable tag/readme はリリース準備タスクで別途）。仕様正本 `docs/spec-amendment-v050-form-mail-overrides.md`（main に `1713167` でコミット済み。spec 本体は非編集）。
+- **背景**：外部要望「フォームによって変数（カスタムフィールド）が異なるため、フォーム別にメール文面を変えたい」。設計＝**グローバル既定＋フォーム別オーバーライド**。共通「設定＞メール通知」は既定として維持し、フォーム×メール種別（受付ユーザー宛／受付管理者宛／承認ユーザー宛）ごとに独立トグルで専用件名・本文を上書き。**初期状態は全 OFF＝既存挙動と1文字も変わらない**（デグレ最重要）。差出人はフォーム別にしない（共通のまま）。
+- **コミット（依存順・7本／main..HEAD）**:
+  - `dc1f891` DB: `smart_booking_forms` に `mail_overrides longtext NULL` 追加。`create_tables()` の forms CREATE TABLE に列追加＋`run_migrations()` に 0.5.0 ゲート（`version_compare($current,'0.5.0','<')` で `create_tables()` 再適用＝dbDelta 冪等で欠損列のみ ADD）。**SMART_BOOKING_VERSION は 0.4.2 据え置き**（db_version 上限 0.4.2・0.5.0 ゲートは再有効化のたび発火＝冪等。リリース時に 0.5.0 へ bump するとゲートが閉じる＝v0.4.0 と同型）。列追加は冪等ゆえ readiness cap 不要・既存 db_version 確定ロジック無変更。uninstall.php は forms を含む7テーブル DROP 済み（変更不要）。
+  - `16fba31` 送信解決＋REST: `class-email.php` に `resolve_template()`/`get_form_override()`。予約 form_id→`SELECT mail_overrides FROM ..._forms WHERE id=%d`→該当種別 enabled かつ件名・本文とも非空なら専用、それ以外は**共通 option を無加工パススルー**（＝全 OFF は現行と byte 一致）。判定は resolve_template の1箇所に集約。send_receipt が reception_user/reception_admin、send_approval が approval_user。削除フォームの予約は override 行ごと消えて自然フォールバック。カスタム変数展開は既存 `Reservation_Context::render()` が予約 form_id スコープで自動適用（追加実装なし）。`class-rest-forms.php`：`format_row` に mail_overrides の正規化形（常に3種別 `{enabled,subject,body}`）を **additive** 追加（GET list/single・UI hydrate 契約）。`update_item` を**部分更新化**（name/mail_overrides 独立・両省略 400 `smb_form_no_fields`）。`enabled=true` は件名・本文必須（`smb_form_mail_override_incomplete`/400）、非配列 `smb_form_mail_overrides_invalid`/400。件名=`sanitize_text_field`・本文=`wp_kses_post`（既存メールと同一基準）。OFF でも文面保持（再ONで復活）。
+  - `0eea138` 管理UI: FormSettingsPage にタブ（**フィールド設定／メール の2つ**）を新設。セレクタ＋ショートコードは共有ヘッダ。**テーマタブは追加せず**（テーマは v0.4.0 で設定→デザインに集約済み＝仕様ワイヤーの古い認識を現行構成に整合）。`?smb_tab=mail`/`?smb_form=<id>` ディープリンク対応。新規 `FormMailTab`（3種別独立トグル・ON で共通テンプレ複製プリセット・OFF は薄色プレビューで文面保持・変数ヘルパーは選択中フォームの変数のみ）。共通側（設定→メール通知）に「○○フォームは専用文面を使用中」注記＋メールタブ導線。重複排除で `utils/mailVariables.js`（buildFormVariables）と `settings/MailBodyField.jsx`（BodyFieldWithHelper 抽出）を新設し MailSettingsTab/FormMailTab で共有（挙動不変）。
+  - `829ac3d` test: 新規 E2E 2本（`v050-form-mail-overrides.spec.js`＝pre_wp_mail 出し分け／`v050-form-mail-tab.spec.js`＝タブUI）。
+  - `37e3bb3` fix(ux): ux-evaluator 1回目指摘反映（🔴未保存破棄防止の ConfirmDialog＋dirty 検知／🔴共通側リンクに smb_form 付与／🟡保存前に種別名で未入力検証）。
+  - `c7c79dd` fix(ux): 2回目指摘（🔴改名/フォーム追加が loadForms の formsLoading で FormMailTab をアンマウント→未保存破棄）。メールタブのマウント条件から `!formsLoading` 除去＋保留アクションを単一 `pendingAction` に統一し guardMailDirty で追加もガード（改名は非ガード＝アンマウントしないので保持）。
+  - `a7d3ac7` fix(ux): 3回目指摘（🔴フォーム追加ガードで破棄確定→モーダルcancel すると mailDirty が失効しサイレント消失）。mailDirty の手動リセットを全廃し `FormMailTab` の onDirtyChange を単一情報源に（アンマウント時 false 通知の cleanup 追加）。
+- **検証（logic-evaluator／ux-evaluator 独立判定・全 Green）**:
+  - **A 静的**: build 0エラー／php -l 20 OK／phpcs 配布スコープ ERRORS 0・WARNINGS 0／**Plugin Check 配布スコープ 0/0**（検出は全て .distignore 除外の dev 成果物）。
+  - **B 実挙動（pre_wp_mail 捕捉）**: ①B受付ユーザー専用ON→B予約は専用文面＋B変数展開／A予約は共通、②同予約の管理者宛は共通（種別独立）、③承認専用ON→専用文面、④OFF→再ON で文面復活、⑤フォーム削除後の承認→共通、⑥**★全OFF が共通 option render と byte 一致★**。
+  - **C マイグレーション**: mail_overrides 列 DROP＋db_version=0.4.2 から 0.5.0 ゲート発火→列追加（longtext NULL）。他6テーブル `SHOW CREATE TABLE` md5 不変・schedules/custom_fields の UNIQUE 不変。2回目 no-op（冪等）。
+  - **D 回帰＋新規E2E**: 触った経路の既存スイート 23/23（v040-forms-crud 改名含む・phase4-email 5/5 メールデグレ無し・v042-mail-custom-fields 2/2・phase2-form-settings 10/10 他）＝新規失敗ゼロ。新規 E2E `v050-form-mail-overrides` 4/4・`v050-form-mail-tab` 2/2。既知 stale（phase3/6/7/9 系）は非ブロック。
+  - **UX（ux-evaluator 独立判定・実機 desktop/mobile）＝最終 Green**。指摘 🔴3件（未保存破棄／共通側リンク smb_form 欠落／フォーム追加ガードのサイレント消失）は上記 fix で全解消・回帰なし・誤発火なしを実機再確認。🔵1＝wp-env の共通メール option に旧検証セッション由来の非デフォルト値残存（コード無関係・配布物無影響）。
+- **v0.5.0 次の一手（リリース準備タスク・別途）**: バージョン4箇所を 0.5.0 に一致更新＋readme Changelog 追記（フォーム別メール文面）＋External services 不変確認（本件で外部通信なし）＋build/ZIP 検証＋マイグレーション本番経路の実証＋スモーク。その後の main マージ / push / tag / SVN 公開は**人間 GO の不可逆操作**（Claude は認証情報を扱わない）。
+
+## v0.4.2 不具合修正: カスタムフィールドのメール変数対応（実装・検証 完了／2026-07-16。以下は当時の記録・v0.4.2 は WordPress.org 公開済み）
 
 - **ブランチ `feat/v042-custom-field-mail-vars`（main=v0.4.1 から分岐・push なし・SVN 未操作）。バージョンは 0.4.1 据え置き**（bump/Changelog/Stable tag はリリース準備タスクで別途）。調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`、仕様追補 `docs/spec-amendment-v042-custom-field-mail-vars.md`（spec 本体は非編集）。
 - **背景**：外部 Web 制作者の報告2件。報告1＝「資料送付項目を追加してテスト送信したらフィールドキーが未展開のまま届く」（原因：カスタムフィールドがメール変数として展開されず、CustomFieldModal:301 の UI 説明文が存在しない機能を約束）。報告2＝「管理者宛メールだけ届かない（自動返信は届く）」（コードは正常＝wp_mail 2回呼び出しを実測、未達は配信性問題）。方針は人間決定済み＝報告1=案A+関連改善／報告2=コード修正なし・FAQ 追記のみ。
@@ -88,9 +108,10 @@
 - ✅ readme 精度（②由来）：FAQ のカスタムテーブル数を **「6つ」→「7つ」に修正済み**（forms テーブル追加＝実体7つ・uninstall.php の7テーブル DROP と整合）。
 
 ## 現在地
-- **公開バージョン: v0.4.1（WordPress.org・SVN rev 3608476・公開済み・2026-07-15）**。フォーム/店舗のショートコード表示（UX改善）を含む。前バージョン v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
-- **main = v0.4.1**（機能②の8コミット＋v0.4.0 bump `b1f4a3d`、ショートコード表示3コミット＋v0.4.1 bump `1ffde47`＋handoff `190e969` がマージ済み）。**main は push 済み・`git tag v0.4.1` 作成済み**。v0.4.1 の SVN 公開・main マージ・tag は人間側で実施済み（Claude は認証情報を扱わない）。
-- **次バージョン: v0.4.2（外部ユーザー報告2件対応・不具合修正）**。調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。**リリース準備ローカル完了（2026-07-16・commit `d99a8d0` で 0.4.2 bump＋Changelog・push なし。上記「v0.4.2 リリース準備」節）。残りは人間 GO の不可逆操作（main マージ / push / tag / SVN 公開）のみ**。
+- **公開バージョン: v0.4.2（WordPress.org・SVN rev 3609790・公開済み）**。カスタムフィールドのメール変数対応＋メール未達切り分け FAQ を含む。前バージョン v0.4.1（rev 3608476、2026-07-15）・v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
+- **main = v0.4.2**。v0.4.2 の SVN 公開・main マージ・tag は人間側で実施済み（Claude は認証情報を扱わない）。
+- **開発中（未 push・ローカル）: v0.5.0 フォーム別メール文面**。ブランチ `feat/v050-form-mail-overrides`（main=v0.4.2 から分岐）に実装・検証を完了（上記「v0.5.0」節。バージョンは 0.4.2 据え置き）。次はリリース準備タスク（人間 GO）。
+- **旧・次バージョンとして起票されていた v0.4.2（外部ユーザー報告2件対応・不具合修正）は上記のとおり公開済み**。以下は当時の記録:調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。**リリース準備ローカル完了（2026-07-16・commit `d99a8d0` で 0.4.2 bump＋Changelog・push なし。上記「v0.4.2 リリース準備」節）。残りは人間 GO の不可逆操作（main マージ / push / tag / SVN 公開）のみ**。
 - git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
   - **BUG-1/2＋BUG-4＋自動更新フック(b)**（第1〜3報）: `includes/rest/class-rest-schedules.php` / `includes/class-activator.php` / `smart-booking.php`（copy_schedules 店舗×担当者スコープ／schedules UNIQUE＋dedup 移行／admin_init maybe_upgrade）。
