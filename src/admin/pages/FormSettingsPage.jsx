@@ -154,7 +154,12 @@ export default function FormSettingsPage() {
 	};
 
 	const confirmDiscardMailChanges = () => {
-		setMailDirty(false);
+		// mailDirty はここで手動リセットしない。FormMailTab の onDirtyChange（アンマウント時の
+		// false 通知を含む）を単一情報源にすることで、フォーム追加モーダルを開いた直後にキャンセル
+		// した場合などにフラグが失効してガードが無効化される事故を防ぐ。
+		// - タブ切替: action で FormMailTab がアンマウント → cleanup が onDirtyChange(false)。
+		// - フォーム切替: id 変化で再 hydrate → isDirty=false → onDirtyChange(false)。
+		// - フォーム追加: モーダルを開くだけ。実際にフォームが切替わって初めて上記経路で false 化。
 		const action = pendingAction;
 		setPendingAction(null);
 		if (action) action();

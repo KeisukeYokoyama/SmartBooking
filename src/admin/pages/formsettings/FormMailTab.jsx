@@ -158,6 +158,16 @@ export default function FormMailTab({ selectedForm, fields, onSaved, onDirtyChan
 		onDirtyChange && onDirtyChange(isDirty);
 	}, [isDirty, onDirtyChange]);
 
+	// アンマウント時（メールタブから離脱したとき等）に未保存フラグを確実に false へ戻す。
+	// これにより親の mailDirty は常に FormMailTab の実 dirty を忠実に反映し、
+	// 手動リセットのタイミングずれ（フォーム追加モーダルを開いた直後にキャンセルした等）で
+	// ガードが失効することを防ぐ（未保存フラグの単一情報源＝このコンポーネント）。
+	useEffect(() => {
+		return () => {
+			onDirtyChange && onDirtyChange(false);
+		};
+	}, [onDirtyChange]);
+
 	/**
 	 * enabled=true の各種別について、件名・本文が両方入力済みかを検証する。
 	 * 未入力の種別があれば見出し名を名指ししたトーストを出し、保存処理を進めない
