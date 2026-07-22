@@ -6,15 +6,20 @@
  * - 予約承認メール（ユーザー宛）の件名・本文
  * - 各本文 textarea の横にテンプレート変数を表示し、クリックで挿入できる
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { API } from '../../api';
 import Button from '../../components/Button';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Input from '../../components/Input';
 import Switch from '../../components/Switch';
-import Textarea from '../../components/Textarea';
 import { useToast } from '../../components/ToastContainer';
-import TemplateVariableHelper from './TemplateVariableHelper';
+import { buildFormVariables } from '../../utils/mailVariables';
+import BodyFieldWithHelper from './MailBodyField';
+
+// フォーム設定「メール」タブへの遷移先（フルリロード。同ディレクトリの admin.php へ相対）。
+const FORM_MAIL_TAB_URL =
+	(typeof window !== 'undefined' ? window.location.pathname : '') +
+	'?page=smart-booking-form-settings&smb_tab=mail';
 
 const MAIL_KEYS = [
 	'smart_booking_mail_from_name',
@@ -118,60 +123,24 @@ function hydrate(settings) {
 	return out;
 }
 
-function BodyFieldWithHelper({ label, value, onChange, helperId, customGroups = [], disabled = false }) {
-	return (
-		<div className="smb-mail-body">
-			<Textarea
-				label={label}
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				rows={8}
-				disabled={disabled}
-			/>
-			<TemplateHelperBinding
-				helperId={helperId}
-				onInsert={(next) => onChange(next)}
-				customGroups={customGroups}
-			/>
-		</div>
-	);
-}
-
 /**
- * Textarea コンポーネントは forwardRef していないため、
- * セクションの DOM から直接 textarea 要素を取得して
- * TemplateVariableHelper に渡す薄いラッパ。
+ * 専用文面（フォーム設定 > メール）を使用中のフォームがあれば注記する。
+ * 対象フォームが無ければ何も描画しない＝現行と完全に同じ見た目を保つ。
  */
-function TemplateHelperBinding({ helperId, onInsert, customGroups = [] }) {
-	const hiddenRef = useRef(null);
-
-	// マウント後、同じ親ブロックの textarea を取得して ref に保持。
-	useEffect(() => {
-		if (!hiddenRef.current) return;
-		const parent = hiddenRef.current.closest('.smb-mail-body');
-		if (!parent) return;
-		const ta = parent.querySelector('textarea');
-		if (ta) {
-			// useRef.current の代わりに独自プロパティで保持
-			hiddenRef.current.__ta = ta;
-		}
-	});
-
-	// TemplateVariableHelper は textareaRef.current を参照するため
-	// {current: ta} を疑似的に渡すラッパ ref を作る
-	const taRefProxy = {
-		get current() {
-			return hiddenRef.current ? hiddenRef.current.__ta : null;
-		},
-	};
-
+function OverrideNote({ formNames }) {
+	if (!formNames || formNames.length === 0) return null;
 	return (
-		<div ref={hiddenRef} id={helperId}>
-			<TemplateVariableHelper
-				textareaRef={taRefProxy}
-				onInsert={onInsert}
-				customGroups={customGroups}
-			/>
+		<div className="smb-settings-section__override-note">
+			<p>
+				※ {formNames.join('、')}{' '}
+				は専用文面を使用中（このテンプレートの変更は反映されません）
+			</p>
+			<a
+				href={FORM_MAIL_TAB_URL}
+				className="smb-settings-section__override-link"
+			>
+				フォーム設定のメールタブを開く
+			</a>
 		</div>
 	);
 }
@@ -183,6 +152,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 	const [mailError, setMailError] = useState(null);
 	const [mailErrorDismissing, setMailErrorDismissing] = useState(false);
 	const [customGroups, setCustomGroups] = useState([]);
+	const [formsForOverride, setFormsForOverride] = useState([]);
 	const { showToast } = useToast();
 
 	useEffect(() => {
@@ -212,6 +182,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 
 	// 各フォームのカスタムフィールドを取得し、メール本文に挿入できる変数一覧を組み立てる。
 	// 複数フォーム（v0.4.0）では同じ field_key が別フォームに存在し得るため、フォーム別に分ける。
+	// 併せて各フォームの mail_overrides（v0.5.0）を保持し、専用文面使用中フォームの注記に使う。
 	// 取得失敗時は固定変数のみの表示にとどめ、タブ本体の機能には影響させない。
 	useEffect(() => {
 		let cancelled = false;
@@ -225,34 +196,17 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				const groups = [];
 				list.forEach((form, idx) => {
 					const fields = Array.isArray(fieldsPerForm[idx]) ? fieldsPerForm[idx] : [];
-					const variables = [];
-					for (const fld of fields) {
-						// 保護フィールド（氏名/メール/電話）は固定変数と重複するため除外。
-						if (fld.is_protected) continue;
-						if (fld.field_type === 'address') {
-							variables.push({
-								key: `{${fld.field_key}}`,
-								desc: `${fld.field_label}（〒＋住所）`,
-							});
-							variables.push({
-								key: `{${fld.field_key}_zip}`,
-								desc: `${fld.field_label}（郵便番号）`,
-							});
-							variables.push({
-								key: `{${fld.field_key}_address}`,
-								desc: `${fld.field_label}（住所）`,
-							});
-						} else {
-							variables.push({ key: `{${fld.field_key}}`, desc: fld.field_label });
-						}
-					}
+					const variables = buildFormVariables(fields);
 					if (variables.length > 0) {
 						groups.push({ formId: form.id, formName: form.name, variables });
 					}
 				});
-				if (!cancelled) setCustomGroups(groups);
+				if (!cancelled) {
+					setCustomGroups(groups);
+					setFormsForOverride(list);
+				}
 			} catch {
-				// noop: 変数一覧は補助情報のため、失敗時は固定変数のみ表示にとどめる。
+				// noop: 変数一覧・注記は補助情報のため、失敗時は固定変数のみ表示にとどめる。
 			}
 		})();
 		return () => {
@@ -304,6 +258,20 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 	const isDirty = MAIL_KEYS.some((k) => values[k] !== initial[k]);
 	const adminNotifyOn = 1 === Number(values.smart_booking_mail_admin_notify_enabled);
 
+	// 種別ごとに「このフォームの専用文面が有効」なフォーム名を集計する（共通側の注記に使う）。
+	const overrideFormNamesByType = useMemo(() => {
+		const result = { reception_user: [], reception_admin: [], approval_user: [] };
+		formsForOverride.forEach((form) => {
+			const overrides = form.mail_overrides || {};
+			Object.keys(result).forEach((type) => {
+				if (overrides[type] && overrides[type].enabled) {
+					result[type].push(form.name);
+				}
+			});
+		});
+		return result;
+	}, [formsForOverride]);
+
 	return (
 		<div className="smb-settings-form">
 			<MailErrorBanner
@@ -342,6 +310,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					<p className="smb-settings-section__lead">
 						予約を送信した直後にユーザーに届くメール。
 					</p>
+					<OverrideNote formNames={overrideFormNamesByType.reception_user} />
 				</div>
 				<Input
 					label="件名"
@@ -366,6 +335,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					<p className="smb-settings-section__lead">
 						予約が入ったときに店舗メール（To）と担当者メール（CC）へ届きます。「管理者へのメール」がオンのときは、加えて WordPress の管理者メールにも同時に通知が送られます。
 					</p>
+					<OverrideNote formNames={overrideFormNamesByType.reception_admin} />
 				</div>
 				<div className="smb-settings-toggle-row">
 					<Switch
@@ -401,6 +371,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 					<p className="smb-settings-section__lead">
 						管理者が予約を「承認」に変更したときにユーザーに届くメール。
 					</p>
+					<OverrideNote formNames={overrideFormNamesByType.approval_user} />
 				</div>
 				<Input
 					label="件名"

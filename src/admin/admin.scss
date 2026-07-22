@@ -4082,6 +4082,38 @@
 		line-height: 1.6;
 		max-width: 720px;
 	}
+
+	// v0.5.0: フォーム別メール文面を使用中のフォームがあることを知らせる注記
+	// （設定 > メール通知タブ）。「共通を直したのに反映されない」混乱の防止。
+	&__override-note {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 4px 10px;
+		margin-top: 8px;
+		padding: 8px 10px;
+		background: var(--smb-color-primary-bg);
+		border-radius: var(--smb-radius);
+
+		p {
+			margin: 0;
+			font-size: 12px;
+			color: var(--smb-color-text);
+			line-height: 1.6;
+		}
+	}
+
+	&__override-link {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--smb-color-primary);
+		text-decoration: underline;
+		white-space: nowrap;
+
+		&:hover {
+			text-decoration: none;
+		}
+	}
 }
 
 .smb-settings-actions {
@@ -4248,6 +4280,24 @@
 .smb-mail-body {
 	display: grid;
 	gap: 4px;
+}
+
+/* ---------- フォーム別メール文面（v0.5.0） ---------- */
+
+// OFF 時：共通文面を薄色・読み取り専用でプレビュー表示する（フォーム設定 > メール）。
+.smb-mail-override-preview {
+	display: grid;
+	gap: 8px;
+	padding: 12px;
+	background: var(--smb-color-bg);
+	border: 1px dashed var(--smb-color-border);
+	border-radius: var(--smb-radius);
+
+	&__note {
+		margin: 0;
+		font-size: 12px;
+		color: var(--smb-color-text-muted);
+	}
 }
 
 /* ---------- タブの未保存バッジ ---------- */

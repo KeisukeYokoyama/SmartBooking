@@ -18,12 +18,22 @@ import { buildFormShortcode } from '../utils/shortcode';
 import CustomFieldList from './formsettings/CustomFieldList';
 import CustomFieldModal from './formsettings/CustomFieldModal';
 import FieldTypeCards from './formsettings/FieldTypeCards';
+import FormMailTab from './formsettings/FormMailTab';
 import FormNameModal from './formsettings/FormNameModal';
+import TabNav from './settings/TabNav';
 
 // サーバ側のハードキャップ (SMART_BOOKING_MAX_FORMS) と同じ値。UI 側の予防的な disabled 判定にのみ使う。
 const MAX_FORMS = 10;
 
+const TABS = [
+	{ key: 'fields', label: 'フィールド設定' },
+	{ key: 'mail', label: 'メール' },
+];
+
 export default function FormSettingsPage() {
+	// タブ（v0.5.0: フィールド設定 / メール）
+	const [activeTab, setActiveTab] = useState('fields');
+
 	// フォーム一覧・選択中フォーム
 	const [forms, setForms] = useState([]);
 	const [selectedFormId, setSelectedFormId] = useState(null);
@@ -75,8 +85,15 @@ export default function FormSettingsPage() {
 		}
 	}, []);
 
+	// マウント時、URL クエリでタブ・選択中フォームを指定できる（設定 > メール通知の
+	// 「専用文面を使用中」注記からの導線 `?smb_tab=mail&smb_form=<id>` 用のディープリンク）。
 	useEffect(() => {
-		loadForms();
+		const params = new URLSearchParams(window.location.search);
+		if (params.get('smb_tab') === 'mail') {
+			setActiveTab('mail');
+		}
+		const formParam = Number(params.get('smb_form'));
+		loadForms(formParam > 0 ? formParam : undefined);
 	}, [loadForms]);
 
 	// --- 選択中フォームのフィールド読み込み ---
@@ -261,7 +278,7 @@ export default function FormSettingsPage() {
 						予約フォームで入力してもらう項目を設定します。フォームの色は「設定 → デザイン」から変更できます。
 					</p>
 				</div>
-				{showFieldSections && (
+				{activeTab === 'fields' && showFieldSections && (
 					<div className="smb-page__actions">
 						<Button variant="primary" onClick={() => openAdd('text')} icon="＋">
 							フィールドを追加
@@ -344,54 +361,72 @@ export default function FormSettingsPage() {
 				</div>
 			)}
 
-			{!formsLoading && !formsLoadError && fieldsLoading && (
-				<div className="smb-section-card">
-					<div className="smb-loading">
-						<Spinner label="読み込み中" />
-						<span>読み込み中…</span>
-					</div>
-				</div>
+			{!formsLoading && !formsLoadError && (
+				<TabNav tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 			)}
-			{fieldsLoadError && !fieldsLoading && (
+
+			{activeTab === 'fields' && (
+				<>
+					{!formsLoading && !formsLoadError && fieldsLoading && (
+						<div className="smb-section-card">
+							<div className="smb-loading">
+								<Spinner label="読み込み中" />
+								<span>読み込み中…</span>
+							</div>
+						</div>
+					)}
+					{fieldsLoadError && !fieldsLoading && (
+						<div className="smb-section-card">
+							<ErrorMessage
+								message={fieldsLoadError}
+								onRetry={() => loadFields(selectedFormId)}
+								onDismiss={() => setFieldsLoadError(null)}
+							/>
+						</div>
+					)}
+					{showFieldSections && (
+						<>
+							<div className="smb-section-card">
+								<section className="smb-section">
+									<div className="smb-section__header">
+										<h2 className="smb-section__title">フィールドタイプから追加</h2>
+										<p className="smb-section__lead">
+											追加したい入力項目のタイプを選んでください。後から編集・並び替えもできます。
+										</p>
+									</div>
+									<FieldTypeCards onSelect={(type) => openAdd(type)} />
+								</section>
+							</div>
+
+							<div className="smb-section-card">
+								<section className="smb-section">
+									<div className="smb-section__header">
+										<h2 className="smb-section__title">現在のフィールド一覧</h2>
+										<p className="smb-section__lead">
+											↑↓ ボタンで並び替えできます。氏名・メール・電話は予約システムの基本項目のため削除できません。
+										</p>
+									</div>
+									<CustomFieldList
+										fields={fields}
+										onEdit={openEdit}
+										onDelete={askDelete}
+										onMove={moveField}
+									/>
+								</section>
+							</div>
+						</>
+					)}
+				</>
+			)}
+
+			{activeTab === 'mail' && !formsLoading && !formsLoadError && selectedForm && (
 				<div className="smb-section-card">
-					<ErrorMessage
-						message={fieldsLoadError}
-						onRetry={() => loadFields(selectedFormId)}
-						onDismiss={() => setFieldsLoadError(null)}
+					<FormMailTab
+						selectedForm={selectedForm}
+						fields={fields}
+						onSaved={() => loadForms(selectedFormId)}
 					/>
 				</div>
-			)}
-			{showFieldSections && (
-				<>
-					<div className="smb-section-card">
-						<section className="smb-section">
-							<div className="smb-section__header">
-								<h2 className="smb-section__title">フィールドタイプから追加</h2>
-								<p className="smb-section__lead">
-									追加したい入力項目のタイプを選んでください。後から編集・並び替えもできます。
-								</p>
-							</div>
-							<FieldTypeCards onSelect={(type) => openAdd(type)} />
-						</section>
-					</div>
-
-					<div className="smb-section-card">
-						<section className="smb-section">
-							<div className="smb-section__header">
-								<h2 className="smb-section__title">現在のフィールド一覧</h2>
-								<p className="smb-section__lead">
-									↑↓ ボタンで並び替えできます。氏名・メール・電話は予約システムの基本項目のため削除できません。
-								</p>
-							</div>
-							<CustomFieldList
-								fields={fields}
-								onEdit={openEdit}
-								onDelete={askDelete}
-								onMove={moveField}
-							/>
-						</section>
-					</div>
-				</>
 			)}
 
 			<CustomFieldModal
