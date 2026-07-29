@@ -447,6 +447,12 @@ class Smart_Booking_Activator {
 			'smart_booking_color_time_selected'          => '#374151',
 			'smart_booking_color_required_mark'          => '#ef4444',
 			'smart_booking_color_focus'                  => '#3498db',
+
+			// v0.5.1: 空き状況表示の色（現行 CSS の実値をデフォルトに固定 = 表示は不変）.
+			// 残りわずか（警告色）/ 満席・締切（無効色）。しきい値・文言3は store_label / staff_label
+			// と同じく activator では seed せず get_option デフォルト任せ（空欄＝自動 / デフォルト表記）.
+			'smart_booking_color_availability_warning'   => '#fbbf24',
+			'smart_booking_color_availability_disabled'  => '#6c757d',
 		);
 
 		foreach ( $defaults as $key => $value ) {

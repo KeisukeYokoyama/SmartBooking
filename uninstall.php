@@ -50,6 +50,11 @@ function smart_booking_run_uninstall() {
 		'smart_booking_show_store_front',
 		'smart_booking_show_staff_front',
 		'smart_booking_completion_message',
+		// v0.5.1: 空き状況表示のカスタマイズ（しきい値1・文言3）.
+		'smart_booking_few_left_threshold',
+		'smart_booking_label_few_left',
+		'smart_booking_label_full',
+		'smart_booking_label_closed',
 		// メール通知.
 		'smart_booking_mail_from_name',
 		'smart_booking_mail_from_email',
@@ -74,6 +79,9 @@ function smart_booking_run_uninstall() {
 		'smart_booking_color_time_selected',
 		'smart_booking_color_required_mark',
 		'smart_booking_color_focus',
+		// v0.5.1: 空き状況表示の色2種（警告色 / 無効色）.
+		'smart_booking_color_availability_warning',
+		'smart_booking_color_availability_disabled',
 		// DB バージョン.
 		'smart_booking_db_version',
 	);

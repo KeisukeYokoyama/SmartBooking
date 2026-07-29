@@ -41,6 +41,11 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 			'smart_booking_store_label'                      => 'text',
 			'smart_booking_staff_label'                      => 'text',
 			'smart_booking_completion_message'               => 'html',
+			// v0.5.1: 空き状況表示のカスタマイズ（しきい値1・文言3）。int の '' → 0 は「未設定＝自動」として扱う。
+			'smart_booking_few_left_threshold'               => 'int',
+			'smart_booking_label_few_left'                   => 'text',
+			'smart_booking_label_full'                       => 'text',
+			'smart_booking_label_closed'                     => 'text',
 
 			// メール通知.
 			'smart_booking_mail_from_name'                   => 'text',
@@ -68,6 +73,9 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 			'smart_booking_color_time_selected'              => 'color',
 			'smart_booking_color_required_mark'              => 'color',
 			'smart_booking_color_focus'                      => 'color',
+			// v0.5.1: 空き状況表示の色2種（残りわずか＝警告色 / 満席・締切＝無効色）。既存カラーと同型。
+			'smart_booking_color_availability_warning'       => 'color',
+			'smart_booking_color_availability_disabled'      => 'color',
 		);
 	}
 

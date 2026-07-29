@@ -105,7 +105,74 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'default' => '',
 				'type'    => 'color',
 			),
+			// v0.5.1: 空き状況表示のカスタマイズ（しきい値1・文言3・色2）。すべて追加のみ・非破壊。
+			'smart_booking_few_left_threshold'     => array(
+				'key'     => 'few_left_threshold',
+				'default' => '',
+				'type'    => 'int',
+			),
+			'smart_booking_label_few_left'         => array(
+				'key'     => 'label_few_left',
+				'default' => '',
+				'type'    => 'text',
+			),
+			'smart_booking_label_full'             => array(
+				'key'     => 'label_full',
+				'default' => '',
+				'type'    => 'text',
+			),
+			'smart_booking_label_closed'           => array(
+				'key'     => 'label_closed',
+				'default' => '',
+				'type'    => 'text',
+			),
+			'smart_booking_color_availability_warning' => array(
+				'key'     => 'color_availability_warning',
+				'default' => '',
+				'type'    => 'color',
+			),
+			'smart_booking_color_availability_disabled' => array(
+				'key'     => 'color_availability_disabled',
+				'default' => '',
+				'type'    => 'color',
+			),
 		);
+	}
+
+	/**
+	 * 「残りわずか」しきい値の有効値を取得する（判定を1箇所に集約）。
+	 *
+	 * option `smart_booking_few_left_threshold` を int キャストし、1〜99 の範囲なら
+	 * その整数を返す。空・0・負数・>99・非数値は「未設定（＝自動・複合式）」を意味する
+	 * null を返す。get_availability() の空き状況判定と /public/settings 出力の双方で共用する。
+	 *
+	 * @return int|null 有効しきい値（1〜99）または null（自動）。
+	 */
+	private function get_few_left_threshold() {
+		$raw = (int) get_option( 'smart_booking_few_left_threshold', '' );
+		if ( $raw >= 1 && $raw <= 99 ) {
+			return $raw;
+		}
+		return null;
+	}
+
+	/**
+	 * 空き状況ラベル（残りわずか / 満席 / 締切）の共通フォールバック。
+	 *
+	 * sanitize_text_field 済みの値を 20 文字に切り詰め、空文字（空白のみ含む）は
+	 * デフォルト表記へフォールバックする（呼び方設定と同じ原則）。判定はサーバに集約し、
+	 * フロントは受け取った値をそのまま表示する。
+	 *
+	 * @param string $value   sanitize_text_field 済みのラベル値.
+	 * @param string $default 空のときのデフォルト表記.
+	 * @return string 整形済みラベル.
+	 */
+	private function filter_availability_label( $value, $default ) {
+		$value = function_exists( 'mb_substr' ) ? mb_substr( (string) $value, 0, 20 ) : substr( (string) $value, 0, 20 );
+		if ( '' === trim( (string) $value ) ) {
+			return $default;
+		}
+		return $value;
 	}
 
 	/**
@@ -400,6 +467,18 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$out['staff_label'] = '担当者';
 		}
 
+		// v0.5.1: 空き状況の文言フォールバック（呼び方設定と同じ原則。判定をサーバに集約）。
+		// 20 文字に切り詰め、空文字はデフォルト表記へフォールバックする。
+		$out['label_few_left'] = $this->filter_availability_label( $out['label_few_left'], '残りわずか' );
+		$out['label_full']     = $this->filter_availability_label( $out['label_full'], '満席' );
+		$out['label_closed']   = $this->filter_availability_label( $out['label_closed'], '締切' );
+
+		// v0.5.1: しきい値は判定ヘルパーの結果で上書き（null＝自動は 0 を出力）。
+		// フロントは消費しないが、契約の完全性のため出力する。色2種は schema ループで
+		// 既存カラーと同一機構（sanitize_hex_color、不正時は '' のまま）を通っており追加処理は不要。
+		$few_threshold             = $this->get_few_left_threshold();
+		$out['few_left_threshold'] = null === $few_threshold ? 0 : $few_threshold;
+
 		return rest_ensure_response( $out );
 	}
 
@@ -484,7 +563,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 * - 空き状況の判定:
 	 *     closed    : 締切超過
 	 *     full      : booked_count >= capacity
-	 *     few_left  : 残席 <= 2 もしくは 残席 <= ceil(capacity * 0.3)
+	 *     few_left  : しきい値 option `smart_booking_few_left_threshold` が有効値（1〜99）のときは
+	 *                 残席 <= しきい値 のフラット判定。未設定/不正値のときは現行の複合式
+	 *                 （残席 <= 2 もしくは 残席 <= ceil(capacity * 0.3)）で判定する
 	 *                 （capacity が小さい枠でも最後の数席で「残りわずか」を出すため、
 	 *                  絶対数（2 席）と残席率（30%）のいずれかが満たされれば few_left）
 	 *     available : 上記いずれでもない
@@ -554,6 +635,10 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- サイトTZ基準の Unix 秒で日時計算するため明示的に timestamp を要求。
 		$now_ts = (int) current_time( 'timestamp' );
 
+		// v0.5.1: 「残りわずか」しきい値を1回だけ取得（判定を1箇所に集約）。
+		// 有効値（1〜99）のときはフラット判定、null のときは現行の複合式にフォールバックする。
+		$few_threshold = $this->get_few_left_threshold();
+
 		$out = array();
 		foreach ( $rows as $row ) {
 			$capacity     = (int) $row['capacity'];
@@ -590,9 +675,13 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
 				$availability = 'full';
 			} elseif ( $capacity > 0 ) {
-				$available    = $capacity - $booked_count;
-				$ratio_thresh = (int) ceil( $capacity * 0.3 );
-				if ( $available <= 2 || $available <= $ratio_thresh ) {
+				$available = $capacity - $booked_count;
+				if ( null === $few_threshold ) {
+					$ratio_thresh = (int) ceil( $capacity * 0.3 );
+					if ( $available <= 2 || $available <= $ratio_thresh ) {
+						$availability = 'few_left';
+					}
+				} elseif ( $available <= $few_threshold ) {
 					$availability = 'few_left';
 				}
 			}
@@ -617,7 +706,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 		// 担当者非表示モード: 同じ (store_id, schedule_date, start_time, end_time) を統合する。
 		if ( $aggregate_staff && ! empty( $out ) ) {
-			$out = $this->aggregate_by_timeslot( $out );
+			$out = $this->aggregate_by_timeslot( $out, $few_threshold );
 		} else {
 			// 通常モード: 内部フラグを除去して返す。
 			foreach ( $out as &$row_ref ) {
@@ -643,10 +732,11 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	 * - staff_id は 0（統合枠を示す）。
 	 * - availability は合算後の値で再判定。`closed` は構成枠すべてが closed のときのみ。
 	 *
-	 * @param array $rows get_availability の中間結果（各行に `_is_closed` を含む）。
+	 * @param array    $rows          get_availability の中間結果（各行に `_is_closed` を含む）。
+	 * @param int|null $few_threshold 「残りわずか」しきい値（1〜99）または null（自動＝複合式）。
 	 * @return array 統合後の rows（`_is_closed` は除去済み）。
 	 */
-	private function aggregate_by_timeslot( $rows ) {
+	private function aggregate_by_timeslot( $rows, $few_threshold = null ) {
 		$buckets = array();
 		foreach ( $rows as $row ) {
 			$key = (int) $row['store_id'] . '|' . (string) $row['schedule_date'] . '|' . (string) $row['start_time'] . '|' . (string) $row['end_time'];
@@ -689,9 +779,13 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
 				$availability = 'full';
 			} elseif ( $capacity > 0 ) {
-				$available    = $capacity - $booked_count;
-				$ratio_thresh = (int) ceil( $capacity * 0.3 );
-				if ( $available <= 2 || $available <= $ratio_thresh ) {
+				$available = $capacity - $booked_count;
+				if ( null === $few_threshold ) {
+					$ratio_thresh = (int) ceil( $capacity * 0.3 );
+					if ( $available <= 2 || $available <= $ratio_thresh ) {
+						$availability = 'few_left';
+					}
+				} elseif ( $available <= $few_threshold ) {
 					$availability = 'few_left';
 				}
 			}
