@@ -297,7 +297,7 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					value={values.smart_booking_few_left_threshold}
 					onChange={(e) => update({ smart_booking_few_left_threshold: e.target.value })}
 					placeholder="自動"
-					help="空欄の場合は自動判定（空き2件以下、または定員の30%以下で「残りわずか」）。数値を設定すると、空きがその数以下のときだけ「残りわずか」と表示されます。例: 1 にすると残り1件のときのみ。"
+					help="空欄の場合は自動判定（空き2件以下、または定員の30%以下で「残りわずか」）。数値を設定すると、空きがその数以下のときだけ「残りわずか」と表示されます。例: 1 にすると残り1件のときのみ。0 と入力した場合は無効な値のため自動判定で保存されます。"
 				/>
 
 				<Input
@@ -306,7 +306,7 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					onChange={(e) => update({ smart_booking_label_few_left: e.target.value })}
 					maxLength={LABEL_MAX_LENGTH}
 					placeholder="残りわずか"
-					help="空欄なら「残りわずか」と表示されます。"
+					help="空欄なら「残りわずか」と表示されます。スマホでも読みやすいよう全角6文字程度までを推奨します。"
 				/>
 
 				<Input
@@ -315,7 +315,7 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					onChange={(e) => update({ smart_booking_label_full: e.target.value })}
 					maxLength={LABEL_MAX_LENGTH}
 					placeholder="満席"
-					help="空欄なら「満席」と表示されます。"
+					help="空欄なら「満席」と表示されます。スマホでも読みやすいよう全角6文字程度までを推奨します。"
 				/>
 
 				<Input
@@ -324,7 +324,7 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 					onChange={(e) => update({ smart_booking_label_closed: e.target.value })}
 					maxLength={LABEL_MAX_LENGTH}
 					placeholder="締切"
-					help="空欄なら「締切」と表示されます。"
+					help="空欄なら「締切」と表示されます。スマホでも読みやすいよう全角6文字程度までを推奨します。"
 				/>
 			</div>
 

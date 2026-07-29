@@ -60,6 +60,13 @@
 	/* 空き状況表示（v0.5.1・管理画面「デザイン」タブで上書き可） */
 	--smb-front-color-availability-warning: #fbbf24;
 	--smb-front-color-availability-disabled: #6c757d;
+	/* 陰影トークン（v0.5.1・警告/無効色から App.jsx が導出して注入。
+	   デフォルト値は現行実値そのままなので、未設定時は既存表示と byte-identical）。 */
+	--smb-front-color-availability-warning-soft: #fffbeb;
+	--smb-front-color-availability-warning-badge-bg: #fef3c7;
+	--smb-front-color-availability-warning-badge-fg: #92400e;
+	--smb-front-color-availability-disabled-badge-bg: #fee2e2;
+	--smb-front-color-availability-disabled-badge-fg: #991b1b;
 
 	/* 角丸 */
 	--smb-front-radius: 8px;
@@ -538,13 +545,13 @@
 }
 
 .smb-front-day-tile__badge.is-few {
-	background: #fef3c7;
-	color: #92400e;
+	background: var(--smb-front-color-availability-warning-badge-bg);
+	color: var(--smb-front-color-availability-warning-badge-fg);
 }
 
 .smb-front-day-tile__badge.is-full {
-	background: #fee2e2;
-	color: #991b1b;
+	background: var(--smb-front-color-availability-disabled-badge-bg);
+	color: var(--smb-front-color-availability-disabled-badge-fg);
 }
 
 .smb-front-day-tile__badge.is-closed {
@@ -700,13 +707,13 @@
 }
 
 .smb-front-month__cell-badge.is-few {
-	background: #fef3c7;
-	color: #92400e;
+	background: var(--smb-front-color-availability-warning-badge-bg);
+	color: var(--smb-front-color-availability-warning-badge-fg);
 }
 
 .smb-front-month__cell-badge.is-full {
-	background: #fee2e2;
-	color: #991b1b;
+	background: var(--smb-front-color-availability-disabled-badge-bg);
+	color: var(--smb-front-color-availability-disabled-badge-fg);
 }
 
 .smb-front-month__cell-badge.is-closed {
@@ -797,7 +804,7 @@
 
 .smb-front-time-btn.is-few_left {
 	border-color: var(--smb-front-color-availability-warning);
-	background: #fffbeb;
+	background: var(--smb-front-color-availability-warning-soft);
 }
 
 .smb-front-time-btn.is-few_left.is-selected {
@@ -828,13 +835,13 @@
 }
 
 .smb-front-time-btn__badge.is-few_left {
-	background: #fef3c7;
-	color: #92400e;
+	background: var(--smb-front-color-availability-warning-badge-bg);
+	color: var(--smb-front-color-availability-warning-badge-fg);
 }
 
 .smb-front-time-btn__badge.is-full {
-	background: #fee2e2;
-	color: #991b1b;
+	background: var(--smb-front-color-availability-disabled-badge-bg);
+	color: var(--smb-front-color-availability-disabled-badge-fg);
 }
 
 .smb-front-time-btn__badge.is-closed {
@@ -1969,10 +1976,12 @@
 
 /* few_left（残りわずか）は available（背景 #f3f4f6）と区別できる警告色にする。
  * このタイルは border を使わないデザインのため、時間枠の警告トークンと揃えた背景色
- * （既存の badge 配色 #fef3c7 を再利用）で表現する。選択可能な状態のまま（disabled にしない）。 */
+ * （バッジと同じ --smb-front-color-availability-warning-badge-bg を再利用。
+ *   管理画面で警告色を変更した際にバッジと表示がズレないよう同一変数を参照する）。
+ * 選択可能な状態のまま（disabled にしない）。 */
 .smb-front-date-card.is-tone-few,
 .smb-front-day-tile.is-tone-few {
-	background: #fef3c7;
+	background: var(--smb-front-color-availability-warning-badge-bg);
 }
 
 /* 選択中は is-selected の色を優先する（.is-tone-few と同じ specificity のため明示的に上書き）。 */
@@ -2320,15 +2329,16 @@
 	color: var(--smb-front-text-body);
 }
 
-/* few_left は available と視覚的に区別できる警告色にする（既存トークン #fbbf24 / #fffbeb / #fef3c7 を再利用）。
+/* few_left は available と視覚的に区別できる警告色にする（陰影トークンを再利用。
+ * デフォルト値は既存の #fbbf24 / #fffbeb / #fef3c7 のまま＝表示は不変）。
  * 選択可能なボタンであることは変えず、クリック可否ロジック（disabled 判定）は JSX 側のまま。 */
 .smb-front-time-btn.is-few_left {
-	background: #fffbeb;
+	background: var(--smb-front-color-availability-warning-soft);
 	border-color: var(--smb-front-color-availability-warning);
 }
 
 .smb-front-time-btn.is-few_left:hover:not(:disabled) {
-	background: #fef3c7;
+	background: var(--smb-front-color-availability-warning-badge-bg);
 	border-color: var(--smb-front-color-availability-warning);
 }
 

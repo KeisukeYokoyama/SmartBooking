@@ -25,6 +25,37 @@ import MainInputPage from './steps/MainInputPage';
 import StaffSelect from './steps/StaffSelect';
 import StoreSelect from './steps/StoreSelect';
 
+/**
+ * "#rrggbb" 形式の HEX を { r, g, b } に変換する。不正な形式は null。
+ *
+ * @param {string} hex HEX カラーコード.
+ * @returns {{r: number, g: number, b: number}|null}
+ */
+function sbHexToRgb(hex) {
+	const m = /^#([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+	if (!m) return null;
+	const n = parseInt(m[1], 16);
+	return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/**
+ * hex を target 方向へ p (0..1) の比率で混ぜた HEX カラーを返す。
+ * 管理画面で設定した1色（警告色/無効色）から、バッジ背景・薄背景等の陰影を導出するために使う。
+ *
+ * @param {string} hex    ベースカラー.
+ * @param {string} target 混合先カラー（白 or 黒）.
+ * @param {number} p      target の混合比（0..1）.
+ * @returns {string|null}
+ */
+function sbMix(hex, target, p) {
+	const a = sbHexToRgb(hex);
+	const b = sbHexToRgb(target);
+	if (!a || !b) return null;
+	const ch = (x, y) => Math.round(x * (1 - p) + y * p);
+	const to2 = (v) => v.toString(16).padStart(2, '0');
+	return '#' + to2(ch(a.r, b.r)) + to2(ch(a.g, b.g)) + to2(ch(a.b, b.b));
+}
+
 export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 	const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
@@ -88,6 +119,8 @@ export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 	// CSS カスタムプロパティで色設定を適用（Gen-D で本格反映）。
 	// 設定画面デザインタブの5色（button / date_selected / time_selected / required_mark / focus）を
 	// root 要素のインライン style に差し込む。空文字/未設定なら CSS 側のデフォルトが使われる。
+	// v0.5.1: 空き状況の警告色/無効色は単色設定のみ受け取り、下の sbMix() でバッジ背景等の
+	// 陰影を導出してから注入する（バッジだけ現行色のまま取り残される見た目の破綻を防ぐため）。
 	useEffect(() => {
 		if (!state.settings) return;
 		const root = document.getElementById('smart-booking-app');
@@ -102,8 +135,6 @@ export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 			['--smb-front-color-required', state.settings.color_required_mark],
 			['--smb-front-color-required-mark', state.settings.color_required_mark],
 			['--smb-front-color-focus', state.settings.color_focus],
-			['--smb-front-color-availability-warning', state.settings.color_availability_warning],
-			['--smb-front-color-availability-disabled', state.settings.color_availability_disabled],
 		];
 		map.forEach(([prop, val]) => {
 			if (val && typeof val === 'string' && val.length > 0) {
@@ -113,6 +144,52 @@ export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 				root.style.removeProperty(prop);
 			}
 		});
+
+		// 空き状況の警告色/無効色（v0.5.1）: 単色設定から陰影（薄背景・バッジ背景・バッジ文字色）を
+		// 導出して同時に注入する。未設定時は全プロパティを removeProperty し、CSS 既定値
+		// （v0.5.0 と同じ #fbbf24 系 / #6c757d 系のパレット）に戻す＝byte-identical を担保する。
+		const WHITE = '#ffffff';
+		const BLACK = '#000000';
+
+		const warn = state.settings.color_availability_warning;
+		if (sbHexToRgb(warn)) {
+			root.style.setProperty('--smb-front-color-availability-warning', warn);
+			root.style.setProperty('--smb-front-color-availability-warning-soft', sbMix(warn, WHITE, 0.9));
+			root.style.setProperty(
+				'--smb-front-color-availability-warning-badge-bg',
+				sbMix(warn, WHITE, 0.75)
+			);
+			root.style.setProperty(
+				'--smb-front-color-availability-warning-badge-fg',
+				sbMix(warn, BLACK, 0.42)
+			);
+		} else {
+			[
+				'--smb-front-color-availability-warning',
+				'--smb-front-color-availability-warning-soft',
+				'--smb-front-color-availability-warning-badge-bg',
+				'--smb-front-color-availability-warning-badge-fg',
+			].forEach((prop) => root.style.removeProperty(prop));
+		}
+
+		const disabledColor = state.settings.color_availability_disabled;
+		if (sbHexToRgb(disabledColor)) {
+			root.style.setProperty('--smb-front-color-availability-disabled', disabledColor);
+			root.style.setProperty(
+				'--smb-front-color-availability-disabled-badge-bg',
+				sbMix(disabledColor, WHITE, 0.82)
+			);
+			root.style.setProperty(
+				'--smb-front-color-availability-disabled-badge-fg',
+				sbMix(disabledColor, BLACK, 0.35)
+			);
+		} else {
+			[
+				'--smb-front-color-availability-disabled',
+				'--smb-front-color-availability-disabled-badge-bg',
+				'--smb-front-color-availability-disabled-badge-fg',
+			].forEach((prop) => root.style.removeProperty(prop));
+		}
 	}, [state.settings]);
 
 	if (state.step === 'loading' || state.loading) {

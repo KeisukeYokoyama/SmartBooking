@@ -4,9 +4,11 @@
  * 設定ページの「デザイン」タブから利用される（カラー設定はそちらに集約）。
  * ファイルパスは `pages/formsettings/` のままだが、これは旧構成の名残で機能上の意味はない。
  *
- * - 5つのカラー設定項目（ボタン / 日付 / 時間帯 / 必須マーク / フォーカス）
+ * - 7つのカラー設定項目（ボタン / 日付 / 時間帯 / 必須マーク / フォーカス /
+ *   残りわずか警告色 / 満席・締切無効色）
  * - `<input type="color">` + HEX テキストの併用（キーボード操作可能）
- * - 右側に `FormPreview` を配置し、色の変更を即時反映する
+ * - 右側に `FormPreview` を配置し、色の変更を即時反映する（v0.5.1 の2色は非対応。
+ *   保存後に予約フォーム側で確認する運用）
  */
 import { useEffect, useMemo, useState } from 'react';
 import Button from '../../components/Button';
@@ -52,13 +54,13 @@ export const COLOR_ITEMS = [
 	{
 		key: 'smart_booking_color_availability_warning',
 		label: '残りわずかの色（警告色）',
-		help: '時間枠が「残りわずか」のときの強調色（枠線など）。',
+		help: '時間枠が「残りわずか」のときの枠線・背景・バッジの色。この色から薄い背景色を自動計算して使います。',
 		defaultValue: '#fbbf24',
 	},
 	{
 		key: 'smart_booking_color_availability_disabled',
 		label: '満席・締切の色（無効色）',
-		help: '時間枠が「満席」「締切」のときの文字色。満席と締切で同じ色を使います。',
+		help: '時間枠が「満席」「締切」のときの文字・バッジの色。満席と締切で同じ色を使います。',
 		defaultValue: '#6c757d',
 	},
 ];
@@ -172,6 +174,10 @@ export default function ThemeColorPicker({ settings, onSave, saving }) {
 							</div>
 						);
 					})}
+
+					<p className="smb-field-help">
+						※「残りわずか」「満席・締切」の色は、選んだ色から背景・バッジの配色を自動計算して反映します（プレビューには反映されません。保存後に実際の予約フォームでご確認ください）。他の色設定と同様、背景と文字の組み合わせが見えにくくならないようご確認のうえ設定してください。
+					</p>
 
 					<div className="smb-theme-settings__actions">
 						<Button variant="ghost" onClick={handleReset} disabled={saving}>
