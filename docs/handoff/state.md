@@ -1,6 +1,29 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-07-22
+最終更新: 2026-07-29
+
+## v0.5.1 機能追加: 空き状況表示のカスタマイズ（実装・検証 完了／ローカル・未push・2026-07-29）
+
+- **ブランチ `feat/v051-availability-display`（main=v0.5.0 から分岐・push なし・SVN 未操作）。バージョンは 0.5.0 据え置き**（bump/Changelog/readme はリリース準備タスクで別途）。仕様正本 `docs/spec-amendment-v051-availability-display.md`（v0.5.1 の生きた仕様。実装中に2度確定更新＝下記）。**DB 変更なし・option 追加のみ・公開契約は追加のみ非破壊・マイグレーションゲート不変**。
+- **背景**：外部要望「今2件で『残りわずか』になるが1件で表示したい」。汎用化してしきい値・文言・色を管理者が設定可能に。**初期値はすべて現行と同一＝既存ユーザーの表示は1文字・1色も変わらない**（デグレ最重要）。
+- **実装前の重要発見と確定（人間 GO 済み）**:
+  - **しきい値**：現行の「残りわずか」判定は固定3ではなく**複合式**（`空き<=2 または 空き<=ceil(定員*0.3)`）だった（`class-rest-public.php::get_availability()` の通常/担当者統合の2箇所）。人間判断で **Option B** 確定＝**未設定（空欄）は現行複合式を byte-identical で維持／1〜99 明示時のみフラット判定 `空き<=しきい値`／0・負数・不正は未設定（自動）にフォールバック**。判定は共通ヘルパー `get_few_left_threshold()`（1〜99 or null）に集約し2箇所＋/public/settings で共用。仕様書「1. しきい値設定」を確定内容に訂正（誤記「固定3」→複合式）。
+  - **色**：現行は単色でなく多階調パレット（警告=border #fbbf24＋薄背景 #fffbeb＋バッジ #fef3c7/#92400e、満席バッジ=赤 #fee2e2/#991b1b）。ux 指摘（単一色だと border/文字だけ変わりクラッシュ）を受け、人間判断で**単一設定色から App.jsx が陰影を導出して全面追従**（既存の CSS 変数注入に乗せる＝独自機構は作らない）方式に確定。仕様書「3. 色設定」に追記。
+- **コミット（依存順・main..HEAD）**:
+  - `9965284`(main) 仕様追補追加／`5ca2b61`(main) v0.5.0 公開反映の state 訂正／`eda845c` しきい値確定仕様／`7858ff1` 色確定仕様。
+  - `c0c2d86` backend（option6・ヘルパー集約・複合式 byte-identical 維持・/public/settings フォールバック集約・whitelist・activator・uninstall）。
+  - `c86c28f` フロント＋管理UI（TimeSelect/DateSelect 文言を settings 由来化＝バッジ＋aria-label 反映・CSS 色変数化・基本設定タブ「空き状況の表示」＝しきい値+文言3・ThemeColorPicker に色2）。
+  - `ac36167` 新規E2E 2本（v051-threshold／v051-labels）。
+  - `ef0103d` fix(ux): 色を陰影導出で全面追従（陰影トークン5変数追加・App.jsx mix 導出・満席赤バッジ含め設定時は統一・軽微 help/注記）。
+  - `6f4fcac` fix(ux): 色既定値の**センチネル化**（activator が既定 hex を seed＝実運用で常に導出パスを通り few_left 可視シェードが微ズレ→デグレ。設定色が既定色/空/不正なら removeProperty で CSS 既定に戻す＝byte-identical。カスタム色のみ導出）。
+- **設定キー（option・/public/settings 応答キー）**: しきい値 `smart_booking_few_left_threshold`（応答 `few_left_threshold` 0=自動・フロント非消費）／文言 `smart_booking_label_few_left`/`_full`/`_closed`（応答 `label_*`・20字切詰＋空→既定）／色 `smart_booking_color_availability_warning`/`_disabled`（応答同名・不正/空は ''→CSS 既定）。フロント色 CSS 変数 `--smb-front-color-availability-warning`(#fbbf24)/`-warning-soft`(#fffbeb)/`-warning-badge-bg`(#fef3c7)/`-warning-badge-fg`(#92400e)/`-disabled`(#6c757d)/`-disabled-badge-bg`(#fee2e2)/`-disabled-badge-fg`(#991b1b)。
+- **検証（logic-evaluator／ux-evaluator 独立判定・全 Green）**:
+  - **A 静的**: build 0エラー／php -l 4/4／phpcs 変更ファイル ERRORS 0（WARNINGS は既存方針の整形ドリフト）／**Plugin Check 配布スコープ 0/0**。
+  - **B デグレ最重要**: しきい値未設定で `get_availability` 出力が **main(v0.5.0) と byte-identical**（通常＋担当者統合の両モード・全 capacity／worktree 差替えで同一フィクスチャ比較）。色は seed 済み既定状態で **computed style が v0.5.0 実値ちょうど**（#fffbeb/#fbbf24/#fef3c7/#92400e/#6c757d 等・センチネル修正後）。
+  - **C 機能**: しきい値=1→空き1のみ few_left（空き2は通常）／明示3→フラット／文言反映（表示+aria）＋空→既定＋20字切詰／色カスタム（青/紫）で薄背景・バッジ・文字が整合追従（クラッシュ解消）／不正値（0/-1/abc/150→自動・色 #zzz→''）。新規E2E v051-threshold/v051-labels pass。
+  - **D 回帰＋隔離**: 触った経路の既存 E2E（phase3-flow desktop 13＋mobile 13・few-left-visual-repro mobile 3・regression-settings-reflection 5・phase2-settings 27 ほか計61）で**新規失敗ゼロ**。管理画面 `ScheduleList`(20%式) 等は新 option 非参照・不変（隔離 Green）。
+  - **UX（独立判定・実機 desktop/mobile）＝最終 Green**。ux 指摘（🟡色部分適用クラッシュ→陰影導出で解消／🔴色 byte-identity 破れ→センチネルで解消／🟡モバイル長文言→help に推奨字数）を全解消。🔵（プレビュー非対応・不正値フィードバック等）は軽量 help/注記で対応。
+- **v0.5.1 次の一手（未実施・別タスク）**: リリース準備（バージョン 0.5.1 へ bump 4箇所／readme Changelog／External services 不変確認／ZIP／人間 GO で main マージ・push・tag・SVN 公開）。**本タスクはローカル実装・検証まで（push/main マージ/SVN は範囲外）**。
 
 ## v0.5.0 機能追加: フォーム別メール文面（実装・検証 完了／ローカル・未push・2026-07-22）
 
@@ -121,7 +144,7 @@
 ## 現在地
 - **公開バージョン: v0.5.0（WordPress.org・SVN rev 3618165・2026-07-16 公開済み）**。フォーム別メール文面（グローバル既定＋フォーム別オーバーライド）を含む。前バージョン v0.4.2（rev 3609790、2026-07-16）・v0.4.1（rev 3608476、2026-07-15）・v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
 - **main = v0.5.0**（HEAD `9b7b014`・バージョン4箇所一致・tag `v0.5.0` 作成済み）。v0.5.0 の SVN 公開・main マージ・push・tag は人間側で実施済み（Claude は認証情報を扱わない）。上記「v0.5.0」節はローカル実装・リリース準備の記録で、その後 WordPress.org 公開まで完了した。
-- **開発中（未 push・ローカル）: v0.5.1 空き状況表示のカスタマイズ**。仕様正本 `docs/spec-amendment-v051-availability-display.md`。残りわずかのしきい値1・文言3（残りわずか/満席/締切）・色2（警告色/無効色）の計6設定を追加（DB変更なし・option のみ）。ブランチ `feat/v051-availability-display`（main=v0.5.0 から分岐）で実装。バージョンは 0.5.0 据え置き（リリース準備は別タスク）。
+- **開発完了（未 push・ローカル）: v0.5.1 空き状況表示のカスタマイズ**。ブランチ `feat/v051-availability-display`（main=v0.5.0 から分岐）に**実装・検証（logic/ux 独立判定）まで完了・全 Green**（上記「v0.5.1」節）。しきい値1・文言3・色2 の計6設定（DB変更なし・option のみ）。バージョンは 0.5.0 据え置き。**残りはリリース準備（別タスク・人間 GO）**：0.5.1 bump 4箇所／readme Changelog／ZIP／main マージ・push・tag・SVN 公開。
 - **旧・次バージョンとして起票されていた v0.4.2（外部ユーザー報告2件対応・不具合修正）は上記のとおり公開済み**。以下は当時の記録:調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。**リリース準備ローカル完了（2026-07-16・commit `d99a8d0` で 0.4.2 bump＋Changelog・push なし。上記「v0.4.2 リリース準備」節）。残りは人間 GO の不可逆操作（main マージ / push / tag / SVN 公開）のみ**。
 - git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
@@ -175,6 +198,7 @@
 
 ## 未解決 / 確認事項
 - 検証資産の掃除候補（配布対象外・任意）: `tests/red/bug3-mail-failure-red.php`, `tests/red/bug3-mail-green-verify.php`, `tests/e2e/bug-a-plain-repro.spec.js`(skip), `tests/e2e/bug-b-logo-shipping.spec.js`, `tests/e2e/few-left-visual-repro.spec.js`。
+- 🔵 **既存ギャップ（v0.5.1 で発見・スコープ外・別途起票候補）**: 月カレンダー表示（`calendar_view_mode=month_only`/`both`）で残りわずか/満席/締切の**視覚区別が無い**。`DateSelect.jsx` は月セルに `is-tone-*` クラスを付与するが CSS 側に `.smb-front-month-cell.is-tone-*` の背景スタイルが無く、各バッジも `display:none`。**main(v0.5.0) から存在＝v0.5.1 の回帰ではない**（`month-cell.is-tone` は main で 0 件）。日表示（既定 `day_only`）は `is-tone-few` 背景で正常表示。月表示にも空き状況表示を足すなら別タスク（新規表示の追加＝YAGNI 判断のうえ）。関連: `.smb-front-time-btn__badge` 等の満席/締切バッジは現行デザインで display:none（可視は few_left バッジのみ）、無効スロットの「×」は #e74c3c 固定マーカー。
 
 ## テスト運用メモ
 - 長時間スイートは**フォアグラウンド＋spec チャンク＋Bash ツール timeout**（シェル `timeout` は macOS 未インストール）。detached background は孤児化防止のため使わない。
