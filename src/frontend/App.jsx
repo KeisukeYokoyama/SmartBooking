@@ -102,6 +102,8 @@ export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 			['--smb-front-color-required', state.settings.color_required_mark],
 			['--smb-front-color-required-mark', state.settings.color_required_mark],
 			['--smb-front-color-focus', state.settings.color_focus],
+			['--smb-front-color-availability-warning', state.settings.color_availability_warning],
+			['--smb-front-color-availability-disabled', state.settings.color_availability_disabled],
 		];
 		map.forEach(([prop, val]) => {
 			if (val && typeof val === 'string' && val.length > 0) {

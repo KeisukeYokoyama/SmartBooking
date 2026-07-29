@@ -57,6 +57,10 @@
 	--smb-front-color-sunday: #f43f5e;
 	--smb-front-color-disabled: #9ca3af;
 
+	/* 空き状況表示（v0.5.1・管理画面「デザイン」タブで上書き可） */
+	--smb-front-color-availability-warning: #fbbf24;
+	--smb-front-color-availability-disabled: #6c757d;
+
 	/* 角丸 */
 	--smb-front-radius: 8px;
 	--smb-front-radius-sm: 8px;
@@ -545,7 +549,7 @@
 
 .smb-front-day-tile__badge.is-closed {
 	background: var(--smb-front-muted-bg);
-	color: var(--smb-front-text-muted);
+	color: var(--smb-front-color-availability-disabled);
 }
 
 /* ---------- 日付選択: 月カレンダー ---------- */
@@ -707,7 +711,7 @@
 
 .smb-front-month__cell-badge.is-closed {
 	background: transparent;
-	color: var(--smb-front-text-muted);
+	color: var(--smb-front-color-availability-disabled);
 }
 
 .smb-front-calendar-loading {
@@ -792,7 +796,7 @@
 }
 
 .smb-front-time-btn.is-few_left {
-	border-color: #fbbf24;
+	border-color: var(--smb-front-color-availability-warning);
 	background: #fffbeb;
 }
 
@@ -808,7 +812,7 @@
 	opacity: 0.5;
 	background: var(--smb-front-muted-bg);
 	cursor: not-allowed;
-	color: var(--smb-front-text-muted);
+	color: var(--smb-front-color-availability-disabled);
 }
 
 .smb-front-time-btn__time {
@@ -835,7 +839,7 @@
 
 .smb-front-time-btn__badge.is-closed {
 	background: transparent;
-	color: var(--smb-front-text-muted);
+	color: var(--smb-front-color-availability-disabled);
 	border: 1px solid var(--smb-front-border);
 }
 
@@ -2320,12 +2324,12 @@
  * 選択可能なボタンであることは変えず、クリック可否ロジック（disabled 判定）は JSX 側のまま。 */
 .smb-front-time-btn.is-few_left {
 	background: #fffbeb;
-	border-color: #fbbf24;
+	border-color: var(--smb-front-color-availability-warning);
 }
 
 .smb-front-time-btn.is-few_left:hover:not(:disabled) {
 	background: #fef3c7;
-	border-color: #fbbf24;
+	border-color: var(--smb-front-color-availability-warning);
 }
 
 .smb-front-time-btn.is-few_left.is-selected {
@@ -2343,7 +2347,7 @@
 .smb-front-time-btn:disabled {
 	background: var(--smb-front-bg-light);
 	border-color: var(--smb-front-border-default);
-	color: var(--smb-front-text-muted);
+	color: var(--smb-front-color-availability-disabled);
 	cursor: not-allowed;
 	opacity: 1;
 	font-weight: 500;

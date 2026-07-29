@@ -8,11 +8,12 @@
  *   - 選択: 枠＆背景 var(--smb-front-color-time-selected) (#374151) / 文字 #fff。
  *   - 無効（締切 / 満席）: 背景 var(--smb-front-bg-light) / 文字 var(--smb-front-text-muted) / 接頭に「×」赤文字。
  *
- * 状態 → ラベルマッピング（仕様 3.4 空き状況）:
+ * 状態 → ラベルマッピング（仕様 3.4 空き状況。文言は state.settings から取得し、
+ * 設定 > 基本設定タブでカスタマイズ可能。未設定時は下記デフォルトにフォールバック）:
  *   - available : 通常色、選択可
- *   - few_left  : 通常色のまま選択可、ラベルだけ「残りわずか」
- *   - full      : 無効 + 「×」プレフィックス
- *   - closed    : 無効 + 「×」プレフィックス
+ *   - few_left  : 通常色のまま選択可、ラベルだけ「残りわずか」（既定値）
+ *   - full      : 無効 + 「×」プレフィックス（既定ラベル「満席」）
+ *   - closed    : 無効 + 「×」プレフィックス（既定ラベル「締切」）
  *
  * state.date に対応する schedule のみ表示。
  * ボタン押下で SET_TIME を dispatch。reducer が次ステップへ自動遷移する。
@@ -21,15 +22,15 @@ import { useEffect, useMemo } from 'react';
 import { fromYmd, formatMonthDay } from '../dateUtils';
 import { pushBookingEvent } from '../utils/analytics';
 
-const AVAILABILITY_LABELS = {
-	available: '',
-	few_left: '残りわずか',
-	full: '満席',
-	closed: '締切',
-};
-
 export default function TimeSelect({ state, dispatch, embedded = true }) {
-	const { date: selectedYmd, schedules, time: selectedTime } = state;
+	const { date: selectedYmd, schedules, time: selectedTime, settings } = state;
+
+	const availabilityLabels = {
+		available: '',
+		few_left: (settings && settings.label_few_left) || '残りわずか',
+		full: (settings && settings.label_full) || '満席',
+		closed: (settings && settings.label_closed) || '締切',
+	};
 
 	// GTM 連携: 日付が選択されて時間枠が描画されるタイミングで time_select を送信。
 	useEffect(() => {
@@ -91,7 +92,7 @@ export default function TimeSelect({ state, dispatch, embedded = true }) {
 			) : (
 				<ul className="smb-front-time-list" role="list">
 					{daySchedules.map((s) => {
-						const label = AVAILABILITY_LABELS[s.availability] || '';
+						const label = availabilityLabels[s.availability] || '';
 						const isSelected = selectedTime === s.start_time && state.scheduleId === s.id;
 						const disabled = s.availability === 'full' || s.availability === 'closed';
 						// 「14時00分から15時00分 残りわずか」のように読み上げられるラベル。

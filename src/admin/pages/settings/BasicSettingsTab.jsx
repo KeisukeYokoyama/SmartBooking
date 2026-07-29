@@ -46,6 +46,10 @@ const DEFAULT_VALUES = {
 	smart_booking_store_label: '',
 	smart_booking_staff_label: '',
 	smart_booking_completion_message: '',
+	smart_booking_few_left_threshold: '',
+	smart_booking_label_few_left: '',
+	smart_booking_label_full: '',
+	smart_booking_label_closed: '',
 };
 
 // 呼び方の入力上限（UI が崩れない長さ）。仕様に明記が無いため実装判断。
@@ -104,6 +108,14 @@ function hydrate(settings) {
 		smart_booking_store_label: settings.smart_booking_store_label || '',
 		smart_booking_staff_label: settings.smart_booking_staff_label || '',
 		smart_booking_completion_message: settings.smart_booking_completion_message || '',
+		smart_booking_few_left_threshold:
+			settings.smart_booking_few_left_threshold &&
+			Number(settings.smart_booking_few_left_threshold) > 0
+				? String(settings.smart_booking_few_left_threshold)
+				: '',
+		smart_booking_label_few_left: settings.smart_booking_label_few_left || '',
+		smart_booking_label_full: settings.smart_booking_label_full || '',
+		smart_booking_label_closed: settings.smart_booking_label_closed || '',
 	};
 }
 
@@ -134,6 +146,13 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 			smart_booking_show_staff_front: values.smart_booking_show_staff_front ? 1 : 0,
 			smart_booking_store_label: values.smart_booking_store_label.trim(),
 			smart_booking_staff_label: values.smart_booking_staff_label.trim(),
+			smart_booking_few_left_threshold:
+				values.smart_booking_few_left_threshold === ''
+					? ''
+					: Number(values.smart_booking_few_left_threshold),
+			smart_booking_label_few_left: values.smart_booking_label_few_left.trim(),
+			smart_booking_label_full: values.smart_booking_label_full.trim(),
+			smart_booking_label_closed: values.smart_booking_label_closed.trim(),
 		};
 		if (values.smb_booking_deadline_type === 'hours') {
 			patch.smart_booking_booking_deadline_hours = Number(values.smart_booking_booking_deadline_hours) || 0;
@@ -260,6 +279,53 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						help="例: 3 と設定すると、4/27 の予約は 4/24 まで受付。"
 					/>
 				)}
+			</div>
+
+			<div className="smb-settings-section">
+				<div className="smb-settings-section__header">
+					<h3 className="smb-settings-section__title">空き状況の表示</h3>
+					<p className="smb-settings-section__lead">
+						予約フォームの時間枠に表示される「残りわずか」「満席」「締切」の判定基準と表示文言を設定します。
+					</p>
+				</div>
+
+				<Input
+					label="残りわずかのしきい値"
+					type="number"
+					min="1"
+					max="99"
+					value={values.smart_booking_few_left_threshold}
+					onChange={(e) => update({ smart_booking_few_left_threshold: e.target.value })}
+					placeholder="自動"
+					help="空欄の場合は自動判定（空き2件以下、または定員の30%以下で「残りわずか」）。数値を設定すると、空きがその数以下のときだけ「残りわずか」と表示されます。例: 1 にすると残り1件のときのみ。"
+				/>
+
+				<Input
+					label="残りわずかの表示"
+					value={values.smart_booking_label_few_left}
+					onChange={(e) => update({ smart_booking_label_few_left: e.target.value })}
+					maxLength={LABEL_MAX_LENGTH}
+					placeholder="残りわずか"
+					help="空欄なら「残りわずか」と表示されます。"
+				/>
+
+				<Input
+					label="満席の表示"
+					value={values.smart_booking_label_full}
+					onChange={(e) => update({ smart_booking_label_full: e.target.value })}
+					maxLength={LABEL_MAX_LENGTH}
+					placeholder="満席"
+					help="空欄なら「満席」と表示されます。"
+				/>
+
+				<Input
+					label="締切の表示"
+					value={values.smart_booking_label_closed}
+					onChange={(e) => update({ smart_booking_label_closed: e.target.value })}
+					maxLength={LABEL_MAX_LENGTH}
+					placeholder="締切"
+					help="空欄なら「締切」と表示されます。"
+				/>
 			</div>
 
 			<div className="smb-settings-section">

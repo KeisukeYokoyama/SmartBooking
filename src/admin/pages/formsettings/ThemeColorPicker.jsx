@@ -49,6 +49,18 @@ export const COLOR_ITEMS = [
 		help: '入力欄にフォーカスしたときの枠線の色。',
 		defaultValue: '#3498db',
 	},
+	{
+		key: 'smart_booking_color_availability_warning',
+		label: '残りわずかの色（警告色）',
+		help: '時間枠が「残りわずか」のときの強調色（枠線など）。',
+		defaultValue: '#fbbf24',
+	},
+	{
+		key: 'smart_booking_color_availability_disabled',
+		label: '満席・締切の色（無効色）',
+		help: '時間枠が「満席」「締切」のときの文字色。満席と締切で同じ色を使います。',
+		defaultValue: '#6c757d',
+	},
 ];
 
 export const DEFAULT_COLORS = COLOR_ITEMS.reduce((acc, item) => {

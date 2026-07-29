@@ -40,9 +40,10 @@ import {
  * 指定 ymd のスケジュール配列から、その日を選択可能にできるかを判定する。
  *
  * @param {object[]} daySchedules その日のスケジュール一覧.
+ * @param {{few: string, full: string, closed: string}} labels 空き状況ラベル（設定タブでカスタマイズ可能）.
  * @returns {{ disabled: boolean, label: string|null, tone: string|null }}
  */
-function classifyDay(daySchedules) {
+function classifyDay(daySchedules, labels) {
 	if (!daySchedules || daySchedules.length === 0) {
 		return { disabled: true, label: null, tone: null };
 	}
@@ -63,12 +64,12 @@ function classifyDay(daySchedules) {
 		const allClosed = daySchedules.every((s) => s.availability === 'closed');
 		return {
 			disabled: true,
-			label: allClosed ? '締切' : '満席',
+			label: allClosed ? labels.closed : labels.full,
 			tone: allClosed ? 'closed' : 'full',
 		};
 	}
 	if (!hasOpen && hasFew) {
-		return { disabled: false, label: '残りわずか', tone: 'few' };
+		return { disabled: false, label: labels.few, tone: 'few' };
 	}
 	return { disabled: false, label: null, tone: 'available' };
 }
@@ -83,6 +84,11 @@ export default function DateSelect({
 	const { storeId, staffId, settings, date: selectedYmd } = state;
 	const displayDays = settings && settings.display_period_days > 0 ? settings.display_period_days : 7;
 	const calendarMode = settings ? settings.calendar_mode : 'day_only';
+	const dayLabels = {
+		few: (settings && settings.label_few_left) || '残りわずか',
+		full: (settings && settings.label_full) || '満席',
+		closed: (settings && settings.label_closed) || '締切',
+	};
 
 	// 日/月 切替トグル（モードが 'toggle' のときのみ意味を持つ）。
 	const [viewMode, setViewMode] = useState(
@@ -212,6 +218,7 @@ export default function DateSelect({
 							selectedYmd={selectedYmd}
 							schedulesByDate={schedulesByDate}
 							onSelect={handleSelect}
+							labels={dayLabels}
 						/>
 					)}
 
@@ -222,6 +229,7 @@ export default function DateSelect({
 							selectedYmd={selectedYmd}
 							schedulesByDate={schedulesByDate}
 							onSelect={handleSelect}
+							labels={dayLabels}
 						/>
 					)}
 				</>
@@ -273,7 +281,7 @@ function ViewToggle({ viewMode, onChange }) {
  * 各カードは「4/27」「月」だけを表示するシンプル構成。
  * 土曜・日曜は曜日色、無効日は取消線。
  */
-function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSelect }) {
+function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSelect, labels }) {
 	const days = useMemo(
 		() => buildDayStrip(startDate, displayDays),
 		[startDate, displayDays]
@@ -288,7 +296,7 @@ function DayStrip({ startDate, displayDays, selectedYmd, schedulesByDate, onSele
 		>
 			{days.map((d) => {
 				const daySchedules = schedulesByDate.get(d.ymd) || [];
-				const cls = classifyDay(daySchedules);
+				const cls = classifyDay(daySchedules, labels);
 				const isSelected = selectedYmd === d.ymd;
 				const isToday = isSameDay(d.date, todayDate);
 				const dow = d.date.getDay();
@@ -353,6 +361,7 @@ function MonthCalendar({
 	selectedYmd,
 	schedulesByDate,
 	onSelect,
+	labels,
 }) {
 	const [viewMonth, setViewMonth] = useState(
 		new Date(startDate.getFullYear(), startDate.getMonth(), 1)
@@ -417,7 +426,7 @@ function MonthCalendar({
 				{cells.map((cell) => {
 					const inRange = cell.ymd >= startYmd && cell.ymd <= endYmd;
 					const daySchedules = schedulesByDate.get(cell.ymd) || [];
-					const cls = classifyDay(daySchedules);
+					const cls = classifyDay(daySchedules, labels);
 					const disabled = !cell.isCurrentMonth || !inRange || cls.disabled;
 					const isSelected = selectedYmd === cell.ymd;
 					const isToday = isSameDay(cell.date, todayDate);
