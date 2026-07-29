@@ -56,6 +56,20 @@ function sbMix(hex, target, p) {
 	return '#' + to2(ch(a.r, b.r)) + to2(ch(a.g, b.g)) + to2(ch(a.b, b.b));
 }
 
+/**
+ * 2 つの HEX が同一色か（大文字小文字・前後空白を無視して RGB 比較）。
+ * 設定色が既定色そのものかを判定し、「上書きなし」を検出するために使う。
+ *
+ * @param {string} a HEX カラーコード.
+ * @param {string} b HEX カラーコード.
+ * @returns {boolean}
+ */
+function sbSameColor(a, b) {
+	const ra = sbHexToRgb(a);
+	const rb = sbHexToRgb(b);
+	return !!ra && !!rb && ra.r === rb.r && ra.g === rb.g && ra.b === rb.b;
+}
+
 export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 	const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
@@ -146,13 +160,18 @@ export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 		});
 
 		// 空き状況の警告色/無効色（v0.5.1）: 単色設定から陰影（薄背景・バッジ背景・バッジ文字色）を
-		// 導出して同時に注入する。未設定時は全プロパティを removeProperty し、CSS 既定値
-		// （v0.5.0 と同じ #fbbf24 系 / #6c757d 系のパレット）に戻す＝byte-identical を担保する。
+		// 導出して同時に注入する。設定色が既定色（現行実値）・空・不正のときは全プロパティを
+		// removeProperty し、CSS 既定値（v0.5.0 と同じ #fbbf24 系 / #6c757d 系の手調整パレット）に
+		// 戻す＝byte-identical を担保する。activator は既定色を明示 seed するため、「設定色＝既定色」も
+		// 未設定と同じ「上書きなし」として扱う（導出パスを通さない。カスタム色のときだけ全面追従）。
 		const WHITE = '#ffffff';
 		const BLACK = '#000000';
+		// 既定色（activator / CSS 変数 / ThemeColorPicker の defaultValue と一致させること）。
+		const DEFAULT_WARNING = '#fbbf24';
+		const DEFAULT_DISABLED = '#6c757d';
 
 		const warn = state.settings.color_availability_warning;
-		if (sbHexToRgb(warn)) {
+		if (sbHexToRgb(warn) && !sbSameColor(warn, DEFAULT_WARNING)) {
 			root.style.setProperty('--smb-front-color-availability-warning', warn);
 			root.style.setProperty('--smb-front-color-availability-warning-soft', sbMix(warn, WHITE, 0.9));
 			root.style.setProperty(
@@ -173,7 +192,7 @@ export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 		}
 
 		const disabledColor = state.settings.color_availability_disabled;
-		if (sbHexToRgb(disabledColor)) {
+		if (sbHexToRgb(disabledColor) && !sbSameColor(disabledColor, DEFAULT_DISABLED)) {
 			root.style.setProperty('--smb-front-color-availability-disabled', disabledColor);
 			root.style.setProperty(
 				'--smb-front-color-availability-disabled-badge-bg',
