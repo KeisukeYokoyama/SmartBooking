@@ -1,6 +1,6 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-07-29
+最終更新: 2026-07-30
 
 ## v0.5.1 機能追加: 空き状況表示のカスタマイズ（実装・検証 完了／ローカル・未push・2026-07-29）
 
@@ -23,7 +23,17 @@
   - **C 機能**: しきい値=1→空き1のみ few_left（空き2は通常）／明示3→フラット／文言反映（表示+aria）＋空→既定＋20字切詰／色カスタム（青/紫）で薄背景・バッジ・文字が整合追従（クラッシュ解消）／不正値（0/-1/abc/150→自動・色 #zzz→''）。新規E2E v051-threshold/v051-labels pass。
   - **D 回帰＋隔離**: 触った経路の既存 E2E（phase3-flow desktop 13＋mobile 13・few-left-visual-repro mobile 3・regression-settings-reflection 5・phase2-settings 27 ほか計61）で**新規失敗ゼロ**。管理画面 `ScheduleList`(20%式) 等は新 option 非参照・不変（隔離 Green）。
   - **UX（独立判定・実機 desktop/mobile）＝最終 Green**。ux 指摘（🟡色部分適用クラッシュ→陰影導出で解消／🔴色 byte-identity 破れ→センチネルで解消／🟡モバイル長文言→help に推奨字数）を全解消。🔵（プレビュー非対応・不正値フィードバック等）は軽量 help/注記で対応。
-- **v0.5.1 次の一手（未実施・別タスク）**: リリース準備（バージョン 0.5.1 へ bump 4箇所／readme Changelog／External services 不変確認／ZIP／人間 GO で main マージ・push・tag・SVN 公開）。**本タスクはローカル実装・検証まで（push/main マージ/SVN は範囲外）**。
+### v0.5.1 リリース準備：ローカル完了（2026-07-30・commit `2ac5547`・push なし）
+機能実装＋検証＋handoff の上に、リリース bump を別コミット `2ac5547` で積んだ。**残りは人間 GO の不可逆操作のみ**（下記「v0.5.1 次の一手」）。
+- ✅ **バージョン4箇所を 0.5.1 に一致更新**（smart-booking.php Version / SMART_BOOKING_VERSION / readme.txt Stable tag / package.json）。grep 4/4 一致実証・smart-booking.php／package.json に 0.5.0 残存ゼロ（readme は Changelog 履歴の 0.5.0 のみ）。
+- ✅ **readme Changelog に 0.5.1 追記**（`= 0.5.1 - 2026-07-17 =`・空き状況表示のカスタマイズ＝しきい値／文言3／警告色・無効色・既存エントリ不変・readme 慣習の書式）。**External services は本件で外部通信の追加なし＝不変**（Google/ChatWork/zipcloud・目視確認）。
+- ✅ **★マイグレーションゲート無害 実証★**（logic-evaluator 独立判定）：本リリースは DB スキーマ変更なし（option 追加のみ）。SMART_BOOKING_VERSION 0.5.0→0.5.1 で、db_version=0.5.0 環境の admin cookie 付き実HTTP `GET /wp-admin/`→admin_init→maybe_upgrade が1回発火するが全バージョンゲート（0.2.0/0.2.3/0.3.0/0.4.0/0.5.0）が false ＝**スキーマ副作用ゼロ**（7テーブル `SHOW CREATE TABLE` md5 不変・schedules UNIQUE(store_id,staff_id,schedule_date,start_time)／custom_fields UNIQUE(form_id,field_key) 不変）、**唯一 db_version が 0.5.1 へ前進**、2回目 GET は非発火（冪等）。v0.4.1/v0.4.2 と同型。
+- ✅ **build 成功＋ZIP 検証**（`npx wp-scripts plugin-zip`・gitignore 済み・非コミット）：**30 ファイル**（v0.5.0 と同数＝**増減ゼロ**。v0.5.1 は build/admin.js バンドル＋既存 PHP＋readme＋バージョン文字列に収まり新規出荷ファイルなし）。docs/src/tests/node_modules/.DS_Store/.git/package.json/*.zip/credentials/.claude 混入ゼロ・ZIP 内 smart-booking.php Version／SMART_BOOKING_VERSION／readme Stable tag／Changelog が 0.5.1 同梱を実証。
+- ✅ **Plugin Check 配布スコープ 0/0**（検出は全て .distignore 除外の dev 成果物）・php -l 26/26・phpcs 変更ファイル ERRORS 0/WARNINGS 0。
+- ✅ **スモーク**（基本/投稿名 両パーマリンク）：admin 5ページ boot・v0.5.1 表示・BUG-A デグレなし・フロント予約完走・**空き状況デフォルト挙動が v0.5.0 と同一**（`few_left_threshold=0`＝自動＝複合式・文言 残りわずか/満席/締切・色 #fbbf24/#6c757d）。
+- ✅ **E2E**：新規 `v051-threshold`/`v051-labels` **6/6**（desktop+mobile）＋touched（phase3-flow 26/26・few-left-visual-repro＋regression-settings-reflection＋phase2-settings 70/70）＝**新規失敗ゼロ**。既知 stale は非ブロック。
+
+- **v0.5.1 次の一手（すべて人間 GO・不可逆）**: ①レビュー ②main マージ / `git push` / `git tag v0.5.1` ③SVN（`~/dev/smart-booking-svn`）trunk 反映 + `tags/0.5.1` + `svn ci` で WordPress.org 公開（Claude は認証情報を扱わない）。ZIP は `npx wp-scripts plugin-zip` で再生成可能。**ローカルのバージョンは 0.5.1 に更新済み**（リリース準備完了）。**併せて main のローカル未 push 2コミット（`9965284`/`5ca2b61`）も push 対象**。
 
 ## v0.5.0 機能追加: フォーム別メール文面（実装・検証 完了／ローカル・未push・2026-07-22）
 
@@ -144,7 +154,7 @@
 ## 現在地
 - **公開バージョン: v0.5.0（WordPress.org・SVN rev 3618165・2026-07-16 公開済み）**。フォーム別メール文面（グローバル既定＋フォーム別オーバーライド）を含む。前バージョン v0.4.2（rev 3609790、2026-07-16）・v0.4.1（rev 3608476、2026-07-15）・v0.4.0（rev 3608375）・v0.3.0（rev 3608167、2026-07-14）・v0.2.3（rev 3605460、2026-07-13）・v0.2.2（rev 3592043）。
 - **main = v0.5.0**（HEAD `9b7b014`・バージョン4箇所一致・tag `v0.5.0` 作成済み）。v0.5.0 の SVN 公開・main マージ・push・tag は人間側で実施済み（Claude は認証情報を扱わない）。上記「v0.5.0」節はローカル実装・リリース準備の記録で、その後 WordPress.org 公開まで完了した。
-- **開発完了（未 push・ローカル）: v0.5.1 空き状況表示のカスタマイズ**。ブランチ `feat/v051-availability-display`（main=v0.5.0 から分岐）に**実装・検証（logic/ux 独立判定）まで完了・全 Green**（上記「v0.5.1」節）。しきい値1・文言3・色2 の計6設定（DB変更なし・option のみ）。バージョンは 0.5.0 据え置き。**残りはリリース準備（別タスク・人間 GO）**：0.5.1 bump 4箇所／readme Changelog／ZIP／main マージ・push・tag・SVN 公開。
+- **開発完了・リリース準備完了（未 push・ローカル）: v0.5.1 空き状況表示のカスタマイズ**。ブランチ `feat/v051-availability-display`（main=v0.5.0 から分岐）に**実装・検証（logic/ux 独立判定）＋リリース準備まで完了・全 Green**（上記「v0.5.1」節）。しきい値1・文言3・色2 の計6設定（DB変更なし・option のみ）。**バージョンは 0.5.1 に bump 済み**（4箇所一致・commit `2ac5547`）／readme Changelog 追記済み／ZIP 検証済み（30ファイル・0.5.1 同梱）。**残りは人間 GO の不可逆操作のみ**：main マージ・push・tag `v0.5.1`・SVN 公開（＋main ローカル未 push 2コミット `9965284`/`5ca2b61` も push）。
 - **旧・次バージョンとして起票されていた v0.4.2（外部ユーザー報告2件対応・不具合修正）は上記のとおり公開済み**。以下は当時の記録:調査正本 `docs/bugs/v0.4.2-external-report-ledger.md`。方針＝報告1（カスタムフィールドのメール変数展開）は案A+関連改善、報告2（管理者宛メール未達）はコード修正なし・readme FAQ 追記のみ。実装ブランチ `feat/v042-custom-field-mail-vars`。**リリース準備ローカル完了（2026-07-16・commit `d99a8d0` で 0.4.2 bump＋Changelog・push なし。上記「v0.4.2 リリース準備」節）。残りは人間 GO の不可逆操作（main マージ / push / tag / SVN 公開）のみ**。
 - git（v0.2.3）: `main` にコミット・push 済み（release コミット `31354bd`、GitHub タグ `v0.2.3`）。作業ツリー クリーン。
 - **v0.2.3 でリリース済み（全て Green・公開済み）**:
