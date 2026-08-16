@@ -169,13 +169,6 @@ export default function StaffFormModal({ open, staff, stores = [], onClose, onSu
 				</div>
 
 				<div className="smb-field-group smb-field-group--meta">
-					<Input
-						label="表示順"
-						type="number"
-						value={values.sort_order}
-						onChange={(e) => update({ sort_order: Number(e.target.value) })}
-						help="小さい数字が上に表示されます。"
-					/>
 					<div className="smb-field">
 						<div className="smb-field__label">
 							<span>ステータス</span>

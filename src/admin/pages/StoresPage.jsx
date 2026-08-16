@@ -182,16 +182,16 @@ export default function StoresPage() {
 		const newList = [...list];
 		newList[index] = target;
 		newList[index + delta] = self;
-		// sort_order を再採番（10刻みで余裕を持たせる）.
+		// sort_order を全件再採番（10刻みで余裕を持たせる）.
 		const renumbered = newList.map((item, i) => ({ ...item, sort_order: (i + 1) * 10 }));
 		setList(renumbered);
 
 		try {
-			const fn = kind === 'store' ? API.stores.update : API.staff.update;
-			await Promise.all([
-				fn(self.id, { ...self, sort_order: (index + delta + 1) * 10 }),
-				fn(target.id, { ...target, sort_order: (index + 1) * 10 }),
-			]);
+			// 全件を1リクエストでまとめて永続化する（2件だけ更新して残りが 0 のまま残る乖離を防ぐ）.
+			const reorder = kind === 'store' ? API.stores.reorder : API.staff.reorder;
+			await reorder(renumbered.map((item) => ({ id: item.id, sort_order: item.sort_order })));
+			// 成功後に再取得し、UI と DB の並びを一致させる.
+			await load();
 		} catch (err) {
 			showToast(err.message || '並び替えに失敗しました。', 'error');
 			await load();

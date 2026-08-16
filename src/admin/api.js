@@ -209,6 +209,7 @@ export const API = {
 		create: ( data ) => apiPost( 'stores', data ),
 		update: ( id, data ) => apiPut( 'stores/' + id, data ),
 		remove: ( id ) => apiDelete( 'stores/' + id ),
+		reorder: ( items ) => apiPut( 'stores/reorder', { items } ),
 	},
 	staff: {
 		list: ( params ) => apiGet( 'staff', params ),
@@ -216,6 +217,7 @@ export const API = {
 		create: ( data ) => apiPost( 'staff', data ),
 		update: ( id, data ) => apiPut( 'staff/' + id, data ),
 		remove: ( id ) => apiDelete( 'staff/' + id ),
+		reorder: ( items ) => apiPut( 'staff/reorder', { items } ),
 	},
 	schedules: {
 		list: ( params ) => apiGet( 'schedules', params ),

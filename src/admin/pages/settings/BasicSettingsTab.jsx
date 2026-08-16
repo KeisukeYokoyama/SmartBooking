@@ -351,7 +351,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						/>
 						<p className="smb-field-help">
 							ON にすると、店舗が1つしかない場合でも店舗選択ステップが表示されます。<br />
-							OFF にしても、管理画面ではスケジュールに店舗を紐づけて管理できます。
+							OFF にしても、管理画面ではスケジュールに店舗を紐づけて管理できます。<br />
+							OFF のときは店舗一覧の先頭が自動選択されます。既定にしたい店舗は↑↓で先頭に並べてください。新しく追加した店舗は末尾に入ります。
 						</p>
 					</div>
 				</div>
@@ -370,7 +371,8 @@ export default function BasicSettingsTab({ settings, onSave, saving, onDirtyChan
 						/>
 						<p className="smb-field-help">
 							ON にすると、担当者が1人しかいない場合でも担当者選択ステップが表示されます。<br />
-							OFF にしても、管理画面ではスケジュールに担当者を紐づけて管理できます。
+							OFF にしても、管理画面ではスケジュールに担当者を紐づけて管理できます。<br />
+							OFF のときは空いている担当者が並び順の先頭から自動割り当てされます（並び順は↑↓で変更）。特定の担当者を優先したい場合は、その担当者を上位に並べてください。
 						</p>
 					</div>
 				</div>

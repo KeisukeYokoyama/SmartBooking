@@ -42,6 +42,16 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 
 		register_rest_route(
 			self::NAMESPACE_V1,
+			'/staff/reorder',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'reorder' ),
+				'permission_callback' => array( $this, 'permission_check' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE_V1,
 			'/staff/(?P<id>\d+)',
 			array(
 				array(
@@ -211,6 +221,14 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 			return $data;
 		}
 
+		// sort_order 未指定（0 以下）は末尾に自動採番する（明示指定 >0 は尊重）。
+		// forms の MAX+N 方式を踏襲。is_system=1（内部エンティティ）は採番母数から除外する。
+		if ( (int) $data['sort_order'] <= 0 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$max_order          = (int) $wpdb->get_var( "SELECT MAX(sort_order) FROM {$wpdb->prefix}smart_booking_staff WHERE is_system = 0" );
+			$data['sort_order'] = $max_order + 10;
+		}
+
 		$now                = $this->now_mysql();
 		$data['created_at'] = $now;
 		$data['updated_at'] = $now;
@@ -321,5 +339,44 @@ class Smart_Booking_REST_Staff extends Smart_Booking_REST_Base {
 				'id'      => $id,
 			)
 		);
+	}
+
+	/**
+	 * 並び替え。
+	 *
+	 * リクエスト: { items: [{id, sort_order}, ...] }
+	 * 全件を1リクエストでまとめて更新する（custom-fields の reorder と同一流儀）。
+	 *
+	 * @param WP_REST_Request $request リクエスト.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function reorder( $request ) {
+		global $wpdb;
+		$items = $request->get_param( 'items' );
+		if ( ! is_array( $items ) ) {
+			return $this->error( 'smb_staff_reorder_invalid', '並び替えデータの形式が正しくありません。', 400 );
+		}
+
+		$updated = 0;
+		foreach ( $items as $item ) {
+			if ( ! isset( $item['id'] ) ) {
+				continue;
+			}
+			$id    = (int) $item['id'];
+			$order = isset( $item['sort_order'] ) ? (int) $item['sort_order'] : 0;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$result = $wpdb->update(
+				$wpdb->prefix . 'smart_booking_staff',
+				array( 'sort_order' => $order ),
+				array( 'id' => $id ),
+				array( '%d' ),
+				array( '%d' )
+			);
+			if ( false !== $result ) {
+				++$updated;
+			}
+		}
+
+		return rest_ensure_response( array( 'updated' => $updated ) );
 	}
 }
