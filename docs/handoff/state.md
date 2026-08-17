@@ -6,9 +6,9 @@
 
 > ⚠️ 本ファイル下部の「現在地」節は 2026-07-30 時点の記述で **stale**（「公開版 v0.5.0／v0.5.1 未公開」は**誤り**）。**実体を優先すること**（下記「バージョン状態の確認手順」で必ず実機確認してから作業する）。
 
-- **WordPress.org 公開版 = v0.5.2**（SVN **rev 3650270**・**2026-08-16 公開済み**、コミット者 liberdadeinc）。店舗・担当者の並び順の修正（新規は末尾採番／↑↓ で全件保存／「表示順」UI 撤去）。前版 v0.5.1（rev 3627795・2026-07-30）ほかは下記「公開履歴」表。
-- **main = v0.5.2**（バージョン4箇所一致・**タグ `v0.5.2` push 済み**＝`origin` に `refs/tags/v0.5.2`。release commit `b1b4cbd`／機能 commit `614ef07`）。`origin/main..main` 空＝**main も push 済み**。
-- **⚠️ 未コミットの開発成果は現在なし**（v0.5.2 は公開・コミット済み）。作業ツリーは clean（未追跡 `docs/investigation/` を除く）。
+- **WordPress.org 公開版 = v0.5.3**（SVN **rev 3650340**・**2026-08-17 公開済み**）。予約フォームのバリデーション表示（入力不備時にインラインエラー＋該当欄フォーカス）／主要項目の文字数上限（電話20・氏名/メール255）／予約一覧「受付日時」列を左から2番目へ移動／手動予約作成で電話番号必須。前版 v0.5.2（rev 3650270・2026-08-16）ほかは下記「公開履歴」表。
+- **main = v0.5.3**（バージョン4箇所一致・**タグ `v0.5.3` push 済み**＝`origin` に `refs/tags/v0.5.3`。release commit `5facdc8`／機能 commit `77252b8`(A/B front-form)・`5a82106`(C 受付日時列)・`9aadbe1`(D 手動予約 phone 必須)・docs `9ffdd40`）。`origin/main..main` 空＝**main も push 済み**。
+- **⚠️ 未コミットの開発成果は現在なし**（v0.5.3 は公開・コミット済み）。作業ツリーは clean（未追跡 `docs/investigation/` を除く）。
 
 ### 公開履歴（WordPress.org SVN）
 | バージョン | SVN rev | 公開日 | 概要 |
@@ -21,7 +21,8 @@
 | 0.4.2 | 3609790 | 2026-07-16 | カスタムフィールドのメール変数展開／キー任意化 |
 | 0.5.0 | 3618165 | 2026-07-22 | フォーム別メール文面（グローバル既定＋上書き） |
 | 0.5.1 | 3627795 | 2026-07-30 | 空き状況表示のカスタマイズ（しきい値／文言／色） |
-| **0.5.2** | **3650270** | **2026-08-16** | **店舗・担当者の並び順の修正（新規は末尾採番／↑↓ で全件保存／表示順UI撤去）← 最新公開** |
+| 0.5.2 | 3650270 | 2026-08-16 | 店舗・担当者の並び順の修正（新規は末尾採番／↑↓ で全件保存／表示順UI撤去） |
+| **0.5.3** | **3650340** | **2026-08-17** | **予約フォームのバリデーション表示／文字数上限（電話20・氏名/メール255）／受付日時列を左から2番目へ移動／手動予約で電話必須 ← 最新公開** |
 
 （rev/日付の出典: `svn log`。0.2.2 は CLAUDE.md 記載値。）
 
@@ -31,6 +32,16 @@ git ls-remote --tags origin                      # push 済みタグ（例: refs
 cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（"Release X.Y.Z ..."）
 ```
 ※ 教訓: 2026-08 に本ファイルの stale（「v0.5.1 未公開」）を信じて「未公開」と誤認し、不要なリリース準備作業（ZIP 再生成・実機検証・SVN 準備）を実施してしまった。以後、公開状態は上記2コマンドで実体確認してから着手すること。
+
+### v0.5.3 バリデーション表示・文字数上限・受付日時列移動・手動予約の電話必須（公開済み・SVN rev 3650340・2026-08-17）
+- **背景/スコープ（4件）**: 外部要望・仕様乖離への対応。①予約フォームで入力不備時に「予約内容の確認」ボタンが押せない理由が表示されない不具合（前回調査で確定＝エラー表示機構は `FormInput` に実装済みだが、`MainInputPage` 統合で `handleSubmit` が発火せずデッド化していた）。②電話番号欄に桁あふれ値が入力可能（DB `varchar(20)` 切り捨てリスク）。③予約一覧の受付日時列の位置。④手動予約 POST が電話未入力でも作成可能（仕様 §3.5 乖離）。
+- **実装（採用方針は人間 GO 済み）**:
+  - A（B-1 方式）: `FormInput.jsx` を `forwardRef`＋`useImperativeHandle` で `validate()` 公開、`handleSubmit` 本体を `runValidation()` に切り出して両経路で共有。`MainInputPage.jsx` は確認ボタンの `disabled` を撤去し常時 clickable、`handleConfirmClick` で `validate({ focus: 日時選択済み })`＋日時未選択ヒント。既存のエラー描画 JSX/CSS/aria-invalid/role=alert/focus を無改造で再利用。
+  - B: `FormInput.jsx` の text/email/tel 入力に `field_key` 分岐で `maxLength`（customer_phone=20／customer_name・customer_email=255＝DB カラム長準拠）。カスタムフィールドは meta_value(text) 保存で切り捨てリスクなく対象外。
+  - C: `ReservationTable.jsx` の thead/tbody を lockstep で移動＝受付日時を予約番号の直後（左から2番目）へ。9列対応維持。ソート・CSV・モバイルカードは不変。
+  - D: `class-rest-reservations.php::create_item` に電話必須チェック追加（公開エンドポイントと同一 `smb_reservation_phone_required`/400）。`update_item` 不変＝**既存の空電話予約の編集はブロックしない**。形式・桁数検証はスコープ外。
+- **検証（全 Green）**: 静的＝`php -l` OK・`npm run build` 成功・phpcs 変更PHP 0/0・eslint 変更3ファイル新規ゼロ。A 実機7ケース（必須空3・メール形式・電話桁数・日時ヒント・**全妥当→確認画面へ遷移**）＋focus 移動＋aria-invalid/role=alert 実測。B maxLength 実機確認（phone=20/name・email=255）。C 管理E2E **40 passed**（表/カード・フィルタ・承認/詳細/削除・CSV DL・**CSV ヘッダ不変**）。D REST 空→400／正常→200（id227）／既存空電話の更新→200（非ブロック）。**回帰ゲート**＝baseline(v0.5.2) 差分で**新規失敗ゼロ**（既存赤2件のうち `phase3-validation:116` は旧セレクタ更新で緑化、`phase9-redesign-flow:271` は起票）。既存 E2E の確認ボタン disabled 依存3テスト（`v030-conditional-fields`/`phase9-redesign-flow`/`phase3-flow`）を新挙動へ最小更新。
+- **リリース（2026-08-17）**: 機能 commit `77252b8`(A/B front-form・6ファイル)・`5a82106`(C 受付日時列)・`9aadbe1`(D 電話必須)・docs `9ffdd40`(phase9 幅テスト起票)＋bump `5facdc8`（smart-booking.php/readme.txt/package.json）→ push・タグ `v0.5.3` → SVN 公開 **rev 3650340**（`Release 0.5.3: show inline validation errors on the booking form, add input maxlength ...`）。ZIP 187K・0.5.3・混入なし・trunk 変更は7ファイルのみ（frontend.js+asset／admin.js+asset／class-rest-reservations.php／smart-booking.php／readme.txt）。
 
 ### v0.5.2 sort_order 修正（公開済み・SVN rev 3650270・2026-08-16）
 - **背景**: 店舗・担当者の並び順（sort_order）に採番・並び替えの不具合。**3症状を解消**（コード調査＋実機検証で確定）:
@@ -46,7 +57,12 @@ cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（
 - **実機検証（wp-env・全 PASS）**: 検証1（新規→末尾 sort_order=50・最上段化なし）／検証2（全件0から中間スワップ1回→DB 全件 10/20/30/40/50 永続化・リロード後も並び不変）／検証3（店舗OFF＋新店舗追加でもデフォルト店舗＝既存店舗維持・予約枠消えず）。**予約フロー全4組合せ**（店舗 ON/OFF × 担当 ON/OFF）完走＋**選択肢の並び = sort_order 昇順（管理と一致・担当C<担当B の非自明順も一致）**＋予約が正しい店舗/担当に紐付き（#221〜#225）。デグレ確認: 編集で sort_order 保全・CSV 出力正常・カスタムフィールド並び替え無傷・単一店舗/担当者で従来動作。静的: `php -l` OK・phpcs 変更2ファイル 0/0・`npm run build` 成功。
 - **リリース完了（2026-08-16）**: 機能 `614ef07 fix(stores-staff): 新規追加を末尾採番にし並び替えを全件保存する`（7ファイル）＋ bump `b1b4cbd chore(release): bump version to 0.5.2 + readme Changelog（店舗・担当者の並び順の修正）`（3ファイル）→ push・タグ `v0.5.2`（push 済み）→ SVN 公開 **rev 3650270**（`Release 0.5.2: fix store and staff ordering (append new entries to end, persist up/down reorder fully, remove display-order number input)`）。ZIP 30ファイル・182K・0.5.2・混入なし・reorder 同梱。疎通確認 Green（管理5ページ・編集モーダルに「表示順」なし・予約 #226 完走）。
 
-### 次の課題（未着手・v0.5.2 公開後）
+### 次の課題（未着手・v0.5.3 公開後）
+- **【v0.5.3 由来の技術的負債（別トラック）】**:
+  - ① **フロント検証ロジックの二重実装**: `FormInput.validateField` と `MainInputPage.isFieldValid`（＋`EMAIL_RE`/`PHONE_RE`/`normalizeValue` の重複）。単一の検証源への統合はスコープ大につき今回見送り。将来のバグ源（今回の不具合もリデザインで配線が切れたことに長く気づけなかった）。
+  - ② **`ReservationTable.jsx` の thead/tbody 二重管理**: 列定義が配列 map でなく直書き2本立てのため、列変更時に thead/tbody がズレるリスク（今回は lockstep 手動移動＋9列目視で対処）。カラム定義配列化のリファクタは別トラック。
+  - ③ **サーバー側の電話番号形式・桁数検証の不在**: フロントのみで形式・桁数を検証。空チェックは v0.5.3 で `create_item` に追加したが、形式・桁数はサーバ未検証。既存データ（過去に保存された不正形式）への影響調査が必要なため別トラック。
+  - ④ **`phase9-redesign-flow:271` CSS 幅テストの既存赤**: mobile(375px) で `.smb-front-main-page` 実測285px vs 期待≒327px。v0.5.2 baseline でも失敗するプリエグジスティング（私の変更と無関係）。テスト期待値と CSS のどちらが正かは未確認。詳細＝`docs/bugs/phase9-form-width-mobile-285px.md`。
 - **集約モードのしきい値ヘルプ文言追記**（v0.5.1 GO 前調査で確認・軽微・非デグレ）: 「残りわずかのしきい値」は担当者非表示（既定）時、同一時刻の**全担当者を合算した総空き数**で判定される（`aggregate_by_timeslot()` が capacity/booked を合算）。設定ヘルプに「担当者を表示しない場合は全担当者の空きを合算した数で判定します」を明記すると誤解を防げる。v0.5.1 の判定自体は v0.5.0 と byte-identical（新規デグレなし）で、これは説明の改善。
 - **メール通知の配信性（未決）**: 管理者宛のみ未達となる非対称（v0.4.2 報告2）はコード正常＝配信性（SPF/DKIM/DMARC・迷惑メール判定）の問題。切り分けは `docs/ops/email-deliverability.md`＋readme FAQ に集約済み。SMTP プラグイン案内など運用面の継続課題。
 - **v0.2.3 由来の backlog（REST パーマリンク／ロゴ 等）**: KEISUKE 把握の未着手項目。テスト系の既知例＝`tests/e2e/phase6-visibility.spec.js` の `page_id=7` ハードコード（Plain パーマリンクで nonce 未 localize）を `FRONT_PAGE_PATH` 化する別件（過去 state 記載）。ロゴ関連の具体内容は本セッション未確認＝要 KEISUKE 確認。
