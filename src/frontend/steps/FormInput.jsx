@@ -12,7 +12,7 @@
  *   - 「確認画面へ」ボタンで state.step を 'confirm' に遷移。値は state.formValues に保持。
  *   - 「戻る」ボタンで前ステップへ。
  */
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import AddressField from '../components/AddressField';
 import StepHeader from '../components/StepHeader';
 import { pushBookingEvent } from '../utils/analytics';
@@ -96,8 +96,9 @@ function validateField(field, value) {
  * @param {Function} [props.onBack]         「戻る」ボタンハンドラ。未指定なら表示しない
  * @param {boolean}  [props.hideHeader=false] StepHeader を表示しない (MainInputPage 内に埋め込む時に使用)
  * @param {boolean}  [props.hideSubmit=false] 「確認画面へ進む」ボタンを表示しない (MainInputPage 内に埋め込む時に使用)
+ * @param {React.Ref} ref                     validate() を公開する imperative handle (MainInputPage の確認ボタンから起動)
  */
-export default function FormInput({ state, dispatch, onBack, hideHeader = false, hideSubmit = false }) {
+function FormInput({ state, dispatch, onBack, hideHeader = false, hideSubmit = false }, ref) {
 	const { customFields, formValues } = state;
 
 	// GTM 連携: フォーム入力セクションがマウントされたタイミングで form_input を送信。
@@ -142,16 +143,10 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 		handleChange(key, next);
 	};
 
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		// ハニーポット: bot が埋めてきたらそのまま弾く（UI には出さない）。
-		// ここでは状態変化せずに黙って何もしない実装 or エラー。
-		// ボットに検知方法を教えない観点で「何もしない」方が安全だが、
-		// ユーザの実機でも誤入力されうるため、念のため確認画面へは進めない。
-		if (honeypot.trim() !== '') {
-			return;
-		}
-
+	// 全可視フィールドを検証してエラー state を更新し、妥当なら true を返す。
+	// <form onSubmit>（FormInput 単体利用）と、親（MainInputPage）からの imperative な
+	// validate() の両経路で共有する。focus=true のとき最初のエラーフィールドへフォーカスを移す。
+	const runValidation = ({ focus = true } = {}) => {
 		const nextErrors = {};
 		orderedFields.forEach((f) => {
 			// 非表示フィールド（条件不成立）はバリデーション対象外。
@@ -161,16 +156,34 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 			if (msg) nextErrors[f.field_key] = msg;
 		});
 		setErrors(nextErrors);
-		if (Object.keys(nextErrors).length > 0) {
+		const hasError = Object.keys(nextErrors).length > 0;
+		if (hasError && focus) {
 			// 最初のエラーフィールドへフォーカス。
 			const firstKey = orderedFields.find((f) => nextErrors[f.field_key])?.field_key;
 			if (firstKey) {
 				const el = document.getElementById('smb-front-field-' + firstKey);
 				if (el && typeof el.focus === 'function') el.focus();
 			}
+		}
+		return !hasError;
+	};
+
+	// 親（MainInputPage）が確認ボタン押下時に検証を起動できるよう validate() を公開する。
+	// FormInput 内のエラー描画・aria-invalid・focus 機構をそのまま再利用する（B-1 方式）。
+	useImperativeHandle(ref, () => ({
+		validate: (opts) => runValidation(opts),
+	}));
+
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		// ハニーポット: bot が埋めてきたらそのまま弾く（UI には出さない）。
+		// ここでは状態変化せずに黙って何もしない実装 or エラー。
+		// ボットに検知方法を教えない観点で「何もしない」方が安全だが、
+		// ユーザの実機でも誤入力されうるため、念のため確認画面へは進めない。
+		if (honeypot.trim() !== '') {
 			return;
 		}
-
+		if (!runValidation()) return;
 		dispatch({ type: 'GO_TO_CONFIRM' });
 	};
 
@@ -427,6 +440,15 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 								: f.field_key === 'customer_phone'
 									? 'tel'
 									: 'on';
+					// 初期3フィールドのみ、対応する DB カラム長に合わせて入力上限を設ける
+					// （customer_phone=varchar(20) / customer_name・customer_email=varchar(255)）。
+					// カスタムフィールドは reservation_meta.meta_value(text) 保存で切り捨てリスクが無いため付与しない。
+					const maxLength =
+						f.field_key === 'customer_phone'
+							? 20
+							: f.field_key === 'customer_name' || f.field_key === 'customer_email'
+								? 255
+								: undefined;
 					return (
 						<div key={f.id} className="smb-front-form__row smb-front-form-group">
 							{labelEl}
@@ -441,6 +463,7 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 								value={val}
 								onChange={(e) => handleChange(f.field_key, e.target.value)}
 								autoComplete={autoComplete}
+								maxLength={maxLength}
 								aria-invalid={errMsg ? 'true' : 'false'}
 								aria-describedby={errMsg ? id + '-err' : undefined}
 								aria-required={required ? 'true' : undefined}
@@ -491,3 +514,5 @@ export default function FormInput({ state, dispatch, onBack, hideHeader = false,
 		</div>
 	);
 }
+
+export default forwardRef(FormInput);

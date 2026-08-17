@@ -532,10 +532,12 @@ test.describe( 'Phase 3 Eval-1: 予約フロー 正常系 + スキップルー�
 		await expect(
 			page.locator( '.smb-front-section-title', { hasText: '日付選択' } )
 		).toBeVisible( { timeout: 10_000 } );
-		// 日時が未選択のため確認ボタンは disabled.
+		// v0.5.3 (B-1): 確認ボタンは常時 clickable。state リセット後は日時未選択のため、
+		// 押しても確認画面へ進めずヒントが表示される（旧: disabled）.
+		await page.getByRole( 'button', { name: '予約内容の確認' } ).click();
 		await expect(
-			page.getByRole( 'button', { name: '予約内容の確認' } )
-		).toBeDisabled();
+			page.locator( '.smb-front-main-page__hint' )
+		).toBeVisible();
 	} );
 
 	// ---- 時間枠押下で自動遷移 ----

@@ -160,15 +160,19 @@ test.describe( 'v0.3.0 ③: 条件フィールド', () => {
 		await page
 			.locator( '#smb-front-field-customer_phone' )
 			.fill( '090-3333-4444' );
-		// フロント必須: 表示中(希望する)で addr 空 → 「予約内容の確認」ボタンが無効（押せない）。
-		await expect(
-			page.getByRole( 'button', { name: '予約内容の確認' } )
-		).toBeDisabled();
-		// addr を入力すると有効化される（＝表示中のみ必須が効いている証左）。
+		// v0.5.3 (B-1): 確認ボタンは常時 clickable。表示中(希望する)で addr 空のまま押すと、
+		// 該当欄にインラインエラー（aria-invalid=true）が付き確認画面へ進めない。
+		await page.getByRole( 'button', { name: '予約内容の確認' } ).click();
+		await expect( page.locator( '#smb-front-field-addr' ) ).toHaveAttribute(
+			'aria-invalid',
+			'true'
+		);
+		// addr を入力するとエラーが解消する（＝表示中のみ必須が効いている証左）。
 		await page.locator( '#smb-front-field-addr' ).fill( '確認テスト住所' );
-		await expect(
-			page.getByRole( 'button', { name: '予約内容の確認' } )
-		).toBeEnabled();
+		await expect( page.locator( '#smb-front-field-addr' ) ).toHaveAttribute(
+			'aria-invalid',
+			'false'
+		);
 
 		// --- サーバ側直接 POST（フロント判定を回避）---
 		const base = {

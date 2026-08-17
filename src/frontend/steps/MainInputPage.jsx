@@ -104,6 +104,8 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 
 	const dateSectionRef = useRef(null);
 	const formSectionRef = useRef(null);
+	// FormInput の imperative handle。確認ボタン押下時に validate() を起動する（B-1 方式）。
+	const formRef = useRef(null);
 
 	useEffect(() => {
 		if (!attemptedSubmit) return;
@@ -111,21 +113,28 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 	}, [attemptedSubmit, canConfirm]);
 
 	const handleConfirmClick = () => {
-		if (!canConfirm) {
-			setAttemptedSubmit(true);
-			// 不足箇所までスクロール。日時 → フォームの順で優先。
-			if (!date || !time) {
-				if (dateSectionRef.current && typeof dateSectionRef.current.scrollIntoView === 'function') {
-					dateSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				}
-			} else if (!allFieldsValid) {
-				if (formSectionRef.current && typeof formSectionRef.current.scrollIntoView === 'function') {
-					formSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				}
-			}
+		const dateTimeOk = !!date && !!time;
+		// フィールド検証は常に実行してインラインエラー（該当欄・aria-invalid）を表示する。
+		// フォーカスは日時が満たされている場合のみフィールドへ移す。日時未選択が最上位の
+		// 不足のため、その場合は日時セクションを優先表示し、フィールドへは focus しない。
+		const formValid = formRef.current ? formRef.current.validate({ focus: dateTimeOk }) : true;
+
+		if (dateTimeOk && formValid) {
+			dispatch({ type: 'GO_TO_CONFIRM' });
 			return;
 		}
-		dispatch({ type: 'GO_TO_CONFIRM' });
+
+		setAttemptedSubmit(true);
+		// 不足箇所までスクロール。日時 → フォームの順で優先。
+		if (!dateTimeOk) {
+			if (dateSectionRef.current && typeof dateSectionRef.current.scrollIntoView === 'function') {
+				dateSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		} else if (!formValid) {
+			if (formSectionRef.current && typeof formSectionRef.current.scrollIntoView === 'function') {
+				formSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}
 	};
 
 	// FormInput はそのまま再利用。内部の「確認画面へ進む」ボタンは hideSubmit で抑制し、
@@ -145,7 +154,7 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 			className="smb-front-main-page__section smb-front-main-page__section--form"
 			ref={formSectionRef}
 		>
-			<FormInput state={state} dispatch={dispatch} hideHeader hideSubmit />
+			<FormInput ref={formRef} state={state} dispatch={dispatch} hideHeader hideSubmit />
 		</section>
 	);
 
@@ -196,8 +205,6 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 					type="button"
 					className="smb-front-btn smb-front-btn--primary smb-front-btn-primary smb-front-main-page__confirm-btn"
 					onClick={handleConfirmClick}
-					disabled={!canConfirm}
-					aria-disabled={!canConfirm}
 				>
 					予約内容の確認
 				</button>

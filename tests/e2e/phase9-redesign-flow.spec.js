@@ -109,8 +109,10 @@ test.describe( 'Phase 9 Eval-1: 画面構成（リデザイン）検証', () => 
 		await expect( confirmBtns ).toHaveCount( 1 );
 		await expect( confirmBtns ).toHaveText( /予約内容の確認/ );
 
-		// 日付未選択・フォーム未入力時は disabled になっていること.
-		await expect( confirmBtns ).toBeDisabled();
+		// v0.5.3 (B-1): 確認ボタンは常時 clickable。日付未選択・フォーム未入力で押しても
+		// 確認画面へ進めず、不足を知らせるヒントが表示される（旧: disabled で押下不可だった）.
+		await confirmBtns.click();
+		await expect( page.locator( '.smb-front-main-page__hint' ) ).toBeVisible();
 
 		// 日付タイルを選択 → 同じ画面の中で時間スロットが表示される（time region が現れる）.
 		await page.locator( '.smb-front-day-tile:not(.is-disabled)' ).first().click();

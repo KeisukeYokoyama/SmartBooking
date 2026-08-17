@@ -133,12 +133,15 @@ test.describe( 'Phase 3 Eval-3: フロント予約フォーム 異常系', () =>
 			.first()
 			.click();
 		await page.getByRole( 'button', { name: /10:00から11:00/ } ).click();
+		// v0.5.3: リデザイン統合画面（MainInputPage）ではフォームは同一画面に
+		// 埋め込まれ独立見出し（お客様情報の入力）は出ない。フォーム欄の存在で
+		// 「入力段階に到達」を確認する。
 		await expect(
-			page.getByRole( 'heading', { name: 'お客様情報の入力' } )
+			page.locator( '#smb-front-field-customer_name' )
 		).toBeVisible();
 
-		// 全空のまま「確認画面へ進む」.
-		await page.getByRole( 'button', { name: '確認画面へ進む' } ).click();
+		// 全空のまま集約ボタン「予約内容の確認」を押す。
+		await page.getByRole( 'button', { name: '予約内容の確認' } ).click();
 
 		// 確認画面に遷移していない.
 		await expect(
