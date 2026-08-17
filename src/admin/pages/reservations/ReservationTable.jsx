@@ -94,6 +94,7 @@ export default function ReservationTable({
 				<thead>
 					<tr>
 						{sortableHeader('id', '予約番号')}
+						{sortableHeader('created_at', '受付日時')}
 						{sortableHeader('schedule_date', '予約日時')}
 						{sortableHeader('customer_name', '予約者')}
 						<th scope="col" className="smb-table__th">
@@ -108,7 +109,6 @@ export default function ReservationTable({
 							</th>
 						)}
 						{sortableHeader('status', 'ステータス')}
-						{sortableHeader('created_at', '受付日時')}
 						<th scope="col" className="smb-table__th smb-table__th--actions">
 							<span className="smb-sr-only">操作</span>
 						</th>
@@ -143,6 +143,7 @@ export default function ReservationTable({
 										#{r.id}
 									</button>
 								</td>
+								<td className="smb-table__td">{formatCreatedAt(r.created_at)}</td>
 								<td className="smb-table__td">
 									{formatDateTime(r.schedule_date, r.schedule_time)}
 								</td>
@@ -173,7 +174,6 @@ export default function ReservationTable({
 								<td className="smb-table__td">
 									<StatusBadge status={r.status} />
 								</td>
-								<td className="smb-table__td">{formatCreatedAt(r.created_at)}</td>
 								<td className="smb-table__td smb-table__td--actions">
 									<div className="smb-table__actions">
 										<button
