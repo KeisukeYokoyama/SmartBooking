@@ -310,6 +310,11 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 			return $this->error( 'smb_reservation_email_invalid', '有効なメールアドレスを入力してください。', 400 );
 		}
 		$phone = sanitize_text_field( (string) $request->get_param( 'customer_phone' ) );
+		// 仕様 §3.5: 電話番号は必須。公開エンドポイント（class-rest-public.php）と同じ流儀・
+		// 同一エラーコードで空を弾く。形式・桁数の検証は今回スコープ外（フロントのみ）。
+		if ( '' === $phone ) {
+			return $this->error( 'smb_reservation_phone_required', '電話番号を入力してください。', 400 );
+		}
 
 		$status_in = (string) $request->get_param( 'status' );
 		$status    = in_array( $status_in, self::ALLOWED_STATUSES, true ) ? $status_in : 'approved';
