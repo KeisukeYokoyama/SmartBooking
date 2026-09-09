@@ -1,8 +1,8 @@
 === Smart Booking ===
 Contributors: liberdadeinc
-Tags: booking, reservation, appointment, calendar, schedule
+Tags: booking, appointment, reservation, calendar, schedule
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.0.4
 Requires PHP: 7.4
 Stable tag: 0.5.3
 License: GPLv2 or later
@@ -54,187 +54,125 @@ The complete source code, including the un-minified JavaScript and CSS sources u
 
 https://github.com/KeisukeYokoyama/SmartBooking
 
-== Installation ==
-
-1. WordPress管理画面の「プラグイン > 新規追加」からプラグインのZIPをアップロードするか、アーカイブを `/wp-content/plugins/smart-booking` に展開します。
-2. 「プラグイン」画面から **Smart Booking** を有効化します。
-3. 有効化時に、デフォルトの店舗1つ・担当者1人と、3つのカスタムフィールド（氏名・メールアドレス・電話番号）が自動作成されます。
-4. 管理画面サイドバーの **Smart Booking** メニューから、店舗・担当者・スケジュール・フォーム項目を設定します。
-5. 投稿や固定ページに `[smart_booking]` ショートコードを貼り付けて公開すると、予約フォームが表示されます。
-
-特定の店舗に限定したフォームを表示するには、`store_id` 属性を指定します（例: `[smart_booking store_id="1"]`）。
-
-== Frequently Asked Questions ==
-
-= 本当に完全無料ですか？ =
-
-はい。Pro版・有料アドオン・ライセンス認証は一切ありません。すべての機能を無料でご利用いただけます。
-
-= デフォルトの状態で外部への通信は発生しますか？ =
-
-いいえ。初期状態では、Smart Booking はいかなる外部サービスにも接続しません。Googleカレンダー連携とChatWork通知は、管理者が「外部連携」タブで明示的に有効化し、必要なAPI認証情報を入力した場合にのみデータを送信します。
-
-= 予約フォームはスマートフォンに対応していますか？ =
-
-はい。フロントの予約フォーム、確認画面、完了画面はすべてレスポンシブ対応で、スマートフォン幅（375px）はもちろん、タブレット・デスクトップでの動作も確認済みです。
-
-= 複数の予約者が同じ時間枠を同時に予約しようとした場合はどうなりますか？ =
-
-予約可能数は1回のアトミックなSQL UPDATE文で管理されるため、枠の定員を超える予約は受け付けられません。ページ読み込みから送信までの間に枠が埋まった場合、予約は成立せず、ユーザーにはエラーメッセージが表示されます。
-
-= 毎週の繰り返しスケジュールを一括で設定できますか？ =
-
-はい。スケジュール管理画面で「スケジュールをコピー」→「パターン」を選び、曜日（日〜土）と期間を指定すると、該当するすべての日付にスケジュールが複製されます。既存スケジュールを上書きするかどうかも選択できます。
-
-= 予約者は自分で予約をキャンセルできますか？ =
-
-v1では、予約者側からのキャンセル機能はありません。電話やメールでキャンセルの連絡を受けた後、管理画面の予約一覧からステータスを「キャンセル」に変更してください。
-
-= 予約フォームに項目を追加できますか？ =
-
-はい。「フォーム設定」画面から、テキスト・メール・電話番号・テキストエリア・セレクトボックス・ラジオボタン・チェックボックスの各種項目を追加・並び替え・削除できます。
-
-= 予約一覧をエクスポートできますか？ =
-
-はい。予約一覧画面の「CSVエクスポート」ボタンから、現在絞り込んでいる予約をCSVファイルとしてダウンロードできます。
-
-= 予約者に確認メールが届かない場合はどうすればよいですか？ =
-
-メールの到達性は、ご利用のサーバーのメール送信環境に依存します。確実に届けるには、WP Mail SMTP などのSMTPプラグインを利用し、あわせて送信元ドメインのSPF・DKIM・DMARCを設定することを推奨します。直近の送信失敗は、管理画面の「設定 > メール通知」タブで確認できます。
-
-なお、この「送信失敗」の表示が出ていない場合でも、メールが受信側のサーバーで迷惑メール（スパム）と判定されたり受信拒否されたりして、実際には届かないことがあります（自動返信はお客様に届くのに、管理者宛のメールだけが届かない、といった片方向の未達はこの典型例です）。この場合も、上記のSMTPプラグインの導入とSPF・DKIM・DMARCの設定が有効です。
-
-= プラグインを削除するとデータはどうなりますか？ =
-
-WordPressの「削除」操作を実行すると、Smart Booking が作成した7つのカスタムテーブルと、すべてのオプションが削除されます。データを残したい場合は、プラグインを「削除」せず「停止」のみにしてください。
-
-== Screenshots ==
-
-1. フロントの予約フォーム（デスクトップ。横スクロールの日付ピッカー＋時間枠選択）
-2. 管理画面 — スケジュール管理（月カレンダー＋スケジュールリスト）
-3. 管理画面 — 予約一覧（フィルタ＋ステータス管理＋CSVエクスポート）
-4. 管理画面 — フォーム設定（フィールドタイプカード＋フィールド一覧）
-
 == External services ==
 
-このプラグインは以下の外部サービスと通信する場合があります。**いずれも、管理者が明示的に有効化・設定した場合にのみ**外部への通信が発生します（Googleカレンダー連携とChatWork通知はデフォルトでオフで「設定 > 外部連携」タブでの有効化が必要です。郵便番号検索は管理者がフォームに「住所」フィールドを追加した場合にのみ動作します）。
+This plugin may communicate with the following external services. In every case, outbound communication happens **only after the site administrator has explicitly enabled and configured the feature**. Google Calendar integration and ChatWork notifications are off by default and must be enabled on the "Settings > Integrations" tab. The postal code lookup only runs if the administrator adds an "Address" field to a form.
 
 = Google Calendar API =
 
-* **エンドポイント**: `https://www.googleapis.com/calendar/v3/`
-* **目的**: 予約受付時にGoogleカレンダーのイベントを作成し、予約キャンセル時にイベントを削除します。
-* **送信データ**: 予約日時、予約者名、店舗名、担当者名、予約番号。
-* **タイミング**: 予約受付時（イベント作成）／予約キャンセル時（イベント削除）。
-* **認証方式**: サービスアカウントのJSONキー（管理者が設定画面でアップロード）。
-* **デフォルト**: オフ
-* **利用規約**: [Google APIs Terms of Service](https://developers.google.com/terms)
-* **プライバシーポリシー**: [Google Privacy Policy](https://policies.google.com/privacy)
+* **Endpoint**: `https://www.googleapis.com/calendar/v3/`
+* **Purpose**: Creates a Google Calendar event when a booking is received, and deletes the event when the booking is cancelled.
+* **Data sent**: Booking date and time, customer name, store name, staff name, reservation number.
+* **When**: On booking reception (event creation) and on cancellation (event deletion).
+* **Authentication**: Service account JSON key, uploaded by the administrator on the settings screen.
+* **Default**: Off
+* **Terms of service**: [Google APIs Terms of Service](https://developers.google.com/terms)
+* **Privacy policy**: [Google Privacy Policy](https://policies.google.com/privacy)
 
 = ChatWork API =
 
-* **エンドポイント**: `https://api.chatwork.com/v2/`
-* **目的**: 予約受付時に、指定したChatWorkルームへ通知メッセージを投稿します。
-* **送信データ**: 予約者名、予約日時、店舗名、担当者名、予約番号。
-* **タイミング**: 予約者が予約フォームを送信した直後。
-* **認証方式**: APIトークン（管理者が設定画面で入力）。
-* **デフォルト**: オフ
-* **利用規約**: [ChatWork Terms of Service](https://go.chatwork.com/ja/terms/)
-* **プライバシーポリシー**: [ChatWork Privacy Policy](https://www.kubell.com/privacy/)
+* **Endpoint**: `https://api.chatwork.com/v2/`
+* **Purpose**: Posts a notification message to a designated ChatWork room when a booking is received.
+* **Data sent**: Customer name, booking date and time, store name, staff name, reservation number.
+* **When**: Immediately after the customer submits the booking form.
+* **Authentication**: API token, entered by the administrator on the settings screen.
+* **Default**: Off
+* **Terms of service**: [ChatWork Terms of Service](https://go.chatwork.com/ja/terms/)
+* **Privacy policy**: [ChatWork Privacy Policy](https://www.kubell.com/privacy/)
 
-= 郵便番号検索API（zipcloud） =
+= Postal code lookup API (zipcloud) =
 
-* **エンドポイント**: `https://zipcloud.ibsnet.co.jp/api/search`
-* **目的**: 予約フォームの「住所」フィールドで、入力された郵便番号から住所（都道府県・市区町村・町域）を自動補完します。
-* **送信データ**: 入力された郵便番号のみ。個人を特定する情報は送信しません。
-* **タイミング**: 管理者がフォームに「住所」フィールドを追加し、郵便番号自動入力が有効（デフォルト）の状態で、予約者が郵便番号を7桁入力した時。
-* **デフォルト**: 「住所」フィールドを追加しない限り、通信は一切発生しません。
-* **利用規約**: [zipcloud API 利用規約](http://zipcloud.ibsnet.co.jp/rule/api)
+* **Endpoint**: `https://zipcloud.ibsnet.co.jp/api/search`
+* **Purpose**: Auto-completes the address (prefecture, city, town) from a postal code entered in the "Address" field of the booking form.
+* **Data sent**: Only the postal code that was entered. No personally identifiable information is sent.
+* **When**: When a customer enters a 7-digit postal code, provided the administrator has added an "Address" field to the form and postal code auto-completion is enabled (the default).
+* **Default**: No communication occurs at all unless an "Address" field is added.
+* **Terms of service**: [zipcloud API terms of use](http://zipcloud.ibsnet.co.jp/rule/api)
 
-いずれの連携も有効化・設定されていない場合、Smart Booking は外部サービスへの通信を一切行いません。
+If none of these integrations are enabled and configured, Smart Booking does not communicate with any external service.
+
+== Screenshots ==
+
+1. Front-end booking form (desktop: horizontally scrolling date picker and time slot selection)
+2. Admin — schedule management (month calendar and schedule list)
+3. Admin — reservation list (filters, status management, CSV export)
+4. Admin — form settings (field type cards and field list)
+
+== Installation ==
+
+1. Upload the plugin ZIP from "Plugins > Add New" in the WordPress admin, or extract the archive to `/wp-content/plugins/smart-booking`.
+2. Activate **Smart Booking** from the "Plugins" screen.
+3. On activation, one default store, one staff member, and three custom fields (name, email address, phone number) are created automatically.
+4. Configure stores, staff, schedules, and form fields from the **Smart Booking** menu in the admin sidebar.
+5. Paste the `[smart_booking]` shortcode into a post or page and publish it to display the booking form.
+
+To display a form limited to a specific store, add the `store_id` attribute (for example, `[smart_booking store_id="1"]`).
+
+== Frequently Asked Questions ==
+
+= Is it really completely free? =
+
+Yes. There is no Pro version, no paid add-ons, and no license activation. Every feature is available for free.
+
+= Does the plugin communicate with any external service out of the box? =
+
+No. Out of the box, Smart Booking does not connect to any external service. The Google Calendar integration and ChatWork notifications only send data after the administrator explicitly enables them on the "Integrations" tab and enters the required API credentials.
+
+= Is the booking form mobile friendly? =
+
+Yes. The booking form, confirmation screen, and completion screen are all responsive, and have been verified on smartphone widths (375px) as well as on tablet and desktop.
+
+= What happens if several customers try to book the same time slot at the same moment? =
+
+Remaining capacity is managed with a single atomic SQL UPDATE statement, so bookings beyond the capacity of a slot are never accepted. If the slot fills up between page load and submission, the booking is not created and an error message is shown to the customer.
+
+= Can I set up weekly recurring schedules in bulk? =
+
+Yes. On the schedule management screen, choose "Copy schedule" and then "Pattern", select the days of the week (Sunday to Saturday) and a date range, and the schedule is duplicated to every matching date. You can also choose whether to overwrite existing schedules.
+
+= Can customers cancel their own bookings? =
+
+Not in v1. There is no customer-facing cancellation feature. When you receive a cancellation by phone or email, change the status to "Cancelled" from the reservation list in the admin screen.
+
+= Can I add fields to the booking form? =
+
+Yes. From the "Form settings" screen you can add, reorder, and delete text, email, phone, textarea, select, radio, and checkbox fields.
+
+= Can I export the reservation list? =
+
+Yes. Use the "CSV export" button on the reservation list screen to download the currently filtered reservations as a CSV file.
+
+= What should I do if confirmation emails are not delivered? =
+
+Email deliverability depends on the mail sending environment of your server. For reliable delivery we recommend using an SMTP plugin such as WP Mail SMTP, together with SPF, DKIM, and DMARC records for your sending domain. Recent sending failures can be reviewed on the "Settings > Email notifications" tab.
+
+Note that even when no sending failure is shown, mail can still fail to arrive because the receiving server classified it as spam or rejected it. A typical symptom is that the auto-reply reaches the customer while only the administrator notification goes missing. The same remedy applies: install an SMTP plugin and configure SPF, DKIM, and DMARC.
+
+= What happens to my data when I delete the plugin? =
+
+Running the WordPress "Delete" action removes the seven custom tables created by Smart Booking along with all of its options. If you want to keep your data, deactivate the plugin instead of deleting it.
 
 == Changelog ==
 
-= 0.5.3 - 2026-08-17 =
-* 修正: 予約フォームで入力に不備があるとき、「予約内容の確認」ボタンを押しても理由が表示されず、なぜ進めないのか分からなかった不具合を修正しました。未入力や形式の誤りがある項目にエラーメッセージが表示され、最初の項目へ自動でカーソルが移動するようになりました。
-* 修正: 予約フォームの電話番号欄に、電話番号として成立しない長さの値を入力できてしまう問題を修正しました。電話番号は20文字、お名前とメールアドレスは255文字までの入力になります。
-* 変更: 予約一覧の「受付日時」列を、左から2番目（予約番号の右）へ移動しました。申し込みが入った日時を早く確認できます。
-* 変更: 管理画面から手動で予約を作成する際に、電話番号の入力が必須になりました。
+= 0.5.3 – 2026-08-17 =
 
-= 0.5.2 - 2026-08-16 =
-* 修正: 店舗を新しく追加したとき、予約フォームで自動的に選ばれる店舗が入れ替わり、予約できる時間枠が表示されなくなる場合がある不具合を修正しました。店舗・担当者は追加時に一覧の末尾に並ぶようになります（従来は先頭）。
-* 変更: 担当者を新しく追加したときに、自動割り当ての順番が入れ替わらなくなりました。
-* 修正: 店舗・担当者一覧の「↑ ↓」での並び替えが一部しか保存されず、画面を再読み込みすると並びが変わってしまう場合がある不具合を修正しました。すべての並びが正しく保存されるようになりました。
-* 変更: 店舗・担当者の編集画面から「表示順」の数値入力を廃止し、並び替えは一覧の「↑ ↓」に統一しました。
-* 変更: 設定画面に、店舗・担当者の選択ステップを表示しない場合の自動選択・自動割り当ての順番についての説明を追加しました。
+* Fixed: when the booking form contained invalid input, pressing the "Confirm booking details" button gave no reason why the form would not advance. Error messages are now shown on the fields that are empty or incorrectly formatted, and focus moves automatically to the first one.
+* Fixed: the phone number field on the booking form accepted values that were not plausible phone numbers. Phone numbers are now limited to 20 characters, and name and email address to 255 characters.
+* Changed: the "Received at" column of the reservation list moved to second from the left (right of the reservation number), so you can check when an application arrived more quickly.
+* Changed: a phone number is now required when creating a reservation manually from the admin screen.
 
-= 0.5.1 - 2026-07-17 =
-* 追加: 予約フォームの空き状況表示をカスタマイズできるようになりました。「残りわずか」のしきい値（設定 > 基本設定。空欄の場合は従来どおり自動判定）、「残りわずか」「満席」「締切」の表示文言（同）、警告色・無効色（設定 > デザイン）を変更できます。
-* 変更: 初期設定のままの場合、表示は従来と変わりません。
+= 0.5.2 – 2026-08-16 =
 
-= 0.5.0 - 2026-07-16 =
-* 追加: フォームごとにメール文面を変えられるようになりました。フォーム設定の「メール」タブで、予約受付（ユーザー宛／管理者宛）・予約承認（ユーザー宛）それぞれについて「このフォーム専用の文面を使う」を有効にすると、専用の件名・本文が使われます。未設定の項目は「設定 > メール通知」の共通文面がそのまま使われます。
-* 追加: 専用文面の編集画面には、そのフォームで利用できる変数の一覧が表示され、クリックで挿入できます。
+* Fixed: adding a new store could change which store was auto-selected in the booking form, in some cases leaving no bookable time slots visible. New stores and staff are now added to the end of the list instead of the beginning.
+* Changed: adding a new staff member no longer changes the auto-assignment order.
+* Fixed: reordering stores and staff with the "↑ ↓" buttons sometimes saved only part of the order, so the list changed again after a reload. The full order is now saved correctly.
+* Changed: the numeric "Display order" input was removed from the store and staff edit screens; reordering is now done exclusively with the "↑ ↓" buttons in the list.
+* Changed: added an explanation on the settings screen of how auto-selection and auto-assignment are ordered when the store and staff selection steps are hidden.
 
-= 0.4.2 - 2026-07-16 =
-* 追加: カスタムフィールドの回答をメール本文に埋め込めるようになりました。メールテンプレートに `{フィールドキー}` を記入すると回答値に置き換わります。設定 > メール通知タブの変数一覧からクリックで挿入できます。
-* 改善: フィールド作成時のキー入力が任意になりました。日本語ラベルのみで作成でき、キーは自動生成されます。
-* 改善: FAQに、メールが届かない場合の切り分け（送信失敗表示が出ない未達のケース）についての説明を追記しました。
+= 0.5.1 – 2026-07-17 =
 
-= 0.4.1 - 2026-07-15 =
-* 改善: フォーム設定画面に、選択中フォームの埋め込み用ショートコードの表示とコピーボタンを追加しました。
-* 改善: 店舗一覧の各店舗に、店舗指定ショートコード（store_id）の表示とコピーボタンを追加しました。
+* Added: the availability display of the booking form can now be customized — the "Almost full" threshold (Settings > General; left blank it behaves as before), the labels for "Almost full", "Fully booked", and "Closed" (same tab), and the warning and disabled colors (Settings > Design).
+* Changed: with default settings, the display is unchanged from previous versions.
 
-= 0.4.0 - 2026-07-15 =
-* 追加: 複数フォーム機能。「無料相談」「無料体験」など用途別に最大10個のフォームを作成し、ショートコード `[smart_booking form_id="2"]` で使い分けられます。フォームごとに入力項目を設定でき、予約枠（スケジュール）は全フォームで共有されます。
-* 追加: 予約一覧・CSVに「フォーム」列とフィルタを追加しました。
-* 変更: 既存の入力項目と予約データは、アップデート時に自動的に「標準フォーム」に引き継がれます。
-
-= 0.3.0 - 2026-07-14 =
-* 追加: 「店舗」「担当者」の呼び方を設定画面から変更できるようになりました（例: サロン／先生）。予約フォームの表記に反映されます。
-* 追加: 条件フィールド機能。ラジオボタン・セレクトボックスの選択値に応じて、他のフィールドの表示/非表示を切り替えられます。非表示のフィールドは必須チェックの対象外となり、入力値も保存されません。
-* 追加: フィールドタイプ「住所」。郵便番号を入力すると住所が自動補完されます（zipcloud APIを使用。詳細はExternal servicesをご覧ください）。
-
-= 0.2.3 - 2026-07-13 =
-* 修正: スケジュールのコピー（上書き）が、対象外の店舗・担当者の空き枠まで削除・スキップしてしまう不具合を修正しました。コピーは指定した店舗・担当者の範囲だけに正しく限定されます。
-* 修正: 同一の店舗・担当者・日付・時間帯に重複したスケジュールが作成され得る問題を修正しました（一意制約を追加。既存の重複は自動移行で解消し、予約は保持されます）。
-* 修正: パーマリンク設定が「基本」の環境で、予約フォームや管理画面のREST通信が404になり動作しない不具合を修正しました（新規WordPressの既定設定で発生）。
-* 改善: メール送信に失敗した場合に、管理画面「メール通知」タブで直近の失敗を確認できるようにしました（従来は失敗が表示されませんでした）。あわせてSMTP送信・SPF/DKIM/DMARC設定の手順ドキュメントを追加しました。
-* 修正: 配布パッケージに管理画面のロゴ画像が含まれず表示されない不具合を修正しました。
-* 修正: 時間枠の「残りわずか」が通常の空き枠と見分けられない表示不具合を修正しました（警告色とバッジを復元）。
-
-= 0.2.2 - 2026-06-24 =
-* 変更: WordPress.orgのレビューで指摘されたプレフィックスの一貫性に対応するため、データベースのプレフィックスを `smart_booking_` に統一しました（従来は `smart_booking_` と `smabo_` が混在）。
-
-= 0.2.1 - 2026-06-22 =
-* 修正: readme.txt 内のChatWork URL（利用規約・プライバシーページ）を訂正しました。
-* 改善: 配布パッケージから開発用ファイル（assets/）を除外しました。
-* 追加: readme.txt にソースコードリポジトリのURLを記載しました。
-* 改善: 他のプラグインへの影響を避けるため、uninstall.php でLIKEのワイルドカードを使わず、明示的なオプションリストを使用するようにしました。
-* 変更: WordPress.orgの4文字プレフィックス要件を満たすため、データベースのプレフィックスを `smb_` から `smabo_` に変更しました。
-
-= 0.2.0 =
-* 予約フォーム、確認画面、完了画面のフロントUIを刷新しました。
-* 店舗選択・担当者選択のカードレイアウトを改善しました（カード高さの統一、カード全体のクリック対応、ホバー状態）。
-* 店舗・担当者を選択した後、その内容を保持して表示する「選択情報」バーを追加しました。
-* 日付・時間枠選択の背景色のリグレッションを修正しました（選択状態が設定した色を正しく反映するようになりました）。
-* レスポンシブ対応とE2Eテストスイートを拡充しました（ピッカー検証、確認・完了画面、レスポンシブレイアウト）。
-* Googleカレンダー連携からデバッグログを削除しました。
-* 各予約ステップ（`store_select`、`staff_select`、`date_select`、`time_select`、`form_input`、`confirm`、`complete`）にGoogleタグマネージャー（GTM）のdataLayerイベントを追加し、GTM経由でGA4ファネルやGoogle広告のコンバージョンタグを設定できるようにしました。
-
-= 0.1.0 =
-* 初回リリース。
-* 予約フォーム、店舗・担当者管理、スケジュール管理、予約一覧、フォーム設定、5タブ構成の設定画面。
-* メール通知（予約受付・予約承認）。
-* 任意のGoogleカレンダー連携（デフォルトはオフ）。
-* 任意のChatWork通知（デフォルトはオフ）。
-
-== Upgrade Notice ==
-
-= 0.2.3 =
-不具合修正リリース。スケジュールのコピー範囲・Plainパーマリンク下のREST通信・メール失敗の可視化・ロゴ同梱・表示の修正を含みます。データベースは自動移行され、既存の予約は保持されます。
-
-= 0.2.0 =
-フロント予約フローのUI刷新とバグ修正。データベースのマイグレーションは不要です。
-
-= 0.1.0 =
-初回リリース。
+For earlier releases, see the full changelog:
+https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
