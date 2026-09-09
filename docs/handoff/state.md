@@ -1,6 +1,6 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-08-17
+最終更新: 2026-09-09
 
 ## 🔴 現在の公開状況（最優先・2026-08-17 更新）
 
@@ -8,6 +8,7 @@
 
 - **WordPress.org 公開版 = v0.5.3**（SVN **rev 3650340**・**2026-08-17 公開済み**）。予約フォームのバリデーション表示（入力不備時にインラインエラー＋該当欄フォーカス）／主要項目の文字数上限（電話20・氏名/メール255）／予約一覧「受付日時」列を左から2番目へ移動／手動予約作成で電話番号必須。前版 v0.5.2（rev 3650270・2026-08-16）ほかは下記「公開履歴」表。
 - **main = v0.5.3**（バージョン4箇所一致・**タグ `v0.5.3` push 済み**＝`origin` に `refs/tags/v0.5.3`。release commit `5facdc8`／機能 commit `77252b8`(A/B front-form)・`5a82106`(C 受付日時列)・`9aadbe1`(D 手動予約 phone 必須)・docs `9ffdd40`）。`origin/main..main` 空＝**main も push 済み**。
+- **readme.txt は 2026-09-09 に英語ソース化**（git `8ec3547` / SVN **rev 3687408**・`trunk` と `tags/0.5.3` の両方）。バージョンは **0.5.3 のまま据え置き**（新タグなし・配布物は無変更）。詳細は下記「📦 readme.txt と配布物の運用」。
 - **⚠️ 未コミットの開発成果は現在なし**（v0.5.3 は公開・コミット済み）。作業ツリーは clean（未追跡 `docs/investigation/` を除く）。
 
 ### 公開履歴（WordPress.org SVN）
@@ -66,6 +67,31 @@ cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（
 - **集約モードのしきい値ヘルプ文言追記**（v0.5.1 GO 前調査で確認・軽微・非デグレ）: 「残りわずかのしきい値」は担当者非表示（既定）時、同一時刻の**全担当者を合算した総空き数**で判定される（`aggregate_by_timeslot()` が capacity/booked を合算）。設定ヘルプに「担当者を表示しない場合は全担当者の空きを合算した数で判定します」を明記すると誤解を防げる。v0.5.1 の判定自体は v0.5.0 と byte-identical（新規デグレなし）で、これは説明の改善。
 - **メール通知の配信性（未決）**: 管理者宛のみ未達となる非対称（v0.4.2 報告2）はコード正常＝配信性（SPF/DKIM/DMARC・迷惑メール判定）の問題。切り分けは `docs/ops/email-deliverability.md`＋readme FAQ に集約済み。SMTP プラグイン案内など運用面の継続課題。
 - **v0.2.3 由来の backlog（REST パーマリンク／ロゴ 等）**: KEISUKE 把握の未着手項目。テスト系の既知例＝`tests/e2e/phase6-visibility.spec.js` の `page_id=7` ハードコード（Plain パーマリンクで nonce 未 localize）を `FRONT_PAGE_PATH` 化する別件（過去 state 記載）。ロゴ関連の具体内容は本セッション未確認＝要 KEISUKE 確認。
+
+## 📦 readme.txt と配布物の運用（2026-09-09 追記）
+
+### readme.txt は英語ソース／日本語は GlotPress から供給する
+- **2026-09-09: readme.txt を英語ソース化**（git `8ec3547` → SVN **rev 3687408**）。WordPress.org のプラグインディレクトリは**英語をベース言語として翻訳を扱い**、日本語表示は translate.wordpress.org（GlotPress）の ja 翻訳から出す。readme.txt を日本語で書くと「英語でもなく翻訳もされない」状態になるため、**日本語は今後 GlotPress の ja 翻訳から供給する**方針に変更した。
+- **日本語原稿は `docs/readme-ja.md`**。v0.5.3 時点（commit `5facdc8`）の Installation / FAQ / Screenshots / External services / Changelog / Upgrade Notice を**無改変**で保存したもの。GlotPress へ ja 翻訳を投入する際の原稿なので**1文字も書き換えない**こと。
+- **全リリース履歴は `CHANGELOG.md`**（リポジトリ直下・日本語・全13版）。readme.txt の Changelog は**直近3バージョンのみ**に絞り、末尾から GitHub の CHANGELOG.md へリンクする。
+- **`== Upgrade Notice ==` セクションは 2026-09-09 に削除した**。このセクションで表示されるのは更新先バージョンの項目のみで、旧版（0.2.3 / 0.2.0 / 0.1.0）は今後永久に表示されない。かつ日本語ソースは GlotPress の翻訳対象を無駄に増やす。**必要になるのは破壊的変更を伴うリリース時のみで、そのとき該当バージョンの項目だけを英語で1つ足せばよい。**
+- **git と SVN の readme.txt は md5 一致を維持する運用**とする。現在の一致値 `14f48486fe6bc23a076f6194bae0a589`（`~/dev/smart-booking/readme.txt` ＝ `trunk/readme.txt` ＝ `tags/0.5.3/readme.txt` の3ファイル）。片方だけ直すとドリフトするので、SVN 更新後は必ず git 側へ `cp` して md5 で突き合わせる。
+
+### ⚠️ readme.txt だけの更新でも trunk と tags/X.Y.Z の両方が要る
+WordPress.org は **/trunk/readme.txt の `Stable Tag` を読み、その値が指す `/tags/X.Y.Z/` を参照して**公開ページを組み立てる。`Stable Tag: 0.5.3` かつ `tags/0.5.3/` が存在する状態では、**trunk だけ更新してもページには反映されない**。readme.txt のみの修正であっても `trunk/readme.txt` と `tags/X.Y.Z/readme.txt` の**両方**を更新すること（このとき新しいタグは作らず、バージョンも据え置く）。
+
+### ⚠️ `.distignore` は `wp-scripts plugin-zip` では効かない
+- 配布 ZIP の内容を決めているのは **`node_modules/@wordpress/scripts/scripts/plugin-zip.js` のホワイトリスト glob**（`package.json` に `files` フィールドが無い場合に通る分岐）:
+
+  ```
+  admin/**  build/**  includes/**  languages/**  public/**
+  smart-booking.php  uninstall.php  block.json
+  changelog.*  license.*  readme.*        ← caseSensitiveMatch: false
+  ```
+
+- **`docs/` が ZIP に入らないのは、このリストに無いから**であって `.distignore` の効果ではない。`.distignore` に何行足しても `plugin-zip` は読まない（「`.distignore` に書いたのに ZIP から消えない」という混乱を防ぐこと）。
+- **`.distignore` が効くのは `wp dist-archive`（WP-CLI）を使う場合のみ。**
+- 副作用として **`CHANGELOG.md` は `changelog.*` にマッチするため ZIP に同梱される**。2026-09-09 にこれを是認した（古い changelog を別ファイルへ逃がすのは WordPress.org 推奨の慣例であり、`changelog.*` がホワイトリストにあるのはそのため。ディレクトリが解析するのは readme.txt のみで、CHANGELOG.md が日本語でもページの言語には影響しない）。次リリースの ZIP は 30 → **31 ファイル**になるのが正常。
 
 ## v0.5.1 機能追加: 空き状況表示のカスタマイズ（実装・検証 完了／ローカル・未push・2026-07-29）
 
