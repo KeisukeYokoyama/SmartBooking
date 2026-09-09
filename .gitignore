@@ -24,5 +24,8 @@ playwright-report/
 tests/e2e/.db-snapshot.json
 tests/e2e/screenshots/
 
+# 公式サイト ヘルプ用スクリーンショット（生成物・コミットしない。README は追跡する）
+docs/website-screenshots/**/*.png
+
 # API credentials (絶対にコミットしない)
 credentials/

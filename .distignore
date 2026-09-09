@@ -6,6 +6,7 @@ tests/
 test-results/
 playwright.config.js
 playwright.uninstall.config.js
+playwright.screenshots.config.js
 
 # Dev environment
 .wp-env.json
