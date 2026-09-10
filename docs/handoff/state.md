@@ -106,7 +106,7 @@ npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screensho
 
 ### 未解決（人間判断待ち）
 - 🟡 **`v050-form-mail-tab.spec.js:105`**: プロダクト実レースに起因する既存不具合（mobile 単独反復 5回中4回失敗）。**我々の変更起因ではなく回帰ゲートは Green**。`get_form_override()` が空 override を共通へフォールバックし REST が 400 で弾くためメール破損・データ汚染は起きない＝実害は「空欄プリセット＋原因不明の400」という UX 不具合。起票＝`docs/bugs/v050-form-mail-tab-common-template-race.md`。
-- **`phase1.spec.js:53` の正本同期**: 実テーブルは**7つ**（7番目は `smart_booking_forms`＝v0.4.0 で追加）。テストは6つ期待で赤、かつ **`docs/smart-booking-spec.md:647` と `CLAUDE.md:65` も「6つ」のまま**＝正本側にも陳腐化が波及。修正は人間承認付き。起票＝`docs/bugs/phase1-schema-expected-tables-stale.md`。
+- ✅ **`phase1.spec.js:53` の正本同期 — 解決済み（2026-09-10）**: 実テーブルは**7つ**（7番目は `smart_booking_forms`＝v0.4.0 で追加）で、**プロダクトは正常・`uninstall.php` は7つ DROP 済み・`readme.txt:153` は元から正しかった**＝陳腐化はテスト期待値と `docs/` 正本だけだった。`c4ea76f`（`phase1.spec.js` の `EXPECTED_TABLES` ＋ `phase1-uninstall.spec.js` の `toBe(6)`→`(7)` 2箇所・テスト名）／`79c1940`（`docs/smart-booking-spec.md:368` ・§5.11 ・§5.2 に `smart_booking_forms` 節を新設）で是正。**残るは `CLAUDE.md:65`「カスタムテーブル 6つ」のみ＝人間確認待ち。** 起票はクローズ済み（`docs/bugs/phase1-schema-expected-tables-stale.md`、決着記録は ADR 0002 §8）。
 - **`docs/help/markdown/` 13本の扱い**: コードから参照されるのは `gtm.md` のみ。3案を ADR 0002 §7.5 に記載（(b) は出荷コード変更を伴うため人間承認必須）。
 - **`店舗1` の見切れ**: 撮影で下端に約90px 残る。`phase6-visibility.spec.js:118` が「sort_order 最小の店舗1 が自動選択される」ことを前提とするため sort_order 退避は見送り＝**見切れ許容**（根拠は `docs/website-screenshots/README.md`）。削除は不可（`phase3-helpers.js:62-72` が id=2 を基線として再INSERT する load-bearing fixture）。
 - **既存赤29件が未台帳**／**E2E の `npx wp-env run cli` 由来 ETIMEDOUT フレーク**（`retries: 1` 等で解消可）。
