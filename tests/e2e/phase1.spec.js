@@ -29,6 +29,7 @@ function loadDbSnapshot() {
  */
 const EXPECTED_TABLES = [
 	'wp_smart_booking_custom_fields',
+	'wp_smart_booking_forms',
 	'wp_smart_booking_reservation_meta',
 	'wp_smart_booking_reservations',
 	'wp_smart_booking_schedules',
@@ -50,7 +51,7 @@ const ADMIN_PAGES = [
 // --- 1. DB: テーブル作成検証（WP-CLI） ----------------------------------------------------
 
 test.describe( 'Phase 1: DB スキーマ', () => {
-	test( '1-1. smart_booking_ テーブル 6 つすべてが存在する', () => {
+	test( '1-1. smart_booking_ テーブル 7 つすべてが存在する', () => {
 		const snap = loadDbSnapshot();
 		expect( snap.tables.sort() ).toEqual( EXPECTED_TABLES );
 	} );
