@@ -96,6 +96,38 @@ reservations / custom-fields / design / email / google-calendar / chatwork
 「シードが無くてもページ自体は開けて撮影できる」形を優先し、シード依存の文字列を待つ場合は
 その旨をコメントで明記すること。
 
+## 店舗一覧カットに写る `店舗1` の見切れは「許容」する（検討済み・変更しない）
+
+`docs/website-screenshots/stores/01-store-list.png` の下端には、回帰スイートのフィクスチャ
+`店舗1`（id=2・住所も電話もメールも空）のカード上部が約90px 残る。**これは既知であり、
+解消しないと決定した。** 削除案・`sort_order` 退避案の両方を検討したうえでの結論なので、
+蒸し返す前に以下を読むこと。
+
+- **削除は不可**: `店舗1`（id=2）は回帰スイートの load-bearing fixture。
+  `tests/e2e/phase3-helpers.js` の `restoreBaseline()` が `USER_STORE_ID = 2` として毎回
+  再 INSERT し、`tests/e2e/bug-a-plain-regate.spec.js` / `phase2-reservations-smoke.spec.js` /
+  `phase3-flow.spec.js` が `store_id: 2` に依存している。消すと回帰が壊れる。
+- **デモ店舗の採番による押し下げは実施済み**: デモ店舗を `渋谷=1 / 新宿=2 / 横浜=3` に採番し、
+  `店舗1`（`sort_order=10`）を4番目へ落とすところまでは**実施済み**。これにより `横浜店` が
+  フレーム内に収まり、「空のカードが一等地を占める」問題は解消している。
+- **`店舗1` 自体の `sort_order` を 999 等へ退避する案は、検討したうえで見送った**:
+  `店舗1` の `sort_order` には回帰テストの依存が存在するため。依存の実体は
+  `tests/e2e/phase6-visibility.spec.js:118` のコメント
+  `// 店舗選択ステップは表示されない（OFF + 自動で sort_order 最小の店舗1 が選ばれる）。`
+  — 同 spec は `insertStore( '渋谷店', { sort_order: 30 } )` を投入したうえで、
+  **`店舗1`（`sort_order=10`）が「`sort_order` 最小のユーザー店舗」であり続けること**を前提に
+  自動選択の挙動を検証している。
+  ただし正確に書けば、`restoreBaseline()` が回帰実行のたびに `店舗1` を `sort_order=10` で
+  再 INSERT するため、**撮影シード側で退避しても回帰実行時には自動的に戻り、回帰が壊れる経路は
+  実際には無い**。それでも「`sort_order` に依存するテストが存在する」こと自体を尊重し、
+  安全側に倒して見送った。
+
+**結論**: カード4枚で 720px を約17px 超過するのは、v0.4.1 以降ショートコード行が追加されて
+カードが縦に高くなったため。下端の見切れは**「リストが下に続く」ことを示すもの**として許容する。
+
+> 将来 `tests/e2e/phase6-visibility.spec.js:118` の `sort_order` 依存が解消されたら、
+> `店舗1` の `sort_order` 退避案を再検討してよい。
+
 ## サイト側リポジトリへ渡す手順
 
 > ⛔ **渡し先はサイト側だけ。プラグイン側 `docs/help/images/` は廃止済みなので、そこへは戻さない。**
