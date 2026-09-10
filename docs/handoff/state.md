@@ -8,6 +8,7 @@
 
 - **WordPress.org 公開版 = v0.5.3**（SVN **rev 3650340**・**2026-08-17 公開済み**）。予約フォームのバリデーション表示（入力不備時にインラインエラー＋該当欄フォーカス）／主要項目の文字数上限（電話20・氏名/メール255）／予約一覧「受付日時」列を左から2番目へ移動／手動予約作成で電話番号必須。前版 v0.5.2（rev 3650270・2026-08-16）ほかは下記「公開履歴」表。
 - **main = v0.5.3**（バージョン4箇所一致・**タグ `v0.5.3` push 済み**＝`origin` に `refs/tags/v0.5.3`。release commit `5facdc8`／機能 commit `77252b8`(A/B front-form)・`5a82106`(C 受付日時列)・`9aadbe1`(D 手動予約 phone 必須)・docs `9ffdd40`）。`origin/main..main` 空＝**main も push 済み**。
+- **readme.txt は 2026-09-10 に `Tested up to: 7.1` へ更新済み**（SVN **rev 3689785**・`trunk` と `tags/0.5.3` の両方・バージョン据え置き）。Plugin Check の `outdated_tested_upto_header` ERROR は解消。詳細は下記「🔎 Tested up to を 7.1 へ是正」。
 - **readme.txt は 2026-09-09 に英語ソース化**（git `8ec3547` / SVN **rev 3687408**・`trunk` と `tags/0.5.3` の両方）。バージョンは **0.5.3 のまま据え置き**（新タグなし・配布物は無変更）。詳細は下記「📦 readme.txt と配布物の運用」。
 - **⚠️ 未コミットの開発成果は現在なし**（v0.5.3 は公開・コミット済み）。作業ツリーは clean（未追跡 `docs/investigation/` を除く）。
 
@@ -26,6 +27,12 @@
 | **0.5.3** | **3650340** | **2026-08-17** | **予約フォームのバリデーション表示／文字数上限（電話20・氏名/メール255）／受付日時列を左から2番目へ移動／手動予約で電話必須 ← 最新公開** |
 
 （rev/日付の出典: `svn log`。0.2.2 は CLAUDE.md 記載値。）
+
+**readme.txt のみの更新（版据え置き・新タグなし）**:
+| SVN rev | 公開日 | 内容 |
+|---|---|---|
+| 3687408 | 2026-09-09 | readme.txt を英語ソース化 |
+| **3689785** | **2026-09-10** | **`Tested up to: 7.0` → `7.1`**（検索結果に出ない実損の是正） |
 
 ### バージョン状態の確認手順（state.md を信じる前に実体を確認する）
 ```
@@ -67,7 +74,7 @@ cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（
 - **集約モードのしきい値ヘルプ文言追記**（v0.5.1 GO 前調査で確認・軽微・非デグレ）: 「残りわずかのしきい値」は担当者非表示（既定）時、同一時刻の**全担当者を合算した総空き数**で判定される（`aggregate_by_timeslot()` が capacity/booked を合算）。設定ヘルプに「担当者を表示しない場合は全担当者の空きを合算した数で判定します」を明記すると誤解を防げる。v0.5.1 の判定自体は v0.5.0 と byte-identical（新規デグレなし）で、これは説明の改善。
 - **メール通知の配信性（未決）**: 管理者宛のみ未達となる非対称（v0.4.2 報告2）はコード正常＝配信性（SPF/DKIM/DMARC・迷惑メール判定）の問題。切り分けは `docs/ops/email-deliverability.md`＋readme FAQ に集約済み。SMTP プラグイン案内など運用面の継続課題。
 - **v0.2.3 由来の backlog（REST パーマリンク／ロゴ 等）**: KEISUKE 把握の未着手項目。テスト系の既知例＝`tests/e2e/phase6-visibility.spec.js` の `page_id=7` ハードコード（Plain パーマリンクで nonce 未 localize）を `FRONT_PAGE_PATH` 化する別件（過去 state 記載）。ロゴ関連の具体内容は本セッション未確認＝要 KEISUKE 確認。
-## 🔎 Tested up to を 7.1 へ是正（2026-09-10／commit `68f6bbd`・push 済み／**SVN commit は GO 待ち**）
+## 🔎 Tested up to を 7.1 へ是正（2026-09-10／**WordPress.org 公開済み・SVN rev 3689785**）
 
 **背景**: Plugin Check が `ERROR,outdated_tested_upto_header`（`Tested up to: 7.0` < 7.1）を出しており、**最新版で未テストのプラグインは WordPress.org のディレクトリ検索結果に表示されない**。実損が出続けていた。
 
@@ -98,17 +105,15 @@ cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（
 
 **結論: WP 7.1 起因の新規失敗ゼロ。readme 更新の根拠として十分。**
 
-### SVN の現在地（**`svn ci` は人間 GO 待ち**）
-`~/dev/smart-booking-svn` は `svn up` 済み（r3689462）。`trunk/readme.txt` と `tags/0.5.3/readme.txt` の**両方**に反映済みで、`svn status` は `M` 2件のみ・`.DS_Store` 等の混入ゼロ・`svn diff` は `Tested up to` の1行×2ファイルのみ。3ファイルの md5 一致 = `8ec8d9b3934ea415f6870d87ae26b800`（`~/dev/smart-booking/readme.txt` ＝ `trunk` ＝ `tags/0.5.3`）。
+### SVN 公開（完了・2026-09-10）
+`svn ci -m "Update Tested up to for WordPress 7.1"` → **rev 3689785**。`trunk/readme.txt` と `tags/0.5.3/readme.txt` の**両方**を更新（新タグは作らず・バージョンは 0.5.3 据え置き・配布 ZIP は無変更）。commit 後 `svn status` は空＝clean。
+
+**反映確認（実測）**: `svn cat` でリモートの `trunk` / `tags/0.5.3` とも `Tested up to: 7.1` を確認。プラグインディレクトリ API
+（`https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request[slug]=smart-booking`）が
+`"tested":"7.1"` / `"version":"0.5.3"` / `last_updated 2026-09-10 10:59am GMT` を返すことを確認済み。
+※検索インデックスへの反映にはさらに時間がかかる場合がある。
 
 > **なぜ tags/0.5.3 も要るか**: WordPress.org は `trunk/readme.txt` の `Stable Tag` を読み、その値が指す `tags/X.Y.Z/` を参照してページを組む。`trunk` だけ更新してもページには反映されない（本ファイル「📦 readme.txt と配布物の運用」節）。
-
-GO 後に叩くコマンド:
-```
-cd ~/dev/smart-booking-svn
-svn ci -m "Update Tested up to for WordPress 7.1" --username liberdadeinc
-```
-
 
 ## 📸 ヘルプ画像 撮影基盤の新設（2026-09-09／4コミット・**push 済み**〈2026-09-10 実測で確認。旧記述「未push」は誤り〉）
 
