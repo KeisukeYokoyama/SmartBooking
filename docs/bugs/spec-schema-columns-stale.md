@@ -1,6 +1,7 @@
 # 別件（ドキュメント負債）: `docs/smart-booking-spec.md` §5.2 のテーブル定義が実装とカラムレベルで乖離（6カラム欠落）
 
 最終更新: 2026-09-10
+ステータス: 🟢 **クローズ（2026-09-10 是正済み・未リリース）**。不足6カラムを実装の列順どおりの位置へ挿入し、全7節の機械照合で**不足0・余剰0・列順一致**を確認した。是正コミットは末尾「進捗更新」節。
 起票元: テーブル数陳腐化の是正（commit `79c1940`）作業中に backend-generator がスコープ外の発見として報告し、人間承認のうえ起票。
 重大度: 🟡 中（**配布プラグインの挙動には影響しない**＝ユーザー影響ゼロ。ただし `docs/smart-booking-spec.md` は `CLAUDE.md` が「凍結された正本」と定める文書であり、新規実装・外部委託・次セッションの参照元になるため、乖離は誤実装の温床である）。
 トラック: 出荷コードとは**完全に独立**。本起票では**コードもテストも `docs/smart-booking-spec.md` 本体も1バイトも変更しない（記録のみ）**。是正は**人間 GO 待ち**。
@@ -114,3 +115,49 @@
 - `docs/bugs/phase1-schema-expected-tables-stale.md` — 同一原因の先行事例（テーブル数の陳腐化。2026-09-10 クローズ済み）。本件はその**続き**にあたる。
 - `docs/decisions/0002-screenshot-spec-separation.md` §8 — テーブル数陳腐化の決着記録。§8.5 が再発防止の3点セット。
 - `includes/class-activator.php::create_tables()`（`:475`〜`:634`）— **スキーマの実質的な正本**。カラム定義の唯一の出所であり、列を追加する `ALTER TABLE` は存在しない（`:290` / `:348` / `:354` はいずれもインデックス操作のみ）ため、`create_tables()` を読めば現行スキーマのカラムは完全に確定できる。
+
+
+---
+
+## 進捗更新（2026-09-10）: 是正完了・クローズ
+
+人間の GO を受けて是正した。**出荷コードは1バイトも変更していない**（`docs/smart-booking-spec.md` のみ）。
+
+### 是正した6カラム（すべて実装の列順どおりの位置へ挿入。表の末尾には足していない）
+
+| テーブル | カラム | 挿入位置 | 追加Ver |
+|---|---|---|---|
+| `stores` | `is_system` | `is_active` と `sort_order` の間 | v0.2.0 |
+| `staff` | `is_system` | `is_active` と `sort_order` の間 | v0.2.0 |
+| `reservations` | `form_id` | `id` の直後（2番目） | v0.4.0 |
+| `custom_fields` | `form_id` | `id` の直後（2番目） | v0.4.0 |
+| `custom_fields` | `condition_field_key` | `sort_order` と `created_at` の間 | v0.3.0 |
+| `custom_fields` | `condition_value` | `condition_field_key` の直後 | v0.3.0 |
+
+### 追加バージョンの裏取り（起票時の宿題を解消）
+
+起票時点では追加バージョンが `class-activator.php` のコメント由来で、**コメント自体の誤りが排除できていなかった**。コミット履歴と突き合わせて確定した。
+
+| カラム | 導入コミット | 日付 | 時点の `package.json` | → 出荷版 |
+|---|---|---|---|---|
+| `is_system` | `9030e3b` Gen-A: システムエンティティ方式 | 2026-04-26 | 0.1.0 | **v0.2.0** |
+| `condition_field_key` / `condition_value` | `14a2c9c` feat(custom-fields): 条件フィールド | 2026-07-14 | 0.2.3 | **v0.3.0** |
+| `form_id`（reservations / custom_fields） | `5a434dc` feat(db): 複数フォームのDBスキーマ | 2026-07-15 | 0.3.0 | **v0.4.0** |
+
+判定方法: コミット時点の `package.json` は**リリース bump 前の版**なので、機能はその次のリリースで出荷される。3件とも `class-activator.php` のコメント記載と一致し、**コメントに誤りは無かった**。
+
+### 機械照合の結果（是正後）
+
+実装 DDL（`create_tables()` の `CREATE TABLE` 定義からキー行を除外して抽出）と §5.2 の表を全7節で突き合わせた。
+
+```
+OK stores             impl=15 spec=15 missing=[] extra=[] order_match=True
+OK staff              impl=12 spec=12 missing=[] extra=[] order_match=True
+OK schedules          impl=11 spec=11 missing=[] extra=[] order_match=True
+OK reservations       impl=14 spec=14 missing=[] extra=[] order_match=True
+OK reservation_meta   impl= 4 spec= 4 missing=[] extra=[] order_match=True
+OK forms              impl= 7 spec= 7 missing=[] extra=[] order_match=True
+OK custom_fields      impl=12 spec=12 missing=[] extra=[] order_match=True
+```
+
+**不足0・余剰0・列順一致。** 起票時に「照合対象外」とした `UNIQUE KEY` 等のインデックス定義は、既存 spec 節の粒度外という判断を維持し、今回も正本化していない（`custom_fields.form_id` の説明文に複合 UNIQUE の存在だけは明記した）。

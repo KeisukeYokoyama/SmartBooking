@@ -384,6 +384,7 @@ Smart Booking
 | image_id | bigint | WPメディアライブラリの添付ID |
 | calendar_color | varchar(7) | カレンダー表示色（HEXカラーコード。管理画面で店舗を色分け表示） |
 | is_active | tinyint(1) | 有効/無効 |
+| is_system | tinyint(1) | システム作成のデフォルト店舗フラグ（1＝プラグイン有効化時に自動生成した「デフォルト」。削除・並び替えの対象外。v0.2.0で追加） |
 | sort_order | int | 表示順 |
 | created_at | datetime | 作成日時 |
 | updated_at | datetime | 更新日時 |
@@ -400,6 +401,7 @@ Smart Booking
 | description | text | プロフィール・紹介文 |
 | image_id | bigint | プロフィール写真（WPメディアID） |
 | is_active | tinyint(1) | 有効/無効 |
+| is_system | tinyint(1) | システム作成のデフォルト担当者フラグ（1＝プラグイン有効化時に自動生成した「デフォルト」。削除・並び替えの対象外。v0.2.0で追加） |
 | sort_order | int | 表示順 |
 | created_at | datetime | 作成日時 |
 | updated_at | datetime | 更新日時 |
@@ -425,6 +427,7 @@ Smart Booking
 | カラム | 型 | 説明 |
 |--------|-----|------|
 | id | bigint PK | 自動採番（予約番号として使用） |
+| form_id | bigint FK | 予約を受け付けたフォーム（0＝フォーム未指定。v0.4.0で追加） |
 | store_id | bigint FK | 店舗 |
 | staff_id | bigint FK | 担当者 |
 | schedule_id | bigint FK | 予約枠 |
@@ -464,6 +467,7 @@ Smart Booking
 | カラム | 型 | 説明 |
 |--------|-----|------|
 | id | bigint PK | 自動採番 |
+| form_id | bigint FK | 所属フォーム（0＝全フォーム共通。field_key の一意性は (form_id, field_key) の複合UNIQUE。v0.4.0で追加） |
 | field_key | varchar(100) | フィールド識別子 |
 | field_label | varchar(255) | 表示ラベル |
 | field_type | varchar(20) | text / email / tel / textarea / select / radio / checkbox |
@@ -471,6 +475,8 @@ Smart Booking
 | placeholder | varchar(255) | プレースホルダーテキスト |
 | is_required | tinyint(1) | 必須/任意 |
 | sort_order | int | 表示順 |
+| condition_field_key | varchar(100) | 条件フィールド: 表示条件に使う他フィールドの field_key（NULL＝常に表示。v0.3.0で追加） |
+| condition_value | varchar(255) | 条件フィールド: condition_field_key の値がこれと一致したときだけ表示する（v0.3.0で追加） |
 | created_at | datetime | 作成日時 |
 
 ### 5.3 ファイル構成
