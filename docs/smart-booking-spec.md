@@ -365,7 +365,7 @@ Smart Booking
 
 ### 5.2 DB設計
 
-6テーブル構成。プレフィックスは `{$wpdb->prefix}smart_booking_`。
+7テーブル構成。プレフィックスは `{$wpdb->prefix}smart_booking_`。
 
 プラグイン有効化時にデフォルトの店舗1つ・担当者1つを自動作成する（NULLを許可しない設計）。店舗・担当者が1つのみの場合、予約フローでは選択ステップをスキップし、ユーザーからは見えない。
 
@@ -446,6 +446,18 @@ Smart Booking
 | reservation_id | bigint FK | 予約ID |
 | meta_key | varchar(255) | フィールドキー |
 | meta_value | text | 入力値 |
+
+#### smart_booking_forms（フォームマスター）
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| id | bigint PK | 自動採番 |
+| name | varchar(255) | フォーム名 |
+| is_default | tinyint(1) | デフォルトフォーム（フォーム未指定時に使用） |
+| sort_order | int | 表示順 |
+| mail_overrides | longtext | フォーム別メール文面の上書き（種別ごとの件名/本文をJSONで保持。NULL＝共通のメール設定を使用。v0.5.0で追加） |
+| created_at | datetime | 作成日時 |
+| updated_at | datetime | 更新日時 |
 
 #### smart_booking_custom_fields（フォームフィールド定義）
 
@@ -644,7 +656,7 @@ WHERE id = %d AND booked_count < capacity
 
 `uninstall.php` で以下をすべて削除する:
 
-- カスタムテーブル6つ（smart_booking_stores, smart_booking_staff, smart_booking_schedules, smart_booking_reservations, smart_booking_reservation_meta, smart_booking_custom_fields）
+- カスタムテーブル7つ（smart_booking_stores, smart_booking_staff, smart_booking_schedules, smart_booking_reservations, smart_booking_reservation_meta, smart_booking_forms, smart_booking_custom_fields）
 - `wp_options` に保存したプラグイン設定値（`smart_booking_` プレフィックスのオプション）
 
 データを残す選択肢は設けない。
