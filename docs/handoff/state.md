@@ -67,8 +67,50 @@ cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（
 - **集約モードのしきい値ヘルプ文言追記**（v0.5.1 GO 前調査で確認・軽微・非デグレ）: 「残りわずかのしきい値」は担当者非表示（既定）時、同一時刻の**全担当者を合算した総空き数**で判定される（`aggregate_by_timeslot()` が capacity/booked を合算）。設定ヘルプに「担当者を表示しない場合は全担当者の空きを合算した数で判定します」を明記すると誤解を防げる。v0.5.1 の判定自体は v0.5.0 と byte-identical（新規デグレなし）で、これは説明の改善。
 - **メール通知の配信性（未決）**: 管理者宛のみ未達となる非対称（v0.4.2 報告2）はコード正常＝配信性（SPF/DKIM/DMARC・迷惑メール判定）の問題。切り分けは `docs/ops/email-deliverability.md`＋readme FAQ に集約済み。SMTP プラグイン案内など運用面の継続課題。
 - **v0.2.3 由来の backlog（REST パーマリンク／ロゴ 等）**: KEISUKE 把握の未着手項目。テスト系の既知例＝`tests/e2e/phase6-visibility.spec.js` の `page_id=7` ハードコード（Plain パーマリンクで nonce 未 localize）を `FRONT_PAGE_PATH` 化する別件（過去 state 記載）。ロゴ関連の具体内容は本セッション未確認＝要 KEISUKE 確認。
+## 🔎 Tested up to を 7.1 へ是正（2026-09-10／commit `68f6bbd`・push 済み／**SVN commit は GO 待ち**）
 
-## 📸 ヘルプ画像 撮影基盤の新設（2026-09-09／ローカル4コミット・未push）
+**背景**: Plugin Check が `ERROR,outdated_tested_upto_header`（`Tested up to: 7.0` < 7.1）を出しており、**最新版で未テストのプラグインは WordPress.org のディレクトリ検索結果に表示されない**。実損が出続けていた。
+
+**変更（1行のみ）**: `readme.txt` の `Tested up to: 7.0` → `7.1`。併せて `.wp-env.json` の `core` を `WordPress/WordPress#7.0` → `#7.1` に**恒久変更**（readme が主張するバージョンと開発環境を一致させるため）。**バージョン4箇所は 0.5.3 のまま据え置き・出荷コードの差分は 0 バイト・readme Changelog へのエントリなし**（2026-09-09 の readme 英語ソース化と同じ「メタデータのみ・版据え置き」運用）。
+
+### WP 7.1 + PHP 8.3 での実測（2026-09-10）
+- 有効化 / 無効化サイクル正常・**7テーブル維持**・`smart_booking_db_version` 0.5.3 不変・`wp core update-db` は「already at latest」。
+- **E2E フルスイート 607 passed / 32 failed / 8 skipped / 65 did not run（2.7h・desktop + mobile）**。
+- **★スイート全体を通して PHP notices / warnings / deprecations がゼロ★**（`WP_DEBUG_LOG` を一時有効化して実行 → `debug.log` が1バイトも生成されなかった。検証後に削除済み）。**これが「WP 7.1 で動作する」ことの最も強い証拠。**
+- **Plugin Check: ERROR 1 → 0**（`readme.txt` が結果から消滅）。残る WARNING 7件は `.gitignore` / `.distignore` / `.claude` / `CLAUDE.md` / `tests/mu-plugins/*` のみ＝**配布 ZIP に含まれない開発成果物**で before と同一。
+
+### 32件の赤は WP 7.1 起因ではない（判定手続きと結論）
+⚠️ **前提の訂正**: 「前回セッションで記録した既存赤の一覧」は**存在しない**。ADR 0002 §5(2) と本ファイル該当節が記録しているのは**件数だけ**（before 32赤 / after 30赤 / 共通29件）で、テスト名の列挙はどこにも無い（§5(2) 自身が「既存赤29件が未台帳」と明記）。そのため**同一コードの WP 7.0 ベースラインを本セッションで実測し直して**突き合わせた。
+
+| 集合 | 件数 | 内訳 |
+|---|---|---|
+| WP 7.1 フルスイート | 32赤 | — |
+| WP 7.0 ベースライン（該当18ファイル） | 28赤 | 1.2h |
+| 共通（既存赤） | **24件** | — |
+| 7.1 のみ | 8件 | → 単独再実行で判定（下記） |
+| **7.0 のみ**（7.1 では緑） | **4件** | 失敗集合が**双方向に揺れている**＝バージョン起因ではない決定的証拠 |
+
+**7.1 のみ 8件の判定（WP 7.1 で spec 単独再実行）**:
+- **6件が緑＝フレーク確定**: `phase2-form-settings:79` / `phase2-settings:703` / `phase4-email:345`・`:476` / `regression-settings-reflection:168` / `v050-form-mail-overrides:155`・`:299`。
+- **残る2件は `phase6-visibility:171`（desktop / mobile）＝起票済みの既存赤**。失敗本文は `page.goto('/?page_id=7')` → `waitForFunction` 90秒タイムアウトで、`docs/bugs/phase6-visibility-flaky-page-id-7.md`（2026-07-14 起票・`page_id=7` ハードコード・当時 `git stash` ベースラインで再現済み）と**完全一致**。
+
+> **★教訓（serial モードの落とし穴）★**: `phase4-email` / `phase6-visibility` / `regression-settings-reflection` / `v050-form-mail-overrides` の4ファイルは `mode: 'serial'` を宣言している。**1件落ちると後続は "did not run" になり、失敗一覧にも成功一覧にも現れない。** 7.0 で `phase6-visibility:171`(desktop) が緑に見えたのは `:102` が先に落ちた結果の did-not-run であって **passed ではなかった**。「失敗リストの差分」だけで既存赤/新規赤を仕分けると**この穴に落ちる**。ADR 0002 §3 が記録した「差分赤の正体は毎回1件出る wp-env タイムアウトがどこに当たったかの違い」と同型の現象。
+
+**結論: WP 7.1 起因の新規失敗ゼロ。readme 更新の根拠として十分。**
+
+### SVN の現在地（**`svn ci` は人間 GO 待ち**）
+`~/dev/smart-booking-svn` は `svn up` 済み（r3689462）。`trunk/readme.txt` と `tags/0.5.3/readme.txt` の**両方**に反映済みで、`svn status` は `M` 2件のみ・`.DS_Store` 等の混入ゼロ・`svn diff` は `Tested up to` の1行×2ファイルのみ。3ファイルの md5 一致 = `8ec8d9b3934ea415f6870d87ae26b800`（`~/dev/smart-booking/readme.txt` ＝ `trunk` ＝ `tags/0.5.3`）。
+
+> **なぜ tags/0.5.3 も要るか**: WordPress.org は `trunk/readme.txt` の `Stable Tag` を読み、その値が指す `tags/X.Y.Z/` を参照してページを組む。`trunk` だけ更新してもページには反映されない（本ファイル「📦 readme.txt と配布物の運用」節）。
+
+GO 後に叩くコマンド:
+```
+cd ~/dev/smart-booking-svn
+svn ci -m "Update Tested up to for WordPress 7.1" --username liberdadeinc
+```
+
+
+## 📸 ヘルプ画像 撮影基盤の新設（2026-09-09／4コミット・**push 済み**〈2026-09-10 実測で確認。旧記述「未push」は誤り〉）
 
 **成果**: 公式サイト（`~/dev/smart-booking-website`）のヘルプ画像を wp-env の実画面から再現性のある形で自動撮影する基盤を新設。**出荷コードは全4コミットで無変更**（`includes/ src/ smart-booking.php uninstall.php readme.txt` の差分ゼロ）。
 
@@ -121,6 +163,8 @@ npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screensho
 - **`店舗1` の見切れ**: 撮影で下端に約90px 残る。`phase6-visibility.spec.js:118` が「sort_order 最小の店舗1 が自動選択される」ことを前提とするため sort_order 退避は見送り＝**見切れ許容**（根拠は `docs/website-screenshots/README.md`）。削除は不可（`phase3-helpers.js:62-72` が id=2 を基線として再INSERT する load-bearing fixture）。
 - 🟡 **`docs/bugs/phase1-uninstall-no-fixture-restore.md`（2026-09-10 起票）**: 破壊的スイート `phase1-uninstall.spec.js` が実行後に **E2E 基線フィクスチャ（store/staff `id=2`）を復旧しない**。戻るのはテーブル構造と Activator の seed（`id=1` のみ）だけ。破壊的 spec の直後に `restoreSnapshot()` を持たない自前シード系 spec を回すと**誤った赤**が出る。今回フィクスチャが戻ったのは後続 spec が偶然 `restoreSnapshot()` を走らせたからで、**設計ではなく偶然**。修正案＝`test.afterAll` で `phase2-helpers.restoreSnapshot()` を呼ぶ／運用手順の明文化。**修正は GO 待ち。**
 - 🟡 **`docs/bugs/spec-schema-columns-stale.md`（2026-09-10 起票）**: `docs/smart-booking-spec.md` §5.2 が実装と**カラムレベル**で乖離（不足6件・4テーブル＝`stores.is_system` / `staff.is_system` / `reservations.form_id` / `custom_fields.form_id`・`condition_field_key`・`condition_value`）。テーブル数の陳腐化と**同一原因**で、テーブル数はその氷山の一角だった。ドキュメントのみ・ユーザー影響ゼロ。**是正は GO 待ち**（spec は凍結された正本）。
+- 🟡 **`docs/bugs/mail-var-schedule-time-desc-stale.md`（2026-09-10 起票）**: `{schedule_time}` の説明が管理画面・仕様書とも「例: 14:00〜」だが実出力は「14:00〜15:00」。**ヘルプ（サイト側）が正・管理画面が誤**の逆転。変更は2行（`TemplateVariableHelper.jsx:15` ＋ `smart-booking-spec.md:596`）だが `build/admin.js` にバンドル済みのため**リリースを伴う**。**修正は GO 待ち。**
+- 🟡 **`docs/bugs/mail-admin-off-store-empty-silent-skip.md`（2026-09-10 起票）**: 管理者トグル OFF ＋ 店舗メール未設定で、担当者メールがあっても管理者系通知が `class-email.php:123` で完全無言に抑止される（transient 記録も無いため警告バナーも出ない）。UI 文言3箇所（`MailSettingsTab.jsx:363`・`:422`／`StaffFormModal.jsx:141`）が逆のことを述べている。**推奨＝案A（文言是正）＋案C（無言 skip の可視化・スコープ付き）。案B（担当者を To へ昇格）は非推奨**＝既存サイトの通知先を無操作で変え、仕様書 §8.2「担当者＝CC」から逸脱するため。⚠️「ADR/起票に3案が記載済み」という前提は誤りで、**そのような記録は存在しない**（本起票で新規に整理）。**修正は GO 待ち。**
 - **既存赤29件が未台帳**／**E2E の `npx wp-env run cli` 由来 ETIMEDOUT フレーク**（`retries: 1` 等で解消可）。
 
 ### 次の一手
@@ -128,7 +172,7 @@ npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screensho
 
 ---
 
-## 🗂 スキーマ「テーブル数」の陳腐化を是正（2026-09-10／ローカル5コミット・未push）
+## 🗂 スキーマ「テーブル数」の陳腐化を是正（2026-09-10／5コミット・**push 済み**〈2026-09-10 実測で確認。旧記述「未push」は誤り〉）
 
 **確定結論**: 実テーブルは **7つ**。**プロダクトは正常**だった（`class-activator.php::create_tables()` が7つ dbDelta ／ `uninstall.php:32`〜`:38` が7つ DROP ／ `readme.txt:153` は元から "seven"）。**陳腐化していたのはテスト期待値と `docs/` 正本だけ。** 詳細は `docs/bugs/phase1-schema-expected-tables-stale.md`（クローズ済み）と ADR 0002 §8。
 
@@ -177,7 +221,7 @@ npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screensho
 - **日本語原稿は `docs/readme-ja.md`**。v0.5.3 時点（commit `5facdc8`）の Installation / FAQ / Screenshots / External services / Changelog / Upgrade Notice を**無改変**で保存したもの。GlotPress へ ja 翻訳を投入する際の原稿なので**1文字も書き換えない**こと。
 - **全リリース履歴は `CHANGELOG.md`**（リポジトリ直下・日本語・全13版）。readme.txt の Changelog は**直近3バージョンのみ**に絞り、末尾から GitHub の CHANGELOG.md へリンクする。
 - **`== Upgrade Notice ==` セクションは 2026-09-09 に削除した**。このセクションで表示されるのは更新先バージョンの項目のみで、旧版（0.2.3 / 0.2.0 / 0.1.0）は今後永久に表示されない。かつ日本語ソースは GlotPress の翻訳対象を無駄に増やす。**必要になるのは破壊的変更を伴うリリース時のみで、そのとき該当バージョンの項目だけを英語で1つ足せばよい。**
-- **git と SVN の readme.txt は md5 一致を維持する運用**とする。現在の一致値 `14f48486fe6bc23a076f6194bae0a589`（`~/dev/smart-booking/readme.txt` ＝ `trunk/readme.txt` ＝ `tags/0.5.3/readme.txt` の3ファイル）。片方だけ直すとドリフトするので、SVN 更新後は必ず git 側へ `cp` して md5 で突き合わせる。
+- **git と SVN の readme.txt は md5 一致を維持する運用**とする。現在の一致値 `8ec8d9b3934ea415f6870d87ae26b800`（2026-09-10 の Tested up to 7.1 反映後。それ以前は `14f48486fe6bc23a076f6194bae0a589`）（`~/dev/smart-booking/readme.txt` ＝ `trunk/readme.txt` ＝ `tags/0.5.3/readme.txt` の3ファイル）。片方だけ直すとドリフトするので、SVN 更新後は必ず git 側へ `cp` して md5 で突き合わせる。
 
 ### ⚠️ readme.txt だけの更新でも trunk と tags/X.Y.Z の両方が要る
 WordPress.org は **/trunk/readme.txt の `Stable Tag` を読み、その値が指す `/tags/X.Y.Z/` を参照して**公開ページを組み立てる。`Stable Tag: 0.5.3` かつ `tags/0.5.3/` が存在する状態では、**trunk だけ更新してもページには反映されない**。readme.txt のみの修正であっても `trunk/readme.txt` と `tags/X.Y.Z/readme.txt` の**両方**を更新すること（このとき新しいタグは作らず、バージョンも据え置く）。
