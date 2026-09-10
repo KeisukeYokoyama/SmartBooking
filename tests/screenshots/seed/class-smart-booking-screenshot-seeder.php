@@ -25,6 +25,10 @@
  *   スケジュール / 予約は「今日からの相対日付」で作るためレジストリ id スコープで削除→再生成する（id は変わる）。
  * - **孤児を作らない**: 削除は 予約メタ → 予約 → スケジュール の順。さらにレジストリ外の予約から
  *   参照されているスケジュールは削除せず保護する（保護した id はレジストリに残す）。
+ * - **デモ店舗 / デモ担当者は一覧の先頭に出す**: sort_order を 1 から固定採番する（DEMO_SORT_START）。
+ *   回帰用フィクスチャ `店舗1` / `担当者1`（sort_order=10・tests/e2e/phase3-helpers.js が基線として
+ *   再 INSERT する行）を消さずに、デモ側を上へ出すための非破壊の手段。フィクスチャの行には触れない。
+ *   システムエンティティ `デフォルト`（is_system=1・sort_order=0）が最小である前提は崩さない。
  * - **出力は CLI テキスト**: `error_log()` は使わない。WP_CLI::log()（無い環境では echo）。
  *   HTML 文脈ではないため esc_html() は適用しない（ターミナル出力を壊さないため）。
  *
@@ -115,6 +119,30 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			'smart_booking_show_store_front' => 1,
 			'smart_booking_show_staff_front' => 1,
 		);
+
+		/**
+		 * デモ店舗 / デモ担当者に与える sort_order の開始値（以降 +1 ずつ）。
+		 *
+		 * なぜ「小さい固定値」なのか:
+		 *   管理画面の一覧は sort_order ASC, id ASC（includes/rest/class-rest-stores.php::get_items() /
+		 *   class-rest-staff.php::get_items()）。既存の回帰用フィクスチャ（`店舗1` / `担当者1`・
+		 *   sort_order=10・tests/e2e/phase3-helpers.js が基線として再 INSERT する行）が先頭に居ると、
+		 *   住所も電話も空のカードがマニュアル画像の一等地に写り込んでしまう。
+		 *   フィクスチャは回帰スイートが依存する load-bearing な行なので削除も更新もできない。
+		 *   そこで「デモ側の sort_order をフィクスチャ(10)より小さくして上に並べる」非破壊の方法を採る。
+		 *   撤去（purge）でデモ行ごと消えるため元の並びに完全復帰する。
+		 *
+		 * 1 から始める理由:
+		 *   0 はシステムエンティティ `デフォルト`（is_system=1）が使っており、
+		 *   「デフォルト = sort_order 最小」という前提（v0.5.2）を崩さないため 0 は避ける。
+		 *   負値も同じ理由で使わない。
+		 *
+		 * 既存ユーザー行との衝突について:
+		 *   ユーザーの店舗が 1〜3 を使っていると同値になり id ASC で順序が決まる（デモが後ろになる）。
+		 *   これは撮影用の開発ツールとして許容する。撮影は wp-env のクリーン環境で行う前提であり、
+		 *   ユーザー行を書き換えて回避することは（非破壊の原則に反するため）しない。
+		 */
+		const DEMO_SORT_START = 1;
 
 		/**
 		 * 撮影時の管理画面ロケール。既存 27 枚のマニュアル画像が日本語 UI のため揃える。
@@ -611,8 +639,11 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		/**
 		 * レジストリ外の行を数えたうえでの MAX(sort_order)。
 		 *
-		 * 既存ユーザーの行の後ろに並ぶよう採番するためのベース値。自分（レジストリ）の行は
+		 * 既存ユーザーの行の「後ろ」に並ぶよう採番するためのベース値。自分（レジストリ）の行は
 		 * 母数から外すので、2 回目以降の実行でも値が動かない（＝出力が安定する）。
+		 *
+		 * 現在の利用箇所はフォームのみ（$only_user = false）。店舗 / 担当者は逆に一覧の「先頭」へ
+		 * 出したいので、この関数ではなく DEMO_SORT_START 起点の固定採番を使う（理由は同 docblock）。
 		 *
 		 * @param string $table       テーブル名.
 		 * @param int[]  $exclude_ids レジストリ id（除外）.
@@ -724,8 +755,10 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			}
 
 			// 3. 店舗（UPDATE で id を保つ）。
-			$store_base = self::max_sort_order( self::table( 'stores' ), self::registry_ids( $registry, 'stores' ), true );
-			$i          = 0;
+			// sort_order は DEMO_SORT_START から +1 ずつの固定採番（1, 2, 3 ...）。
+			// 既存行（回帰フィクスチャ `店舗1` = 10）より小さい値にして一覧の先頭へ出す。理由は
+			// DEMO_SORT_START の docblock 参照。固定値なので 2 回目以降も値が動かない（＝冪等）。
+			$i = 0;
 			foreach ( self::store_defs() as $slug => $def ) {
 				++$i;
 				$data              = array(
@@ -740,7 +773,7 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 					'calendar_color' => $def['calendar_color'],
 					'is_active'      => 1,
 					'is_system'      => 0,
-					'sort_order'     => $store_base + ( $i * 10 ),
+					'sort_order'     => self::DEMO_SORT_START + ( $i - 1 ),
 					'updated_at'     => $now,
 				);
 				$formats           = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%d', '%s' );
@@ -756,8 +789,9 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			$registry = self::prune_slugs( $registry, 'stores', array_keys( self::store_defs() ), self::table( 'stores' ), $notes );
 
 			// 4. 担当者（UPDATE で id を保つ）。
-			$staff_base = self::max_sort_order( self::table( 'staff' ), self::registry_ids( $registry, 'staff' ), true );
-			$i          = 0;
+			// 店舗と同じ理由・同じ方式で固定採番する（担当者タブも sort_order ASC, id ASC のため、
+			// 何もしないとフィクスチャ `担当者1`（sort_order=10）が先頭に写り込む）。
+			$i = 0;
 			foreach ( self::staff_defs() as $slug => $def ) {
 				++$i;
 				$store_id = isset( $registry['stores'][ $def['store'] ] ) ? (int) $registry['stores'][ $def['store'] ] : 0;
@@ -773,7 +807,7 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 					'image_id'    => 0,
 					'is_active'   => 1,
 					'is_system'   => 0,
-					'sort_order'  => $staff_base + ( $i * 10 ),
+					'sort_order'  => self::DEMO_SORT_START + ( $i - 1 ),
 					'updated_at'  => $now,
 				);
 				$formats                    = array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s' );
