@@ -62,7 +62,7 @@ npm -v
 - バックエンド: PHP（WordPress Plugin API）
 - フロントエンド: React（管理画面 + フロント予約フォーム両方）
 - ビルド: @wordpress/scripts（webpack内蔵）
-- データ: カスタムテーブル 6つ（$wpdb + dbDelta）
+- データ: カスタムテーブル 7つ（$wpdb + dbDelta）
 - 開発環境: @wordpress/env（Docker）
 - E2Eテスト: Playwright
 
