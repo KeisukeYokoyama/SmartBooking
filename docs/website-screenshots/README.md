@@ -98,6 +98,10 @@ reservations / custom-fields / design / email / google-calendar / chatwork
 
 ## サイト側リポジトリへ渡す手順
 
+> ⛔ **渡し先はサイト側だけ。プラグイン側 `docs/help/images/` は廃止済みなので、そこへは戻さない。**
+> （2026-09-10 に27枚を `git rm`。画像の正本はサイト側 `content/help/images/`。復活させると回帰スイートが
+> git 追跡下のバイナリを上書きし、ベースライン差分比較が壊れる。→ `docs/decisions/0002-screenshot-spec-separation.md` 第7節・`docs/help/README.md`）
+
 1. 生成した画像を、公式サイトリポジトリの対応ディレクトリへコピーする。
    ```bash
    cp -r docs/website-screenshots/<slug>/. ~/dev/smart-booking-website/content/help/images/<slug>/
