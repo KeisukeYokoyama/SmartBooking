@@ -1,6 +1,6 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-09-09
+最終更新: 2026-09-10
 
 ## 🔴 現在の公開状況（最優先・2026-08-17 更新）
 
@@ -67,6 +67,54 @@ cd ~/dev/smart-booking-svn && svn log --limit 5  # WordPress.org 公開履歴（
 - **集約モードのしきい値ヘルプ文言追記**（v0.5.1 GO 前調査で確認・軽微・非デグレ）: 「残りわずかのしきい値」は担当者非表示（既定）時、同一時刻の**全担当者を合算した総空き数**で判定される（`aggregate_by_timeslot()` が capacity/booked を合算）。設定ヘルプに「担当者を表示しない場合は全担当者の空きを合算した数で判定します」を明記すると誤解を防げる。v0.5.1 の判定自体は v0.5.0 と byte-identical（新規デグレなし）で、これは説明の改善。
 - **メール通知の配信性（未決）**: 管理者宛のみ未達となる非対称（v0.4.2 報告2）はコード正常＝配信性（SPF/DKIM/DMARC・迷惑メール判定）の問題。切り分けは `docs/ops/email-deliverability.md`＋readme FAQ に集約済み。SMTP プラグイン案内など運用面の継続課題。
 - **v0.2.3 由来の backlog（REST パーマリンク／ロゴ 等）**: KEISUKE 把握の未着手項目。テスト系の既知例＝`tests/e2e/phase6-visibility.spec.js` の `page_id=7` ハードコード（Plain パーマリンクで nonce 未 localize）を `FRONT_PAGE_PATH` 化する別件（過去 state 記載）。ロゴ関連の具体内容は本セッション未確認＝要 KEISUKE 確認。
+
+## 📸 ヘルプ画像 撮影基盤の新設（2026-09-09／ローカル4コミット・未push）
+
+**成果**: 公式サイト（`~/dev/smart-booking-website`）のヘルプ画像を wp-env の実画面から再現性のある形で自動撮影する基盤を新設。**出荷コードは全4コミットで無変更**（`includes/ src/ smart-booking.php uninstall.php readme.txt` の差分ゼロ）。
+
+| commit | 内容 |
+|---|---|
+| `39d0297` | 撮影基盤の新設＋回帰スイートからの分離（13 files, +2282/-1） |
+| `2401f09` | デモ店舗の sort_order 採番＋DB汚染の実測記録＋phase1 起票（4 files, +208/-10） |
+| `faaef2c` | ヘルプ画像の正本をサイト側へ一本化・プラグイン側27枚を廃止（30 files） |
+| `b03d27e` | 見切れ許容の根拠＋FormMailTab レース起票（2 files, +159） |
+
+### 使い方
+```
+npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screenshots/seed/screenshot-seed.php   # シード（冪等）
+npm run screenshots                                                                                            # 撮影
+npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screenshots/seed/screenshot-purge.php   # 復帰（回帰前に必須）
+```
+出力先 `docs/website-screenshots/<slug>/NN-name.png`（gitignore 済みの生成物ステージング）。手順は `docs/website-screenshots/README.md`、判断根拠は `docs/decisions/0002-screenshot-spec-separation.md`。
+
+### 撮影条件（既存27枚の実測に厳密一致）
+**1280×720 / 72dpi（deviceScaleFactor 1）/ PNG / `fullPage:false` / 管理画面ロケール ja**。モバイル幅は撮らない（既存セットに1枚も無く、混在すると不揃いになるため）。更新通知バー等の環境ノイズは DB を変えず CSS 注入で抑止。
+
+### 画像の正本＝サイト側 `content/help/images/`
+プラグイン側 `docs/help/images/` の27枚は**廃止（削除済み）**。`docs/help/markdown/` 14本は残す（`src/frontend/utils/analytics.js:8` と `tests/e2e/gtm-datalayer.spec.ts:5` が `gtm.md` を参照）。**撮影結果をここへ戻さないこと**＝`docs/help/README.md` に明記済み。
+
+### 撮影 spec を回帰スイートから分離した理由（実害3件・重要）
+先代 `tests/e2e/help-screenshots.spec.js` は `playwright.config.js` の `testDir` 配下にあり、`npx playwright test` で回帰と一緒に走っていた。
+1. **git 追跡下のバイナリを毎回上書き**（`docs/help/images/installation/01・02`）＝ `logic-evaluator.md` が定める `git stash` ベースのベースライン比較そのものを不安定化させていた。
+2. 撮影シードが残った状態で回帰を回すと**実予約が最大2件注入**される（撮影した日だけ回帰が汚れる、最も気づきにくい相互汚染）。
+3. 恒常的な赤2件＋dead 16件で、**撮影 spec が居る限り回帰スイートは構造的に絶対 Green にならなかった**。
+
+→ `tests/screenshots/legacy/` へ退避（`R100`・内容差分ゼロ）。回帰ゲートは **Green**（before 32赤 / after 30赤、変更起因の新規失敗ゼロ）。DB汚染の実測影響は**「無し」**（唯一の曝露窓 `phase1.spec.js:53` は before/after 双方で赤・挙動不変、before 実行で実予約ゼロ）。
+
+### ⚠️ 「新しい方が正しい」とは限らない（今回の教訓）
+サイト側と md5 が相違した2枚（`installation/01・02`）は、当初「プラグイン側が stale」と判断したが**逆**だった。プラグイン側は WP7.0・サイト側は WP6.9.4 で、プラグイン側は**回帰スイートに上書きされた新しい汚染物**。新しい方を採っていたら、その2枚だけ世代の違う絵がマニュアルに混入していた。詳細は ADR 0002 §7。
+
+### 未解決（人間判断待ち）
+- 🟡 **`v050-form-mail-tab.spec.js:105`**: プロダクト実レースに起因する既存不具合（mobile 単独反復 5回中4回失敗）。**我々の変更起因ではなく回帰ゲートは Green**。`get_form_override()` が空 override を共通へフォールバックし REST が 400 で弾くためメール破損・データ汚染は起きない＝実害は「空欄プリセット＋原因不明の400」という UX 不具合。起票＝`docs/bugs/v050-form-mail-tab-common-template-race.md`。
+- **`phase1.spec.js:53` の正本同期**: 実テーブルは**7つ**（7番目は `smart_booking_forms`＝v0.4.0 で追加）。テストは6つ期待で赤、かつ **`docs/smart-booking-spec.md:647` と `CLAUDE.md:65` も「6つ」のまま**＝正本側にも陳腐化が波及。修正は人間承認付き。起票＝`docs/bugs/phase1-schema-expected-tables-stale.md`。
+- **`docs/help/markdown/` 13本の扱い**: コードから参照されるのは `gtm.md` のみ。3案を ADR 0002 §7.5 に記載（(b) は出荷コード変更を伴うため人間承認必須）。
+- **`店舗1` の見切れ**: 撮影で下端に約90px 残る。`phase6-visibility.spec.js:118` が「sort_order 最小の店舗1 が自動選択される」ことを前提とするため sort_order 退避は見送り＝**見切れ許容**（根拠は `docs/website-screenshots/README.md`）。削除は不可（`phase3-helpers.js:62-72` が id=2 を基線として再INSERT する load-bearing fixture）。
+- **既存赤29件が未台帳**／**E2E の `npx wp-env run cli` 由来 ETIMEDOUT フレーク**（`retries: 1` 等で解消可）。
+
+### 次の一手
+サイト側のヘルプ原稿が確定したら、実カット一覧を `tests/screenshots/help.spec.js` に実装する（現在はサンプル1テスト＝`stores` のみ）。カット追加の書き方は同ファイルの docblock 参照。
+
+---
 
 ## 📦 readme.txt と配布物の運用（2026-09-09 追記）
 
