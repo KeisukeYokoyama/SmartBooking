@@ -107,12 +107,66 @@ npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screensho
 ### 未解決（人間判断待ち）
 - 🟡 **`v050-form-mail-tab.spec.js:105`**: プロダクト実レースに起因する既存不具合（mobile 単独反復 5回中4回失敗）。**我々の変更起因ではなく回帰ゲートは Green**。`get_form_override()` が空 override を共通へフォールバックし REST が 400 で弾くためメール破損・データ汚染は起きない＝実害は「空欄プリセット＋原因不明の400」という UX 不具合。起票＝`docs/bugs/v050-form-mail-tab-common-template-race.md`。
 - ✅ **`phase1.spec.js:53` の正本同期 — 解決済み（2026-09-10）**: 実テーブルは**7つ**（7番目は `smart_booking_forms`＝v0.4.0 で追加）で、**プロダクトは正常・`uninstall.php` は7つ DROP 済み・`readme.txt:153` は元から正しかった**＝陳腐化はテスト期待値と `docs/` 正本だけだった。`c4ea76f`（`phase1.spec.js` の `EXPECTED_TABLES` ＋ `phase1-uninstall.spec.js` の `toBe(6)`→`(7)` 2箇所・テスト名）／`79c1940`（`docs/smart-booking-spec.md:368` ・§5.11 ・§5.2 に `smart_booking_forms` 節を新設）で是正。**残るは `CLAUDE.md:65`「カスタムテーブル 6つ」のみ＝人間確認待ち。** 起票はクローズ済み（`docs/bugs/phase1-schema-expected-tables-stale.md`、決着記録は ADR 0002 §8）。
-- **`docs/help/markdown/` 13本の扱い**: コードから参照されるのは `gtm.md` のみ。3案を ADR 0002 §7.5 に記載（(b) は出荷コード変更を伴うため人間承認必須）。
+- 🟡 **`docs/help/markdown/` 13本の扱い — 推奨は (b)。未実施・人間 GO 待ち**: コードから参照されるのは `gtm.md` のみ。3案は ADR 0002 §7.5 に記載（(a) 13本削除 ／ (b) `gtm.md` を `docs/` 直下へ移し `docs/help/` 廃止 ／ (c) 現状維持＋警告）。**次セッションが同じ検討を最初からやり直さないよう、推奨と根拠を以下に残す。**
+  - **推奨 = (b)**: `gtm.md` を `docs/gtm-datalayer-spec.md` へ移し、`docs/help/` を廃止する。**出荷コードのコメント1行に触るため人間承認必須＝未実施・GO 待ち。**
+  - **根拠1（`gtm.md` は開発者向け仕様書ではない）**: `title` / `description` / `order: 13` / `slug` の front matter を持つ**サイトビルド用のエンドユーザー向けヘルプ記事**で、本文の大半は GTM 管理画面の操作手順。これを「出荷コードの同期先」として `docs/help/markdown/` に置いている構造自体が実態と合っていない。
+  - **根拠2（実測・2026-09-10）**: サイト側 `~/dev/smart-booking-website/content/help/markdown/` は **15本**、プラグイン側は **14本**。**サイト側にしかないのが `forms.md`**（v0.4.0 複数フォームのヘルプ）＝今回是正した「`forms` テーブルが仕様書に無い」のと**同じ取り残され方**をしている。md5 比較では 14本中 **7本が相違**（`booking-form` / `custom-fields` / `design` / `email` / `index` / `installation` / `reservations`）、いずれもサイト側が新しい（ADR 0002 §7.5 の実測記録）。**唯一の被参照ファイル `gtm.md` は現時点で md5 一致**＝差分吸収が不要で、**動かすなら今**。
+  - **根拠3（(a) を採らない理由）**: 13本を消しても、**出荷コードがサイト側正本のコピーを指すという構造そのものは温存される**。名前（`help/markdown`）と実態（GTM 仕様1本）の乖離も残る。
+  - **根拠4（(c) を採らない理由）**: `forms.md` の欠落が「**警告文だけでは乖離が増え続ける**」ことの実証になっている。
+  - **構造評価**: `src/frontend/utils/analytics.js:8` の参照は「**正本がリポジトリ外（別リポジトリ）にある文書の、リポジトリ内 stale コピー**」を指しており妥当でない。かつ規範的内容（event 名 × `booking_step` 値の表）は `analytics.js:9`〜`:17` と `tests/e2e/gtm-datalayer.spec.ts:6`〜`:7` に**インラインで完結**しており、テストは md ではなく**実挙動に assert** している。＝**この md 参照は何も担保していない。**
+  - **代替案の評価**: **コード内定数化は消費者が1箇所しかなく YAGNI 違反。** **サイト側へ一本化（リポジトリ側に記録を残さない）は不可** — dataLayer の event 名は GTM トリガー条件として**ユーザーのタグ設定に焼き込まれる事実上の公開契約**であり、リポジトリ側に記録が無いと改名を止められない。
+  - **(b) の具体差分**: `src/frontend/utils/analytics.js:8`（**出荷ソース・1行**）と `tests/e2e/gtm-datalayer.spec.ts:5`（テスト・**配布物には入らない**）のコメント参照先を `docs/gtm-datalayer-spec.md` へ差し替えるだけ。`grep -c "docs/help/markdown" build/frontend.js` は **0**（production ビルドがコメントを除去）ゆえ**配布物は byte-identical になる見込み**だが、実施時は `npm run build` 前後の md5 突き合わせで**実証**すること。
+  - ⚠️ **落とし穴**: `docs/help/README.md` を削除すると、**§2 の「撮影結果を `docs/help/images/` へ戻すな」という重要警告が失われる**（ADR 0002 §7.4 実害②の再発防止）。`docs/website-screenshots/README.md` か ADR 0002 へ**移設**すること。
+  - 補足: `docs/help/` を指す参照はもう1件ある＝`tests/screenshots/legacy/help-screenshots.spec.js:2`・`:7`（`docs/help/images/`）。これは出自の記録として**無編集保存が意図**で実行対象外（`testIgnore: '**/legacy/**'`）のため、(b) の差し替え対象には含めない。
 - **`店舗1` の見切れ**: 撮影で下端に約90px 残る。`phase6-visibility.spec.js:118` が「sort_order 最小の店舗1 が自動選択される」ことを前提とするため sort_order 退避は見送り＝**見切れ許容**（根拠は `docs/website-screenshots/README.md`）。削除は不可（`phase3-helpers.js:62-72` が id=2 を基線として再INSERT する load-bearing fixture）。
+- 🟡 **`docs/bugs/phase1-uninstall-no-fixture-restore.md`（2026-09-10 起票）**: 破壊的スイート `phase1-uninstall.spec.js` が実行後に **E2E 基線フィクスチャ（store/staff `id=2`）を復旧しない**。戻るのはテーブル構造と Activator の seed（`id=1` のみ）だけ。破壊的 spec の直後に `restoreSnapshot()` を持たない自前シード系 spec を回すと**誤った赤**が出る。今回フィクスチャが戻ったのは後続 spec が偶然 `restoreSnapshot()` を走らせたからで、**設計ではなく偶然**。修正案＝`test.afterAll` で `phase2-helpers.restoreSnapshot()` を呼ぶ／運用手順の明文化。**修正は GO 待ち。**
+- 🟡 **`docs/bugs/spec-schema-columns-stale.md`（2026-09-10 起票）**: `docs/smart-booking-spec.md` §5.2 が実装と**カラムレベル**で乖離（不足6件・4テーブル＝`stores.is_system` / `staff.is_system` / `reservations.form_id` / `custom_fields.form_id`・`condition_field_key`・`condition_value`）。テーブル数の陳腐化と**同一原因**で、テーブル数はその氷山の一角だった。ドキュメントのみ・ユーザー影響ゼロ。**是正は GO 待ち**（spec は凍結された正本）。
 - **既存赤29件が未台帳**／**E2E の `npx wp-env run cli` 由来 ETIMEDOUT フレーク**（`retries: 1` 等で解消可）。
 
 ### 次の一手
 サイト側のヘルプ原稿が確定したら、実カット一覧を `tests/screenshots/help.spec.js` に実装する（現在はサンプル1テスト＝`stores` のみ）。カット追加の書き方は同ファイルの docblock 参照。
+
+---
+
+## 🗂 スキーマ「テーブル数」の陳腐化を是正（2026-09-10／ローカル5コミット・未push）
+
+**確定結論**: 実テーブルは **7つ**。**プロダクトは正常**だった（`class-activator.php::create_tables()` が7つ dbDelta ／ `uninstall.php:32`〜`:38` が7つ DROP ／ `readme.txt:153` は元から "seven"）。**陳腐化していたのはテスト期待値と `docs/` 正本だけ。** 詳細は `docs/bugs/phase1-schema-expected-tables-stale.md`（クローズ済み）と ADR 0002 §8。
+
+| commit | 内容 |
+|---|---|
+| `c4ea76f` | テスト期待値＝`phase1.spec.js` の `EXPECTED_TABLES` に `forms` 追加＋`toBe(6)`→`(7)` を2箇所（`phase1-uninstall.spec.js` の U-1／U-3） |
+| `79c1940` | 正本 spec＝`docs/smart-booking-spec.md:368`・§5.11・§5.2 に `smart_booking_forms` 節を新設 |
+| `e935c72` | ADR 0002 §8 追記・bug ledger クローズ・state 更新 |
+| `480d110` | `CLAUDE.md:65` を「7つ」へ（**人間が直接実施**） |
+| `53ad2a0` | `phase1-uninstall-no-fixture-restore.md` 起票 |
+
+**すべてローカル・未 push。** 出荷コードの差分は **0バイト**。
+
+なお §5.2 は**カラムレベルではまだ乖離が残っている**（不足6件）＝`docs/bugs/spec-schema-columns-stale.md`。**是正は GO 待ち。**
+
+### 回帰ゲート = 🟢 GREEN（logic-evaluator 判定）
+- `phase1.spec.js` の 1-1: **before 2 failed / 54 passed → after 56 passed**（desktop＋mobile）。
+- 破壊的スイート `playwright.uninstall.config.js`: **U-1 / U-2 / U-3 の 3 passed**。
+- 環境健全性サンプル `phase2-settings` ＋ `phase3-flow`: **79 passed / 1 failed**。その1件は `loginAsAdmin` の `TimeoutError` で、**単体反復 2/2 pass ＝インフラフレークと確定**（新規赤ゼロ）。
+- eslint 0。
+
+### 絞り込みの根拠（次回の再利用のため重要）
+**フル2周（前回5時間超）に対し、実測 約16分で同等の判定精度**を得た。根拠は次の3点を**2者独立に実測**したこと。
+
+1. 出荷コード差分が **0バイト**（`git diff -- includes/ src/ uninstall.php smart-booking.php readme.txt` が空）
+2. 変更は**テスト2ファイル＋md 4ファイルのみ**
+3. **markdown を実行時に読むコードは存在しない**
+
+→ 結果が変わりうる spec は原理的に `phase1.spec.js` と `phase1-uninstall.spec.js` の**2本のみ**。**Plugin Check / phpcs / build は出荷コード差分ゼロを根拠に省略**（入力が不変なら検査結果も不変）。
+
+### evaluator が見ていない範囲（正直な開示）
+- 全56 spec 中 **4本のみ実行**。
+- **既存赤29件との全数突き合わせは未実施。**
+- **隔離ゲート未実施**（スケジュールのコピー・削除に触れないため対象外と判断）。
+- **メール検証未実施。**
+
+### 教訓
+スキーマ追加時、「dbDelta 定義追加 ＋ `smart_booking_db_version` bump」だけでは**不足**。ADR 0002 §8.5 の3点セット（spec §5.2 ＋ §5.11 ／ `phase1.spec.js` の `EXPECTED_TABLES` ＋ `phase1-uninstall.spec.js` の件数アサーション ／ `uninstall.php` の DROP 文）を**同時更新**すること。`uninstall.php` だけが唯一漏れていなかったのは「消し忘れるとユーザーの DB にゴミが残る」という実害が見えるからで、**実害が見えにくいテストと仕様書こそ漏れる。**
 
 ---
 
