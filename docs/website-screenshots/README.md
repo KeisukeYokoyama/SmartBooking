@@ -141,7 +141,7 @@ gtm / forms / conditional-fields / form-mail / address-field / settings
 「シードが無くてもページ自体は開けて撮影できる」形を優先し、シード依存の文字列を待つ場合は
 その旨をコメントで明記すること。
 
-## 撮影済みカット一覧（2026-09-11）
+## 撮影済みカット一覧（初回 2026-09-11 → **v0.5.6 公開後に全27枚を撮り直し済み: 2026-09-12**）
 
 サイト側 `docs/help-backlog.md` §C2 / §C3 と、原稿中の `<!-- 撮影: … -->` コメントが指示の正本。
 **この一覧は「撮った結果」であって指示ではない。** 相違があれば原稿側が正。
@@ -185,9 +185,12 @@ gtm / forms / conditional-fields / form-mail / address-field / settings
   と指定しているが、1280×720 では**物理的に入らない**（ON 状態の件名＋本文8行＋変数ヘルパーで
   1画面ぶん埋まる）。案内文＋1種別目を 01 に、2種別目の見出しと OFF 表示（「未設定のため共通文面が
   使われます。」＋件名（共通））を **`02-variable-helper.png` の下半分**に写す形で分けた。
-- **`conditional-fields/06-parent-type-locked.png`**: disabled のセレクトに WordPress の矢印が
-  タイル状に敷き詰められて写る。これは**プラグイン側 CSS の不具合**（`docs/bugs/admin-disabled-select-arrow-tiling.md`）。
-  修正を入れてから撮り直すのが望ましい。
+- ~~**`conditional-fields/06-parent-type-locked.png`**: disabled のセレクトに WordPress の矢印が
+  タイル状に敷き詰められて写る。~~ → **v0.5.6（SVN rev 3692196・2026-09-12）で修正し、
+  全27枚を撮り直した**（`docs/bugs/admin-disabled-select-arrow-tiling.md`）。
+  撮り直し後、**27枚すべてを目視で再確認し、矢印のタイリング・矢印の消失はゼロ**。
+  セレクトが写るカット（`conditional-fields/01・02・06` / `address-field/01・03` / `forms/01・03` /
+  `reservations/02` / `staff/02` / `settings/01`）は、いずれも矢印が右端に1つだけ出ている。
 
 ### 撮影対象から外したもの
 
