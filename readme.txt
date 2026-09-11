@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.3
+Stable tag: 0.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,11 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.5.4 – 2026-09-11 =
+
+* Fixed: a radio or dropdown field used as the condition for another field could be changed to a checkbox field afterwards, which silently discarded the dependent field's answer. The dependent field was still shown on the booking form and on the confirmation screen and the booking completed normally, but the answer was never saved and never appeared in the reservation details, the CSV export, or the notification emails. A field that another field depends on can no longer be changed to a type other than radio or dropdown, and while such a setting is still in place the dependent field is no longer displayed at all.
+* Note: on sites that used this setting, the dependent field may be blank in past reservations. Those answers were never written to the database and cannot be recovered.
+
 = 0.5.3 – 2026-08-17 =
 
 * Fixed: when the booking form contained invalid input, pressing the "Confirm booking details" button gave no reason why the form would not advance. Error messages are now shown on the fields that are empty or incorrectly formatted, and focus moves automatically to the first one.
@@ -168,11 +173,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 * Fixed: reordering stores and staff with the "↑ ↓" buttons sometimes saved only part of the order, so the list changed again after a reload. The full order is now saved correctly.
 * Changed: the numeric "Display order" input was removed from the store and staff edit screens; reordering is now done exclusively with the "↑ ↓" buttons in the list.
 * Changed: added an explanation on the settings screen of how auto-selection and auto-assignment are ordered when the store and staff selection steps are hidden.
-
-= 0.5.1 – 2026-07-17 =
-
-* Added: the availability display of the booking form can now be customized — the "Almost full" threshold (Settings > General; left blank it behaves as before), the labels for "Almost full", "Fully booked", and "Closed" (same tab), and the warning and disabled colors (Settings > Design).
-* Changed: with default settings, the display is unchanged from previous versions.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
