@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.4
+Stable tag: 0.5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -87,7 +87,7 @@ This plugin may communicate with the following external services. In every case,
 * **Data sent**: Only the postal code that was entered. No personally identifiable information is sent.
 * **When**: When a customer enters a 7-digit postal code, provided the administrator has added an "Address" field to the form and postal code auto-completion is enabled (the default).
 * **Default**: No communication occurs at all unless an "Address" field is added.
-* **Terms of service**: [zipcloud API terms of use](http://zipcloud.ibsnet.co.jp/rule/api)
+* **Terms of service**: [zipcloud API terms of use](https://zipcloud.ibsnet.co.jp/rule/api)
 
 If none of these integrations are enabled and configured, Smart Booking does not communicate with any external service.
 
@@ -154,6 +154,15 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.5.5 – 2026-09-11 =
+
+* Fixed: answers to input fields added to a form other than the default one were not shown in the reservation detail dialog on the admin screen. The answers were saved correctly and appeared in the CSV export, but could not be read from the admin screen. The reservation detail now reads the input fields of the form the reservation was actually made through.
+* Fixed: with "Email to administrator" turned off and no store email address registered, notifications to the person in charge were skipped without any notice. A warning is now shown on the email settings screen when a person in charge has an email address registered but cannot receive notifications.
+* Fixed: the explanations on the email settings screen and on the staff edit screen stated that notifications to the store and the person in charge are always delivered. They now state the actual condition, which is that a store email address must be registered.
+* Fixed: changing the type of an existing field to "Address (postal code)" opened it with automatic address lookup turned off, the opposite of the default used when adding one from the address card. It now opens with automatic lookup turned on, matching the default.
+* Fixed: the example shown for the {schedule_time} mail variable did not match what is actually inserted. It now reads "14:00〜15:00".
+* Fixed: the link to the zipcloud terms of service in this readme used http. It now uses https.
+
 = 0.5.4 – 2026-09-11 =
 
 * Fixed: a radio or dropdown field used as the condition for another field could be changed to a checkbox field afterwards, which silently discarded the dependent field's answer. The dependent field was still shown on the booking form and on the confirmation screen and the booking completed normally, but the answer was never saved and never appeared in the reservation details, the CSV export, or the notification emails. A field that another field depends on can no longer be changed to a type other than radio or dropdown, and while such a setting is still in place the dependent field is no longer displayed at all.
@@ -165,14 +174,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 * Fixed: the phone number field on the booking form accepted values that were not plausible phone numbers. Phone numbers are now limited to 20 characters, and name and email address to 255 characters.
 * Changed: the "Received at" column of the reservation list moved to second from the left (right of the reservation number), so you can check when an application arrived more quickly.
 * Changed: a phone number is now required when creating a reservation manually from the admin screen.
-
-= 0.5.2 – 2026-08-16 =
-
-* Fixed: adding a new store could change which store was auto-selected in the booking form, in some cases leaving no bookable time slots visible. New stores and staff are now added to the end of the list instead of the beginning.
-* Changed: adding a new staff member no longer changes the auto-assignment order.
-* Fixed: reordering stores and staff with the "↑ ↓" buttons sometimes saved only part of the order, so the list changed again after a reload. The full order is now saved correctly.
-* Changed: the numeric "Display order" input was removed from the store and staff edit screens; reordering is now done exclusively with the "↑ ↓" buttons in the list.
-* Changed: added an explanation on the settings screen of how auto-selection and auto-assignment are ordered when the store and staff selection steps are hidden.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
