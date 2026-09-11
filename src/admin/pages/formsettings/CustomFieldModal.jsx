@@ -139,7 +139,19 @@ export default function CustomFieldModal({
 	};
 
 	const onTypeChange = (e) => {
-		update({ field_type: e.target.value });
+		const nextType = e.target.value;
+		// 住所（郵便番号）へ切り替えたときは自動入力を既定 ON に戻す。
+		// format_row は address 以外のフィールドに autofill: false を返すため
+		// （includes/rest/class-rest-custom-fields.php の $autofill 初期値）、
+		// そのまま開くと「自動入力しない（手入力のみ）」側になり、
+		// 住所カードから新規追加した場合（EMPTY の true）と既定が逆になる。
+		// 既に address のフィールドを編集中は保存済みの値を尊重したいので、
+		// 「address 以外 → address」に変わったときだけリセットする。
+		if (nextType === 'address' && values.field_type !== 'address') {
+			update({ field_type: nextType, address_autofill: true });
+			return;
+		}
+		update({ field_type: nextType });
 	};
 
 	const onOptionsChange = (e) => {

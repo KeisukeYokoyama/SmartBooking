@@ -120,6 +120,17 @@ class Smart_Booking_Email {
 		} else {
 			// OFF: 店舗メールがなければ送らない（担当者だけのケースも送信しない）。
 			if ( '' === $store_email || ! is_email( $store_email ) ) {
+				// 担当者メールが設定されているときだけ記録する。
+				// 店舗・担当者とも未設定なら「意図的に管理者系通知を全部止めている」運用であり、
+				// 毎予約でバナーを出すのはノイズにしかならない。記録するのは
+				// 「担当者に届くつもりでいるのに届いていない」＝期待が裏切られている場合に限る。
+				if ( '' !== $staff_email && is_email( $staff_email ) ) {
+					$this->record_error(
+						'skipped_no_admin_recipient',
+						'「管理者へのメール」がオフで、店舗のメールアドレスが未設定のため、担当者宛の通知も送信されませんでした。',
+						'admin'
+					);
+				}
 				return;
 			}
 			$to_list[] = $store_email;

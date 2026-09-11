@@ -12,7 +12,7 @@ export const MAIL_VARIABLES = [
 	{ key: '{customer_phone}', desc: '電話番号' },
 	{ key: '{reservation_id}', desc: '予約番号' },
 	{ key: '{schedule_date}', desc: '予約日（例: 2026年5月1日（金））' },
-	{ key: '{schedule_time}', desc: '予約時間（例: 14:00〜）' },
+	{ key: '{schedule_time}', desc: '予約時間（例: 14:00〜15:00）' },
 	{ key: '{store_name}', desc: '店舗名' },
 	{ key: '{staff_name}', desc: '担当者名' },
 ];

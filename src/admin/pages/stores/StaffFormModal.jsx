@@ -138,7 +138,7 @@ export default function StaffFormModal({ open, staff, stores = [], onClose, onSu
 						value={values.email}
 						onChange={(e) => update({ email: e.target.value })}
 						placeholder="staff@example.com"
-						help="設定すると予約通知が CC でこの担当者にも届きます。"
+						help="設定すると、予約通知が CC でこの担当者にも届きます（「管理者へのメール」をオフにしていて店舗のメールアドレスが未設定の場合は届きません）。"
 					/>
 					<Input
 						label="電話番号"

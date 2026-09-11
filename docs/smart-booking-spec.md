@@ -581,6 +581,7 @@ WordPress.org 再審査（R smart-booking/liberdadeinc/20Jun26/T2、2026-06-23�
 
 - **ユーザー宛**: 予約時に入力されたメールアドレス（`smart_booking_reservations.customer_email`）
 - **管理者宛**: 店舗のメールアドレス（`smart_booking_stores.email`）。担当者メール（`smart_booking_staff.email`）が設定されている場合はCCとして送信
+- **管理者宛の抑止条件**: 設定画面の「管理者へのメール」をオフにしている場合、店舗のメールアドレスが未設定なら**担当者宛のCCも送信されない**（担当者メールだけでは送信されない）。オンの場合は WordPress の管理者メールが宛先に含まれるため、店舗メールが未設定でも担当者CCは送信される
 
 #### テンプレート変数
 
@@ -593,7 +594,7 @@ WordPress.org 再審査（R smart-booking/liberdadeinc/20Jun26/T2、2026-06-23�
 | `{customer_phone}` | 電話番号 |
 | `{reservation_id}` | 予約番号 |
 | `{schedule_date}` | 予約日（例: 2026年5月1日（金）） |
-| `{schedule_time}` | 予約時間（例: 14:00〜） |
+| `{schedule_time}` | 予約時間（例: 14:00〜15:00） |
 | `{store_name}` | 店舗名 |
 | `{staff_name}` | 担当者名 |
 

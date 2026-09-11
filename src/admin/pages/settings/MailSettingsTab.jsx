@@ -49,6 +49,8 @@ const MAIL_ERROR_CATEGORY_LABELS = {
 		'メールの件名または本文が未設定のため送信されませんでした。テンプレートをご確認ください。',
 	skipped_invalid_recipient:
 		'宛先メールアドレスが正しくないため送信されませんでした。',
+	skipped_no_admin_recipient:
+		'「管理者へのメール」がオフで、店舗のメールアドレスが未登録のため、担当者宛の通知も送信されませんでした。店舗にメールアドレスを登録するか、「管理者へのメール」をオンにしてください。',
 };
 
 const MAIL_ERROR_TO_TYPE_LABELS = {
@@ -348,7 +350,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 				<div className="smb-settings-section__header">
 					<h3 className="smb-settings-section__title">予約受付メール（管理者宛）</h3>
 					<p className="smb-settings-section__lead">
-						予約が入ったときに店舗メール（To）と担当者メール（CC）へ届きます。「管理者へのメール」がオンのときは、加えて WordPress の管理者メールにも同時に通知が送られます。
+						予約が入ったときに、店舗のメールアドレスを登録していれば店舗（To）へ、担当者のメールアドレスも登録していれば担当者（CC）へも通知が届きます。「管理者へのメール」がオンのときは、加えて WordPress の管理者メールにも同時に通知が送られます。
 					</p>
 					<OverrideNote forms={overrideFormsByType.reception_admin} />
 				</div>
@@ -360,7 +362,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 						label="管理者へのメール"
 					/>
 					<p className="smb-settings-toggle-row__hint">
-						オフにすると、WordPress の管理者メールへの通知は送られません。店舗・担当者宛の通知は引き続き送信されます。
+						オフにすると、WordPress の管理者メールへの通知は送られません。店舗のメールアドレスを登録していれば、店舗（担当者を登録していればCCも）に引き続き通知が届きます。店舗のメールアドレスが未登録の場合は、担当者のメールアドレスを登録していても通知は届きません。
 					</p>
 				</div>
 				<Input
@@ -419,7 +421,7 @@ export default function MailSettingsTab({ settings, onSave, saving, onDirtyChang
 			<ConfirmDialog
 				open={adminToggleConfirmOpen}
 				title="管理者へのメールをオフにしますか？"
-				message="店舗や担当者のメールアドレスが登録されていない場合、予約完了メールは届きません。"
+				message="お客様への予約完了メールには影響ありません。ただし、店舗のメールアドレスが登録されていない場合、管理者向けの通知（店舗・担当者宛）は届かなくなります。"
 				confirmLabel="オフにする"
 				cancelLabel="キャンセル"
 				variant="danger"
