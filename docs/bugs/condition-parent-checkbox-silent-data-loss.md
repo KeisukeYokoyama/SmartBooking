@@ -1,9 +1,26 @@
 # H4: 条件フィールドの親をチェックボックスに変更すると、子の回答がサイレントに破棄される
 
-最終更新: 2026-09-10
+最終更新: 2026-09-11
 重大度: 🔴 **高**（**ユーザーが入力した内容が消える実害**。予約自体は正常完了するため誰も気づけない）
-状態: **調査完了・修正は GO 待ち**
+状態: **✅ 修正済み（v0.5.4 / 2026-09-11）。案3＋案1 を実装・回帰ゲート Green。SVN commit 待ち。**
 発見元: サイト側（`~/dev/smart-booking-website`）作業中に発見。
+
+## ✅ 修正内容（v0.5.4）
+
+| # | 対象 | 変更 |
+|---|---|---|
+| 案3-a | `includes/rest/class-rest-custom-fields.php::update_item` | 自身が既に他フィールドの親で、かつ **`field_type` が実際に変わり** 新種別が radio/select 以外なら 400 `smb_field_parent_type_locked`。COUNT は種別が変わるときだけ実行する（毎回のクエリ増を避ける） |
+| 案3-b | `src/admin/pages/formsettings/CustomFieldModal.jsx` | 既存の `isAlreadyParent` を種別セレクタの `disabled` に再利用し、理由を help で説明 |
+| 案1 | `src/frontend/fieldConditions.js::isFieldVisible` | `Array.isArray( parentVal )` なら `false`（サーバー `condition_met()` と判定を一致させる） |
+
+**「種別が実際に変わるときだけ」判定する理由**: 既に親が checkbox になっている壊れたサイトで、
+ラベル修正などの通常の編集まで 400 で弾かれると直せなくなる。この条件なら
+**checkbox 親 → radio/select への修復は常に許可**され、壊れ方を増やす変更だけが止まる。
+
+**E2E**: `tests/e2e/v054-condition-parent-guard.spec.js`（5テスト × desktop/mobile = 10）。
+(1) ガードが 400 を返す (2) radio→select とラベルのみの更新は通る（過剰でない）
+(3) 子の条件を解除すれば種別変更できる (4) 管理UI のセレクタが disabled (5) checkbox 親の下で子が表示されない。
+**修正前は (1)(4)(5) が Red、(2)(3) が Green**。修正後は 10/10 Green。
 
 ## 事象
 

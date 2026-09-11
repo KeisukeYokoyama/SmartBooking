@@ -1,6 +1,44 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-09-10
+最終更新: 2026-09-11
+
+## 🟠 v0.5.4：実装・ゲート完了、**SVN commit の直前で停止中**（2026-09-11）
+
+**唯一の GO 待ちポイント = `svn ci`。** それ以外（ビルド・バージョン4箇所・ZIP・git commit/push/tag）は完了済み。
+
+- **スコープ = D（H4）のみ**。条件フィールドの親を checkbox に変更すると子の回答が無言で消える不具合。
+  A/B/C（`{schedule_time}` 表記・管理者トグル OFF 時の文言・無言 skip の可視化）は **v0.5.5 へ送った**
+  （人間判断: 入力が消える修正を文言修正のために遅らせない）。計画は `docs/plans/v0.5.4-release-plan.md`。
+- **実装**（出荷コード3ファイル・34行）:
+  - `includes/rest/class-rest-custom-fields.php::update_item` — 既に親のフィールドは
+    radio/select 以外へ**種別変更できない**（400 `smb_field_parent_type_locked`）。
+    判定は「種別が実際に変わるとき」だけ＝**壊れた既存サイトの修復（checkbox→radio）は許可**。
+  - `src/admin/pages/formsettings/CustomFieldModal.jsx` — 既存 `isAlreadyParent` で種別セレクタを `disabled` ＋ 理由を help 表示。
+  - `src/frontend/fieldConditions.js::isFieldVisible` — 配列の親値は不成立（サーバー `condition_met()` と一致）。
+  - 詳細と根拠は `docs/bugs/condition-parent-checkbox-silent-data-loss.md` の「修正内容」節が正本。
+- **E2E 新規**: `tests/e2e/v054-condition-parent-guard.spec.js`（5×2=10）。**修正前 (1)(4)(5) Red → 修正後 10/10 Green**。
+- **回帰ゲート Green（絞り込み比較・フルスイートは未実行）**:
+  - 対象6 spec / **56テスト**（`v054` / `v030-conditional-fields` / `v030-conditional-admin` /
+    `phase2-form-settings` / `v030-address-field` / `v042-mail-custom-fields`）。
+  - `git stash` ベースライン 50 expected + 6 unexpected → 変更後 **56 expected**。
+    **状態が変わったのは6件のみ、すべて `v054` の Red→Green。新規失敗ゼロ。**
+  - **did-not-run 0 / skipped 0**（両ラン）。serial モードの取りこぼしは起きていない（JSON レポートを
+    テスト単位で突き合わせて確認。失敗リストの差分だけでは仕分けしていない）。
+  - **絞り込みの根拠（到達可能性）**: ①`isFieldVisible` の新分岐は `if (!parentKey) return true` の**後**にあり、
+    表示条件を持たないフィールドからは到達不能 → 条件フィールドを作る spec のみが対象。
+    ②`CustomFieldModal` の変更は型 `<Select>` の `disabled`/`help` のみで `isAlreadyParent` ガード下
+    → フォーム設定画面のフィールド編集モーダルのみ。③`update_item` の新分岐は
+    `PUT /custom-fields/{id}` でのみ実行され、**他に PUT する spec は `phase2-form-settings` だけ**（grep 実測）。
+    `v042-mail-custom-fields` は安価な end-to-end の保険として追加（4テスト）。
+- **静的ゲート**: `php -l` OK ／ phpcs 変更PHP **ERRORS 0 / WARNINGS 0** ／
+  `wp-scripts lint-js` で `fieldConditions.js` clean ／
+  **Plugin Check 配布スコープ 0/0**（指摘19件は全て `.distignore` 除外の dev 成果物で、
+  **ZIP の31ファイルに1つも含まれないことを実測で突き合わせ済み**）。
+- **配布物**: `smart-booking.zip` = **31ファイル**（`docs/` `tests/` `.claude/` `src/` の混入なし・実測）。
+  ZIP 内 `Version: 0.5.4` / `SMART_BOOKING_VERSION 0.5.4` / `Stable tag: 0.5.4` を実測確認。
+- **⚠️ `wp-scripts lint-js --fix <file>` はファイル引数を無視して全プロジェクトを整形する**。
+  一度踏んで37ファイルが書き換わり、出荷対象外の差分を `git checkout` で全て戻した。
+  **`--fix` は使わず、指摘箇所を手で直すこと。**
 
 ## 🔴 現在の公開状況（最優先・2026-08-17 更新）
 
