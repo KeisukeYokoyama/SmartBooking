@@ -134,6 +134,60 @@ SVN（`trunk` と `tags/0.5.5/`）とも反映済み。計画は `docs/plans/v0.
   v0.5.5 で警告バナーが出るようになったことを追記する余地がある。
 
 
+## 🎨 v0.5.6（CSS のみ・**SVN commit の直前で停止中**）
+
+**唯一の GO 待ちポイント = `svn ci`。** それ以外（実装・全件確認・ゲート・ビルド・
+バージョン4箇所・Changelog・ZIP・git commit/push/tag・SVN 作業コピーの反映）は完了済み。
+計画と判断根拠は `docs/plans/v0.5.6-release-plan.md`、起票は
+`docs/bugs/admin-disabled-select-arrow-tiling.md` が正本。
+
+- **スコープ = セレクトボックスの矢印が壊れる件のみ**（同一原因の2症状）。
+  - 症状1: `disabled` のセレクトで WP コアの矢印が**タイル状に敷き詰められる**（撮影中に発見）。
+  - 症状2: `.smb-field.has-error` のセレクトで**矢印が消える**（今回の全件確認で新たに検出）。
+  - 原因: `src/admin/admin.scss` の `background: <色>` ショートハンドが
+    `background-repeat` / `background-position` / `background-image` を initial へ戻すこと。
+- **出荷コードの変更は `src/admin/admin.scss` の3行だけ**（`background:` → `background-color:`）。
+  PHP / JS / REST / DB には一切触れていない。同ブロックに理由つきコメントを追加した。
+- **全件確認（「他に同じ潰しが無いか」）**:
+  - 静的 grep: `background:` ショートハンドは admin 172件 / frontend 89件。
+    background-image を持ちうる要素との突き合わせで**是正対象は上記3行のみ**と確定。
+    フロントの select 矢印（linear-gradient 2枚）は**矢印ルールが共有ルールより後**にあり同特異度で
+    後勝ちするため無傷。`.smb-card__placeholder` の gradient は自前で潰すルールが無く、
+    `background-size` 未指定の linear-gradient はボックス全体を覆うので `repeat` でも見た目は不変。
+  - 動的スイープ（ブラウザ実測）: 管理画面5ページ＋設定4タブ＋フィールド編集モーダル＋フロントで
+    全要素を走査し「image あり かつ repeat」を抽出。**修正前2件→修正後は `.smb-card__placeholder` の1件のみ**
+    （＝上記の無害な gradient）。`.has-error` を DOM 注入したセレクトの `background-image` も
+    **none → 矢印あり**に復帰。フロントは前後とも0件。
+- **回帰ゲート Green（絞り込み比較）**:
+
+  | | spec数 | テスト数 | expected | unexpected | skipped |
+  |---|---|---|---|---|---|
+  | baseline（`git stash` で CSS を退避＋再ビルド） | 8 | 128 | 124 | 4 | 0 |
+  | 変更後（再ビルド） | 8 | 128 | 124 | 4 | 0 |
+
+  - **テスト単位の突き合わせで「状態が変わったテスト 0 件」「消えた/増えたテスト 0 件」**（JSON レポーターを
+    file:line:project:title で照合）。**新規失敗ゼロ**。
+  - 既存赤4件はベースラインにも同じ4件（`phase9-redesign-style:327` [mobile] /
+    `regression-gen-a-visual:304` [mobile] / `regression-gen-a-visual:39` [desktop・mobile]）。
+  - 絞り込みの根拠（`docs/plans/v0.5.6-release-plan.md` §4 が正本）: ①計算スタイルを assert する
+    spec 全部（`phase9-redesign-style` / `regression-gen-a-visual` / `card-unification-visual`）
+    ②変更対象の `.smb-input`/`.smb-select` を実際に操作する管理画面 spec
+    （`phase2-form-settings` / `v030-conditional-admin` / `v054-condition-parent-guard` / `v030-address-field`）
+    ③バンドル再生成のサニティとしてフロント通し（`phase3-flow`）。
+  - **E2E は追加しない**（判断）。DOM・イベント・REST に触れない塗りだけの変更で、
+    `background-repeat` を assert するテストは **WordPress コアの CSS 実装詳細に依存する脆いテスト**になるため。
+    再発防止は SCSS のコメントと起票の検証手順で担保する。
+- **静的ゲート**: `npm run build` 成功／**Plugin Check 配布スコープ 0/0**
+  （指摘26ファイルを ZIP の31ファイルと機械照合し、**ZIP 内に該当ゼロ**を実測）。
+- **配布物**: `smart-booking.zip` = **31ファイル**。ZIP 内の版表記3箇所も実測確認（0.5.6）。
+- **同梱を検討して外したもの**（根拠は計画書 §5）: メールタブのレース
+  （`v050-form-mail-tab-common-template-race.md`・JS 変更＋再現テストが要る＝v0.5.7 単独スコープ推奨）／
+  mobile フォーム幅（`phase9-form-width-mobile-285px.md`・**意図幅の設計判断が未了**）／
+  テスト負債2件（配布物に影響なし）／H7（見送り継続）。
+- **docs のみの同梱**: v0.5.5 で解決した起票3件のステータスを「公開済み」へ更新。
+- **公開後にやること**: `conditional-fields/06-parent-type-locked.png` の撮り直し
+  ＋ 全27枚に同じ矢印タイリングが写っていないかの再確認。
+
 ## 📸 ヘルプ画像 フェーズ2: 実カット撮影（2026-09-11・**撮影完了／サイト側へのコピーは未実施**）
 
 撮影基盤（2026-09-09 新設）の上に、サイト側バックログ `~/dev/smart-booking-website/docs/help-backlog.md`

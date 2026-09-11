@@ -1,8 +1,9 @@
 # H1: `{schedule_time}` の説明が実装と食い違う（管理画面＝誤 / ヘルプ＝正の逆転）
 
-最終更新: 2026-09-10
+最終更新: 2026-09-11
 重大度: 🟡 中（**表示のみ**。メール本文の実出力は正しい）
-状態: **調査完了・修正は GO 待ち**
+状態: **✅ 解決済み・WordPress.org 公開済み（v0.5.5 / 2026-09-11 / SVN rev 3690888 / commit `db25f1e`）。**
+（`TemplateVariableHelper.jsx:15` と `docs/smart-booking-spec.md` の例示を「14:00〜15:00」へ是正。実画像で確認: `docs/website-screenshots/form-mail/02-variable-helper.png`）
 
 ## 事象
 

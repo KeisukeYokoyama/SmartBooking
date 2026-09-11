@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.5
+Stable tag: 0.5.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,10 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.5.6 – 2026-09-11 =
+
+* Fixed: on the admin screen, the dropdown arrow of a select box that could not be changed was repeated across the whole control instead of being shown once on the right, and the arrow disappeared from a select box that was showing an input error. Both came from the same style rule and are now displayed correctly. This affected appearance only; no saved data or notification email was involved.
+
 = 0.5.5 – 2026-09-11 =
 
 * Fixed: answers to input fields added to a form other than the default one were not shown in the reservation detail dialog on the admin screen. The answers were saved correctly and appeared in the CSV export, but could not be read from the admin screen. The reservation detail now reads the input fields of the form the reservation was actually made through.
@@ -167,13 +171,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 * Fixed: a radio or dropdown field used as the condition for another field could be changed to a checkbox field afterwards, which silently discarded the dependent field's answer. The dependent field was still shown on the booking form and on the confirmation screen and the booking completed normally, but the answer was never saved and never appeared in the reservation details, the CSV export, or the notification emails. A field that another field depends on can no longer be changed to a type other than radio or dropdown, and while such a setting is still in place the dependent field is no longer displayed at all.
 * Note: on sites that used this setting, the dependent field may be blank in past reservations. Those answers were never written to the database and cannot be recovered.
-
-= 0.5.3 – 2026-08-17 =
-
-* Fixed: when the booking form contained invalid input, pressing the "Confirm booking details" button gave no reason why the form would not advance. Error messages are now shown on the fields that are empty or incorrectly formatted, and focus moves automatically to the first one.
-* Fixed: the phone number field on the booking form accepted values that were not plausible phone numbers. Phone numbers are now limited to 20 characters, and name and email address to 255 characters.
-* Changed: the "Received at" column of the reservation list moved to second from the left (right of the reservation number), so you can check when an application arrived more quickly.
-* Changed: a phone number is now required when creating a reservation manually from the admin screen.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md

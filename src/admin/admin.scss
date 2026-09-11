@@ -485,10 +485,27 @@
 	.smb-textarea,
 	.smb-select {
 		border-color: var(--smb-color-danger);
-		background: var(--smb-color-danger-bg);
+		// background ショートハンドを使わない（background-color だけを指定する）。
+		// 理由は下の .smb-input/.smb-textarea/.smb-select の docblock を参照。
+		background-color: var(--smb-color-danger-bg);
 	}
 }
 
+/*
+ * 入力欄・テキストエリア・セレクトの共通スタイル。
+ *
+ * ⚠️ ここと派生ルール（:disabled / .has-error）では **background ショートハンドを使わない**。
+ * `background: <色>` は background-image だけでなく background-repeat / background-position /
+ * background-size も initial へ戻す。セレクトのドロップダウン矢印は WordPress コアの
+ * `.wp-core-ui select`（forms.css）が `background: url(svg) no-repeat right 8px top 55%` で
+ * 与えており、こちらがショートハンドを使うと次の2つが起きる（どちらも実測で確認済み・v0.5.6 で修正）:
+ *   - `:disabled` … コアは `.wp-core-ui select:disabled` で **background-image だけ** を上書きする。
+ *     repeat/position はこちらの `:disabled`（特異度 0,2,0 > コア 0,1,1）が勝って initial に戻るため、
+ *     矢印が **タイル状に敷き詰められる**。
+ *   - `.smb-field.has-error` … 特異度 (0,3,0) でコアに勝ってしまい、**矢印が消える**。
+ * `background-color` だけを指定すれば、コア側の image/repeat/position がそのまま効く。
+ * 詳細は docs/bugs/admin-disabled-select-arrow-tiling.md。
+ */
 .smb-input,
 .smb-textarea,
 .smb-select {
@@ -496,7 +513,7 @@
 	padding: 8px 12px;
 	font-size: 14px;
 	color: var(--smb-color-text);
-	background: var(--smb-color-bg-elev);
+	background-color: var(--smb-color-bg-elev);
 	border: 1px solid var(--smb-color-border);
 	border-radius: var(--smb-radius);
 	transition: border-color var(--smb-transition), box-shadow var(--smb-transition);
@@ -510,7 +527,7 @@
 	}
 
 	&:disabled {
-		background: var(--smb-color-bg);
+		background-color: var(--smb-color-bg);
 		color: var(--smb-color-text-muted);
 		cursor: not-allowed;
 	}
