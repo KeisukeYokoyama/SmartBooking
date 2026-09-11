@@ -8,6 +8,8 @@
  *    - is_required を 0 にできない（必須固定）
  *    - field_key は常に読み取り専用
  * - 表示条件 (v0.3.0 機能③): radio/select の親フィールドの選択値に応じて表示/非表示。
+ *    - 既に他フィールドの親になっているフィールドは field_type を変更できない
+ *      （選択式以外に変えると子の回答がサーバー側で捨てられるため。REST 側でも拒否する）
  *    - 条件は1つのみ・親は radio/select のみ・ネスト禁止（条件付きフィールドは親候補から除外）
  *    - 保護フィールドは条件の子になれないためセクション自体を出さない
  */
@@ -326,11 +328,13 @@ export default function CustomFieldModal({
 					options={TYPE_OPTIONS}
 					value={values.field_type}
 					onChange={onTypeChange}
-					disabled={isProtected}
+					disabled={isProtected || isAlreadyParent}
 					help={
 						isProtected
 							? '初期フィールドのタイプは変更できません。'
-							: undefined
+							: isAlreadyParent
+								? 'このフィールドは他フィールドの表示条件に使われているため、種別を変更できません。変更したい場合は、先に子フィールド側の表示条件を解除してください。'
+								: undefined
 					}
 				/>
 

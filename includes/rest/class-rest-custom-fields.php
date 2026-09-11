@@ -445,6 +445,24 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			$type = $row['field_type'];
 		}
 
+		// 表示条件の親は radio/select のみ（invariant）。自身が既に他フィールドの親に
+		// なっている場合、選択式以外への種別変更を拒否する。
+		// 許すと、フロント（配列を文字列化して比較＝成立）とサーバー（配列は不成立）の判定が
+		// 食い違い、子フィールドの回答が検証も保存もされずに捨てられる。
+		// 既存の壊れた行（親が checkbox 等）を編集不能にしないため「種別が実際に変わるとき」
+		// だけ判定する（radio/select へ戻す修復は常に許可）。
+		if ( $type !== (string) $row['field_type'] && ! in_array( $type, array( 'radio', 'select' ), true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$is_parent = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}smart_booking_custom_fields WHERE condition_field_key = %s AND form_id = %d", (string) $row['field_key'], (int) $row['form_id'] ) );
+			if ( $is_parent > 0 ) {
+				return $this->error(
+					'smb_field_parent_type_locked',
+					'このフィールドは他フィールドの表示条件の親になっているため、選択式（ラジオ/セレクト）以外の種別には変更できません。先に子フィールドの表示条件を解除してください。',
+					400
+				);
+			}
+		}
+
 		$options_raw = $request->get_param( 'field_options' );
 		$options     = array();
 		if ( is_array( $options_raw ) ) {

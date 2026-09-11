@@ -25,6 +25,16 @@ export function isFieldVisible( field, formValues ) {
 	}
 
 	const parentVal = formValues ? formValues[ parentKey ] : undefined;
+
+	// 親は radio/select（単一の文字列値）のみ。checkbox の値は配列であり、
+	// サーバー側 (class-rest-public.php::condition_met) は配列を一律「不成立」として扱う。
+	// ここで String( [ '希望する' ] ) === '希望する' を成立させてしまうと、
+	// 「子を表示して入力させたのにサーバーは保存しない」＝無言のデータ消失になる。
+	// 判定をサーバーに揃え、そもそも表示しない。
+	if ( Array.isArray( parentVal ) ) {
+		return false;
+	}
+
 	const current =
 		parentVal === undefined || parentVal === null
 			? ''
