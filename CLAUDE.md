@@ -24,8 +24,8 @@ WordPress予約プラグイン「Smart Booking」。面談・相談型予約（�
 
 | 項目 | 内容 |
 |------|------|
-| 公開状況 | **WordPress.org 公開済み**（slug `smart-booking`、公開バージョン **v0.5.4**、2026-09-11、SVN rev 3690665） |
-| 次バージョン | **v0.5.5（不具合修正）** — 計画: `docs/plans/v0.5.5-release-plan.md` |
+| 公開状況 | **WordPress.org 公開済み**（slug `smart-booking`、公開バージョン **v0.5.5**、2026-09-11、SVN rev 3690888） |
+| 次バージョン | **未定**（保守フェーズ。直近リリースの記録: `docs/plans/v0.5.5-release-plan.md`） |
 | バグ正本 | `docs/bugs/` 配下の**個別ファイル**（1件1ファイル。症状・再現条件・根本原因・修正方針・検証）。`docs/bugs/v0.2.3-bug-ledger.md` は v0.2.3 当時の台帳で**歴史記録**。 |
 | 引き継ぎ | `docs/handoff/state.md`（現在地・GO待ち。**セッション開始時に最初に読む**。バージョンはこのファイルではなく state.md が正本） |
 

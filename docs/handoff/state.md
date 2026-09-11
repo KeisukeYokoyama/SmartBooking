@@ -50,11 +50,23 @@
   一度踏んで37ファイルが書き換わり、出荷対象外の差分を `git checkout` で全て戻した。
   **`--fix` は使わず、指摘箇所を手で直すこと。**
 
-### v0.5.5（実施済み・**SVN commit の直前で停止中**）
+### v0.5.5：**WordPress.org 公開済み**（SVN **rev 3690888**・2026-09-11 15:13 JST）
 
-**唯一の GO 待ちポイント = `svn ci`。** それ以外（実装・テスト・ゲート・ビルド・
-バージョン4箇所・ZIP・git commit/push/tag・SVN 作業コピーの反映）は完了済み。
-計画は `docs/plans/v0.5.5-release-plan.md`。
+`svn ci` 完了（人間 GO のうえ実行）。git（`7e2b74b` + タグ `v0.5.5`、push 済み）・
+SVN（`trunk` と `tags/0.5.5/`）とも反映済み。計画は `docs/plans/v0.5.5-release-plan.md`。
+
+- **commit 直前の実測検証**: `trunk` と `tags/0.5.5` の差分ゼロ（`.svn` 除く）／バージョン4箇所一致／
+  ローカルビルド（`smart-booking.php` `readme.txt` `CHANGELOG.md` `includes/class-email.php`
+  `build/admin.js` `build/admin.asset.php`）と SVN 作業コピーが byte 一致／`?` 無し。
+- **WordPress.org API は commit 直後に 0.5.5 を返した**（`last_updated: 2026-09-11 6:13am GMT`）。
+  v0.5.4 のときの反映ラグ（下記）は今回は発生していない。**API の値は commit 成否の判定基準ではない**
+  という原則は維持（正は `svn log --limit 1 <URL>`）。
+- ⚠️ **`svn log --limit 1` は作業コピーのパスに対して実行すると BASE までしか見ない。**
+  commit 直後の確認は `svn log --limit 1 https://plugins.svn.wordpress.org/smart-booking`
+  （＝リポジトリ URL 指定）か `svn up` 後に行う。v0.5.5 の確認時、WC 指定では r3690665（0.5.4）が
+  返り「commit が消えた」と誤読しかけた。
+- **v0.5.4 で binary 扱いだった `CHANGELOG.md` の `svn:mime-type` は `text/plain` へ是正済み**
+  （trunk・tags/0.5.5 の両方）。
 
 - **スコープ**: A（H1 `{schedule_time}` 表記）／B（H2案A 文言**4箇所**）／C（H2案C 無言skip可視化）／
   **H3（予約詳細のフォーム別入力項目）**／E（H5 readme の http→https）／F（H6 住所タイプ変更時の自動入力既定）。
@@ -91,9 +103,10 @@
   **Plugin Check 配布スコープ 0/0**（指摘20件は全て `.distignore` 除外で、ZIP の31ファイルに
   1つも含まれないことを実測で突き合わせ済み）。
 - **配布物**: `smart-booking.zip` = **31ファイル**（混入なし・実測）。ZIP 内の版表記3箇所も実測確認。
-- **SVN 作業コピー**（`~/dev/smart-booking-svn`・rev 3690879 から）: `trunk` 反映済み＋`tags/0.5.5/` 作成済み。
-  `svn status` は意図した差分のみ（`?` なし）。**v0.5.4 で binary 扱いになっていた
-  `trunk/CHANGELOG.md` の `svn:mime-type` を `text/plain` へ是正済み**（`MM` の2文字目がそれ）。
+- **SVN 作業コピー**（`~/dev/smart-booking-svn`・rev 3690879 から）: `trunk` 反映＋`tags/0.5.5/` 作成を経て
+  **2026-09-11 に commit 済み（rev 3690888）**。`svn status` は意図した差分のみ（`?` なし）だった。
+  **v0.5.4 で binary 扱いになっていた `trunk/CHANGELOG.md` の `svn:mime-type` を `text/plain` へ是正済み**
+  （`MM` の2文字目がそれ）。
 
 #### 実装上の判断（次セッションが蒸し返さないための記録）
 
@@ -576,6 +589,18 @@ WordPress.org は **/trunk/readme.txt の `Stable Tag` を読み、その値が�
 - 🔵 **既存ギャップ（v0.5.1 で発見・スコープ外・別途起票候補）**: 月カレンダー表示（`calendar_view_mode=month_only`/`both`）で残りわずか/満席/締切の**視覚区別が無い**。`DateSelect.jsx` は月セルに `is-tone-*` クラスを付与するが CSS 側に `.smb-front-month-cell.is-tone-*` の背景スタイルが無く、各バッジも `display:none`。**main(v0.5.0) から存在＝v0.5.1 の回帰ではない**（`month-cell.is-tone` は main で 0 件）。日表示（既定 `day_only`）は `is-tone-few` 背景で正常表示。月表示にも空き状況表示を足すなら別タスク（新規表示の追加＝YAGNI 判断のうえ）。関連: `.smb-front-time-btn__badge` 等の満席/締切バッジは現行デザインで display:none（可視は few_left バッジのみ）、無効スロットの「×」は #e74c3c 固定マーカー。
 
 ## テスト運用メモ
+- ⚠️ **モバイル/デスクトップ分岐は `testInfo.project.name` で判定する。要素の有無を `count()` で判定しない**
+  （2026-09-11・v0.5.5 H3 の E2E ヘルパーで2度つまずいた点）。
+  `ReservationsPage.jsx` は `isMobile` でデスクトップ＝行内「詳細」ボタン／モバイル(375px)＝カード全体クリックに
+  分岐するが、**`page.getByRole('button', {name:'詳細'}).count()` は React 描画前に 0 を返すため、
+  デスクトップでもモバイル経路に入り「クリックできない/モーダルが開かない」で落ちる。**
+  `count()` は待ち合わせをしない即時評価（`expect(...).toHaveCount(n)` だけがリトライする）＝
+  **「存在しない」と「まだ描画されていない」を区別できない。**
+  正しい形は `tests/e2e/v055-reservation-detail-form-fields.spec.js:102-127`（`openDetail()`）:
+  ①`waitForSelector('.smb-page--reservations')` でページ描画を待つ →
+  ②対象行を `toBeVisible()` で待つ → ③分岐は `testInfo.project.name === 'mobile'`。
+  既存 `phase2-reservations.spec.js` も同じくプロジェクト名で分岐しており、こちらが慣習。
+  なお `toHaveCount(0)`（＝出ていないことの assert）は待ち合わせ付きなので用途が違い、使ってよい。
 - 長時間スイートは**フォアグラウンド＋spec チャンク＋Bash ツール timeout**（シェル `timeout` は macOS 未インストール）。detached background は孤児化防止のため使わない。
 - 回帰ゲート＝ベースライン差分で新規失敗ゼロ。既知 stale（ベースラインでも失敗＝別件・ブロックしない）:
   - phase3-fix1:45 / phase3-validation:115 / phase3-responsive:967（`docs/bugs/spec-vs-shipped-booking-flow.md` の仕様乖離）。
