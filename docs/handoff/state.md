@@ -50,23 +50,76 @@
   一度踏んで37ファイルが書き換わり、出荷対象外の差分を `git checkout` で全て戻した。
   **`--fix` は使わず、指摘箇所を手で直すこと。**
 
-### 次の一手（v0.5.5）
+### v0.5.5（実施済み・**SVN commit の直前で停止中**）
 
-📋 **`docs/plans/v0.5.5-release-plan.md`（2026-09-11 起票・実装未着手・人間 GO 待ち）**
+**唯一の GO 待ちポイント = `svn ci`。** それ以外（実装・テスト・ゲート・ビルド・
+バージョン4箇所・ZIP・git commit/push/tag・SVN 作業コピーの反映）は完了済み。
+計画は `docs/plans/v0.5.5-release-plan.md`。
 
-- **含める**: A（H1 `{schedule_time}` 表記）／B（H2案A 文言**4箇所**）／C（H2案C 無言skip可視化）／
-  E（H5 readme の http→https）／F（H6 住所タイプ変更時の自動入力既定）
-- **B は着手前にもう一度 ux-evaluator が要る**: B-4（`MailSettingsTab.jsx:350-352` のリード文）の
-  文案が未作成。B-2 の確認ダイアログは3案併記済みで**人間が1案を選ぶ**必要がある。
-- **見送り**: H7（表示期間の既定値3種）＝通常運用で表面化せず、修正が予約フォームの中核に跨るため。
-- **⚠️ 人間判断待ち**: **H3（予約詳細が既定フォームの入力項目しか読まない）**。評価指示の対象外だったが
-  未解決で、重大度は E/F より高い可能性がある。REST 変更は不要だが管理画面の状態管理に触るため
-  A〜F より大きい。**v0.5.5 に含めるか v0.5.6 単独にするかを決める必要がある。**
-- **⚠️ サイト側の連動（未着手）**: v0.5.4 で H4 を修正したので、サイト側
-  `~/dev/smart-booking-website` の `docs/help-backlog.md` §H4 のチェックを閉じ、
-  `content/help/markdown/conditional-fields.md` の「親フィールドのタイプは変えないでください」節を
-  **実装が変わった前提で見直す必要がある**（現在は「画面には出るのに保存されない」と書いてあるが、
-  v0.5.4 以降は**そもそも種別を変更できない／子が表示されない**）。本セッションでは未実施。
+- **スコープ**: A（H1 `{schedule_time}` 表記）／B（H2案A 文言**4箇所**）／C（H2案C 無言skip可視化）／
+  **H3（予約詳細のフォーム別入力項目）**／E（H5 readme の http→https）／F（H6 住所タイプ変更時の自動入力既定）。
+  **H7 は見送り**（技術的負債トラック）。
+- **git**: `db25f1e`（A/B/C/H6）→ `7d1a4e8`（H3・独立コミット）→ `7e2b74b`（release + H5）。
+  タグ `v0.5.5` push 済み。
+- **⚠️ H3 は A/B/C/H5/H6 と分けて実装・コミット・回帰判定した**（管理画面の状態管理に触るため）。
+- **回帰ゲート Green（2セットに分けた絞り込み比較・フルスイートは未実行）**:
+
+  | セット | 対象 | baseline | 変更後 |
+  |---|---|---|---|
+  | SET1（A/B/C/H5/H6） | 7 spec / 78 テスト | 64 expected・4 失敗・10 skipped | **78 expected・失敗0** |
+  | SET2（H3） | 5 spec / 48 テスト | 41 expected・2 失敗・5 skipped | **47 expected・失敗0**（skipped 1 は意図的） |
+
+  - **状態が変わったのは Red/skipped → Green のみ。新規失敗ゼロ。**
+  - **baseline の既存赤4件（SET1 2件 / SET2 は新規specのみ）のうち、`phase4-email` と
+    `v030-address-field` の2件は `npx wp-env run cli` の ETIMEDOUT**（既知のインフラフレーク。
+    本ファイル下部にも既出）。スタックトレースで確認済みで、コードとは無関係。変更後は発生していない。
+  - `v040-form-reservation.spec.js` mobile の skipped は `:41` の `test.skip( project !== 'desktop' )`
+    による**意図的なもの**。
+  - **did-not-run の取りこぼし対策**: JSON レポーターの出力をテスト単位で突き合わせ、
+    skipped 件数も明示的に数えた（失敗リストの差分だけで仕分けない）。
+- **絞り込みの根拠（到達可能性を grep で実測）**:
+  - **B の旧文言を assert している既存テストはゼロ**（文言のみ・挙動不変）。
+  - A の `{schedule_time}` 説明文を見ているテストもゼロ。`phase4-email.spec.js:277` が持つ
+    `14:00〜15:00` は**メール本文の展開結果**で、変数一覧の説明文とは無関係。
+  - C は `class-email.php` の宛先決定を触るので `phase4-email` ＋ `admin_notify` を触る
+    唯一の既存 spec `v050-form-mail-overrides` を対象にした。
+  - H6 は `CustomFieldModal` の `onTypeChange` なので `v030-address-field` /
+    `phase2-form-settings` / `v054-condition-parent-guard`。
+  - H5 は出荷コード無変更のためテスト対象なし。
+  - H3 は `ReservationsPage` / `ReservationDetailModal` なので予約一覧系4本＋新規1本。
+- **静的ゲート**: php -l OK ／ phpcs 変更PHP **ERRORS 0 / WARNINGS 0** ／ lint-js clean ／
+  **Plugin Check 配布スコープ 0/0**（指摘20件は全て `.distignore` 除外で、ZIP の31ファイルに
+  1つも含まれないことを実測で突き合わせ済み）。
+- **配布物**: `smart-booking.zip` = **31ファイル**（混入なし・実測）。ZIP 内の版表記3箇所も実測確認。
+- **SVN 作業コピー**（`~/dev/smart-booking-svn`・rev 3690879 から）: `trunk` 反映済み＋`tags/0.5.5/` 作成済み。
+  `svn status` は意図した差分のみ（`?` なし）。**v0.5.4 で binary 扱いになっていた
+  `trunk/CHANGELOG.md` の `svn:mime-type` を `text/plain` へ是正済み**（`MM` の2文字目がそれ）。
+
+#### 実装上の判断（次セッションが蒸し返さないための記録）
+
+- **B は依頼時「3箇所」だったが実際は4箇所。** `MailSettingsTab.jsx:350-352` のリード文にも
+  同じ無条件の断定があった（ux-evaluator が発見、親が一次資料で裏取り）。
+  役割分担は「リード文＝条件付きの一般則／トグル直下のヒント＝OFF の例外」。
+- **H3 の手動予約作成モーダルは修正対象外。** UI にフォーム選択が無く、サーバが常に既定フォームへ
+  解決するため（`class-rest-reservations.php:285`）、既定フォームの項目を渡すのが正しい。
+  サイト側 `help-backlog.md` §H3 は手動予約作成も不具合として挙げているが、**実装上は不具合ではない**。
+- **H3 に REST の変更は不要だった。** `src/admin/api.js:238-239` の `customFields.list( formId )` は
+  元から form_id を受け取れ、呼び出し側が渡していなかっただけ。
+
+#### ⚠️ サイト側の連動（未着手・プラグイン側からは書き込まない）
+
+`~/dev/smart-booking-website` 側で次が必要。**本セッションでは未実施**。
+
+- `docs/help-backlog.md`: §H1 / §H2 / §H3 / §H5 / §H6 を閉じる（§H4 は v0.5.4 で既に解決済みだが未クローズ）。§H7 は見送り。
+- `content/help/markdown/conditional-fields.md`: 「親フィールドのタイプは変えないでください」節が
+  v0.5.4 以降の実装と食い違う（現在は**そもそも種別を変更できない／子が表示されない**）。
+- `content/help/markdown/forms.md`: 「予約詳細の『追加の入力項目』は既定のフォームの項目をもとに
+  表示される」という注意書きは **v0.5.5 で不要になる**ので削除する。
+- `content/help/markdown/address-field.md`: 「タイプを変更した場合は自動入力しない側で開く」の記述が
+  **v0.5.5 で不要になる**（H6 修正）。
+- `content/help/markdown/email.md`: OFF 時の挙動の記述は実装と一致しているが、
+  v0.5.5 で警告バナーが出るようになったことを追記する余地がある。
+
 
 ## 🔴 現在の公開状況（最優先・2026-08-17 更新）
 
