@@ -85,6 +85,9 @@ export default function ReservationsPage() {
 	const [stores, setStores] = useState([]);
 	const [staff, setStaff] = useState([]);
 	const [customFields, setCustomFields] = useState([]);
+	// フォーム別の入力項目 ( { [form_id]: fields[] } )。予約詳細は予約が作られた
+	// フォームの項目で描画する必要があるため、既定フォーム分だけでは足りない。
+	const [customFieldsByForm, setCustomFieldsByForm] = useState({});
 	const [forms, setForms] = useState([]);
 	const [basicsLoading, setBasicsLoading] = useState(true);
 	const [basicsError, setBasicsError] = useState(null);
@@ -112,16 +115,38 @@ export default function ReservationsPage() {
 		setBasicsLoading(true);
 		setBasicsError(null);
 		try {
-			const [storeRes, staffRes, fieldsRes, formsRes] = await Promise.all([
+			const [storeRes, staffRes, formsRes] = await Promise.all([
 				API.stores.list(),
 				API.staff.list(),
-				API.customFields.list().catch(() => []),
 				API.forms.list().catch(() => []),
 			]);
+			const formList = Array.isArray(formsRes) ? formsRes : [];
+
+			// 入力項目はフォームごとに引く。form_id を省略するとサーバが既定フォームへ
+			// 解決するため、既定以外のフォームで追加した項目の回答が予約詳細に出ない。
+			const fieldEntries = await Promise.all(
+				formList.map((f) =>
+					API.customFields
+						.list(f.id)
+						.catch(() => [])
+						.then((r) => [f.id, Array.isArray(r) ? r : []])
+				)
+			);
+			const byForm = Object.fromEntries(fieldEntries);
+
+			// 手動予約作成はフォームを選ばせず、サーバが既定フォームへ解決する
+			// （includes/rest/class-rest-reservations.php の create_item）。
+			// そのモーダルへ渡すのは既定フォームの項目でよい。
+			const defaultForm = formList.find((f) => f.is_default) || formList[0] || null;
+			const defaultFields = defaultForm
+				? byForm[defaultForm.id] || []
+				: await API.customFields.list().catch(() => []);
+
 			setStores(Array.isArray(storeRes) ? storeRes : []);
 			setStaff(Array.isArray(staffRes) ? staffRes : []);
-			setCustomFields(Array.isArray(fieldsRes) ? fieldsRes : []);
-			setForms(Array.isArray(formsRes) ? formsRes : []);
+			setCustomFields(Array.isArray(defaultFields) ? defaultFields : []);
+			setCustomFieldsByForm(byForm);
+			setForms(formList);
 		} catch (err) {
 			setBasicsError(err.message || '初期データの読み込みに失敗しました。');
 		} finally {
@@ -436,6 +461,7 @@ export default function ReservationsPage() {
 				stores={stores}
 				staff={staff}
 				customFields={customFields}
+				customFieldsByForm={customFieldsByForm}
 			/>
 
 			<ManualReservationModal

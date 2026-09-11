@@ -36,6 +36,7 @@ export default function ReservationDetailModal({
 	stores = [],
 	staff = [],
 	customFields = [],
+	customFieldsByForm = null,
 }) {
 	const [loading, setLoading] = useState(false);
 	const [loadError, setLoadError] = useState(null);
@@ -124,10 +125,20 @@ export default function ReservationDetailModal({
 		: '—';
 
 	// カスタムフィールドを表示用に整形（ core 3 フィールドは除外）.
-	const displayFields = useMemo(
-		() => customFields.filter((f) => !['customer_name', 'customer_email', 'customer_phone'].includes(f.field_key)),
-		[customFields]
-	);
+	//
+	// 項目定義は「この予約が作られたフォーム」のものを使う。既定フォームの定義だけで
+	// 描画すると、既定以外のフォームで追加した項目の回答が表示されない（回答は保存され
+	// ており CSV には出るのに管理画面から読めない）。customFieldsByForm が渡されて
+	// いないときは従来どおり customFields を使う。
+	const displayFields = useMemo(() => {
+		const formFields =
+			customFieldsByForm && data && Array.isArray(customFieldsByForm[data.form_id])
+				? customFieldsByForm[data.form_id]
+				: customFields;
+		return formFields.filter(
+			(f) => !['customer_name', 'customer_email', 'customer_phone'].includes(f.field_key)
+		);
+	}, [customFieldsByForm, customFields, data]);
 
 	return (
 		<Modal
