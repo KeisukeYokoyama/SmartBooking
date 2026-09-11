@@ -134,6 +134,52 @@ SVN（`trunk` と `tags/0.5.5/`）とも反映済み。計画は `docs/plans/v0.
   v0.5.5 で警告バナーが出るようになったことを追記する余地がある。
 
 
+## 📸 ヘルプ画像 フェーズ2: 実カット撮影（2026-09-11・**撮影完了／サイト側へのコピーは未実施**）
+
+撮影基盤（2026-09-09 新設）の上に、サイト側バックログ `~/dev/smart-booking-website/docs/help-backlog.md`
+§C2 / §C3 と、各原稿に埋め込まれた `<!-- 撮影: … -->` 指示に沿って**実カット 27 枚**を撮影した。
+出力は `docs/website-screenshots/<slug>/NN-name.png`（**gitignore 済み**＝コミットされない）。
+**全カット 1280×720 / PNG / fullPage:false / 管理画面ロケール ja**（既存27枚と同条件・実測確認済み）。
+
+- **内訳**: `forms` 3 ／ `conditional-fields` 6 ／ `form-mail` 3 ／ `address-field` 3 ／ `settings` 3
+  ／ `design` 2 ／ `custom-fields` 2 ／ `reservations` 2 ／ `email` 2 ／ `staff` 1。
+  一覧と1枚ごとの内容は `docs/website-screenshots/README.md` の「撮影済みカット一覧」が正本。
+- **v0.5.5 / v0.5.4 で変わった画面も込み**: B の文言4箇所（`email/02-admin-notify.png`＝リード文＋
+  トグル直下ヒント、`email/03-admin-off-dialog.png`＝確認ダイアログ、`staff/02-staff-add-modal.png`＝
+  担当者メール欄のヘルプ文）／H6（`address-field/03-address-type-autofill.png`）／
+  H3（`reservations/02-status-change.png`）／v0.5.4 の種別セレクタ disabled
+  （`conditional-fields/06-parent-type-locked.png`）。A（`{schedule_time}` の例示）は
+  `form-mail/02` ・`email/02` ・`form-mail/03` の変数一覧に写り込んでいる。
+- **コード**: 共通ヘルパーを `tests/screenshots/helpers.js` へ切り出し、
+  `help-new-pages.spec.js`（新規5ページ）と `help-updates.spec.js`（既存差し替え＋v0.5.5 分）を追加。
+  既存 `help.spec.js` は `stores` のみに縮小。**出荷コードは無変更**（`src/` `includes/` の差分ゼロ）。
+- **シード拡張**（`tests/screenshots/seed/`）: 原稿の例示と名前を一致させるため
+  `無料体験のお申し込み`（＋`体験コース`・ユーザー宛のみ専用メール文面 ON）を追加し、
+  **既定フォーム「標準フォーム」へ `資料送付` / `送付先住所`（条件フィールド）/ `ご住所`（住所・自動入力 ON）
+  を追加**（既定フォームの行と初期3項目は不変。`field_defs()` のスラッグ `default` が特別扱い）。
+  さらに**メール共通文面6 option を activator の既定値へそろえる**（wp-env は回帰フィクスチャの
+  「共通受付件名」等で汚れており、そのまま撮ると管理画面にテスト文字列が写るため）。
+  **purge の完全復帰を実測で確認済み**（フォーム1件・フィールド3件・店舗2件・レジストリ option 削除・
+  メール6 option が元のダミー値へ復元）。撮影後に purge 実行済み＝**wp-env は回帰スイート実行可能な状態**。
+- **原稿どおりに撮れなかった点（1件）**: `form-mail/01-form-mail-tab.png` は原稿が
+  「案内文から2種別目の見出しまで1枚に」と指定しているが 1280×720 に物理的に入らない。
+  2種別目の見出しと OFF 表示は `form-mail/02-variable-helper.png` の下半分に収めた。
+- ⛔ **`gtm` の4枚（§C1）は撮影対象外**。指示された絵は GTM の管理画面と DevTools の `dataLayer` で、
+  **どちらも wp-env の中に存在しない**（外部サービスと撮影ブラウザの外側の UI）。この基盤では撮れない。
+  サイト側 §C1 は未完のまま残り、`tests/e2e/help-pages.spec.ts` の `SLUGS_WITHOUT_IMAGES` からの
+  `'gtm'` 除去も保留。**別途の対応方針は人間が判断する。**
+- 🟡 **撮影中に発見した不具合＝`docs/bugs/admin-disabled-select-arrow-tiling.md`（新規起票）**:
+  disabled のセレクトで WordPress の矢印アイコンが**タイル状に敷き詰められる**。
+  原因は `src/admin/admin.scss` の `.smb-select` 系 `&:disabled { background: … }`（ショートハンド）が
+  `background-repeat` / `background-position` を initial へ戻し、WP コアの `select:disabled` が与える
+  `background-image` と組み合わさるため（`getComputedStyle` で `repeat` / `0% 0%` を実測）。
+  **表示のみ・データ影響なし**だが `conditional-fields/06-parent-type-locked.png` に写る。
+  修正は CSS 1〜2行だが `build/` に入る＝**リリースを伴うため GO 待ち**。
+- **サイト側へのコピーは未実施**（このセッションではサイト側リポジトリに一切書き込んでいない）。
+  コマンドは `docs/website-screenshots/README.md`「サイト側リポジトリへ渡す手順」。
+  **`stores/` は差し替え依頼が無いためコピー対象外**（生成はされるが渡さない）。
+
+
 ## 🔴 現在の公開状況（最優先・2026-08-17 更新）
 
 > ⚠️ 本ファイル下部の「現在地」節は 2026-07-30 時点の記述で **stale**（「公開版 v0.5.0／v0.5.1 未公開」は**誤り**）。**実体を優先すること**（下記「バージョン状態の確認手順」で必ず実機確認してから作業する）。
@@ -308,8 +354,8 @@ npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screensho
 - 🟡 **`docs/bugs/mail-admin-off-store-empty-silent-skip.md`（2026-09-10 起票）**: 管理者トグル OFF ＋ 店舗メール未設定で、担当者メールがあっても管理者系通知が `class-email.php:123` で完全無言に抑止される（transient 記録も無いため警告バナーも出ない）。UI 文言3箇所（`MailSettingsTab.jsx:363`・`:422`／`StaffFormModal.jsx:141`）が逆のことを述べている。**推奨＝案A（文言是正）＋案C（無言 skip の可視化・スコープ付き）。案B（担当者を To へ昇格）は非推奨**＝既存サイトの通知先を無操作で変え、仕様書 §8.2「担当者＝CC」から逸脱するため。⚠️「ADR/起票に3案が記載済み」という前提は誤りで、**そのような記録は存在しない**（本起票で新規に整理）。**修正は GO 待ち。**
 - **既存赤29件が未台帳**／**E2E の `npx wp-env run cli` 由来 ETIMEDOUT フレーク**（`retries: 1` 等で解消可）。
 
-### 次の一手
-サイト側のヘルプ原稿が確定したら、実カット一覧を `tests/screenshots/help.spec.js` に実装する（現在はサンプル1テスト＝`stores` のみ）。カット追加の書き方は同ファイルの docblock 参照。
+### 次の一手 → **2026-09-11 に実施済み**（下記「📸 ヘルプ画像 フェーズ2」節）
+実カット 27 枚を撮影し、`docs/website-screenshots/` に出力済み。サイト側へのコピーは未実施（人間の判断待ち）。
 
 ---
 

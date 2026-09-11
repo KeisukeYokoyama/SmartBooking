@@ -116,8 +116,19 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		 * 変更前の値（存在有無を含む）はレジストリへ退避し、purge で完全に元へ戻す。
 		 */
 		const MANAGED_OPTIONS = array(
-			'smart_booking_show_store_front' => 1,
-			'smart_booking_show_staff_front' => 1,
+			'smart_booking_show_store_front'           => 1,
+			'smart_booking_show_staff_front'           => 1,
+			// メール共通文面（includes/class-activator.php の既定値と同一）。
+			// wp-env は回帰スイートのフィクスチャ（「共通受付件名」等のダミー文字列）で
+			// 上書きされていることがあり、そのまま撮ると「設定 → メール通知」タブや
+			// フォーム設定のメールタブ（OFF 時の共通文面プレビュー）にテスト用の文字列が写る。
+			// 既定値へそろえてから撮り、purge で撮影前の値へ完全に戻す。
+			'smart_booking_mail_receipt_user_subject'  => '【{store_name}】ご予約を受け付けました',
+			'smart_booking_mail_receipt_user_body'     => "{customer_name} 様\n\nご予約を受け付けました。\n下記内容にて承りました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n内容に変更がある場合はご連絡ください。",
+			'smart_booking_mail_receipt_admin_subject' => '【新規予約】{customer_name} 様 ({schedule_date} {schedule_time})',
+			'smart_booking_mail_receipt_admin_body'    => "新しい予約が入りました。\n\n予約番号: {reservation_id}\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約者: {customer_name}\nメール: {customer_email}\n電話: {customer_phone}",
+			'smart_booking_mail_approval_user_subject' => '【{store_name}】ご予約が確定しました',
+			'smart_booking_mail_approval_user_body'    => "{customer_name} 様\n\nご予約が確定しました。\n\n▼ご予約内容\n日時: {schedule_date} {schedule_time}\n店舗: {store_name}\n担当: {staff_name}\n予約番号: {reservation_id}\n\n当日お待ちしております。",
 		);
 
 		/**
@@ -236,7 +247,14 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		}
 
 		/**
-		 * フォーム定義（スラッグ => 値）。既存のデフォルトフォームには一切触れない。
+		 * フォーム定義（スラッグ => 値）。既存のデフォルトフォーム行（forms テーブル）には一切触れない。
+		 *
+		 * `mail_overrides` を持つ定義は、そのフォームの専用メール文面として JSON 列へ保存する
+		 * （includes/rest/class-rest-forms.php::normalize_mail_overrides() と同じ 3 種別・同じ形）。
+		 * enabled=true の種別は件名・本文の両方を必ず埋める（REST 側の検証と同条件）。
+		 *
+		 * `trial`（無料体験のお申し込み）はヘルプ原稿 form-mail.md / forms.md が例示に使っている
+		 * フォーム名。原稿と画像の名前がずれないよう、この名前で固定する。
 		 *
 		 * @return array<string,array<string,mixed>>
 		 */
@@ -244,6 +262,26 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			return array(
 				'first_consult'  => array( 'name' => '初回相談フォーム' ),
 				'online_consult' => array( 'name' => 'オンライン相談フォーム' ),
+				'trial'          => array(
+					'name'           => '無料体験のお申し込み',
+					'mail_overrides' => array(
+						'reception_user'  => array(
+							'enabled' => true,
+							'subject' => '【無料体験】お申し込みを受け付けました（{store_name}）',
+							'body'    => "{customer_name} 様\n\n無料体験のお申し込みを受け付けました。\n\n▼お申し込み内容\n日時: {schedule_date} {schedule_time}\n教室: {store_name}\n担当: {staff_name}\n受付番号: {reservation_id}\n\n当日は筆記用具をお持ちください。教室は駅東口から徒歩3分です。\nご不明な点がありましたらお気軽にご連絡ください。",
+						),
+						'reception_admin' => array(
+							'enabled' => false,
+							'subject' => '',
+							'body'    => '',
+						),
+						'approval_user'   => array(
+							'enabled' => false,
+							'subject' => '',
+							'body'    => '',
+						),
+					),
+				),
 			);
 		}
 
@@ -258,6 +296,12 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		 *   （includes/rest/class-rest-custom-fields.php::format_row() 準拠）。
 		 * - 条件フィールドは condition_field_key（親の field_key）と condition_value（親の選択肢の値）。
 		 *   親は radio/select のみ・ネスト禁止・sort_order は親より後ろ。
+		 * - **スラッグ `default` は既定フォーム（forms.is_default = 1）を指す特別扱い**。
+		 *   既定フォームの行そのものは作らない・触らないが、そこへ撮影用の項目だけを足す
+		 *   （ヘルプ原稿 conditional-fields.md / address-field.md が「標準フォーム」を例示に
+		 *   使っており、フロントの固定ページに貼られたショートコード `[smart_booking]` も
+		 *   既定フォームを表示するため）。足した項目はレジストリ管理下なので purge で消え、
+		 *   既定フォームの初期3項目（お名前 / メールアドレス / 電話番号）は一切変更しない。
 		 *
 		 * @return array<string,array<string,array<string,mixed>>>
 		 */
@@ -355,6 +399,75 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 						'field_options' => array( 'Zoom', 'Google Meet' ),
 						'is_required'   => 0,
 						'sort_order'    => 3,
+					),
+				),
+				'trial'          => array(
+					'customer_name'  => array(
+						'field_key'   => 'customer_name',
+						'field_label' => '氏名',
+						'field_type'  => 'text',
+						'placeholder' => '山田 太郎',
+						'is_required' => 1,
+						'sort_order'  => 0,
+					),
+					'customer_email' => array(
+						'field_key'   => 'customer_email',
+						'field_label' => 'メールアドレス',
+						'field_type'  => 'email',
+						'placeholder' => 'example@example.com',
+						'is_required' => 1,
+						'sort_order'  => 1,
+					),
+					'customer_phone' => array(
+						'field_key'   => 'customer_phone',
+						'field_label' => '電話番号',
+						'field_type'  => 'tel',
+						'placeholder' => '090-1234-5678',
+						'is_required' => 1,
+						'sort_order'  => 2,
+					),
+					// form-mail.md 02-variable-helper が例示する「体験コース」。
+					// 選択式（radio/select）をこのフォームに置かないこと。
+					// conditional-fields.md 02-no-parent-candidate が「親候補0件のフォーム」
+					// としてこのフォームの項目の編集モーダルを使う。
+					'trial_course'   => array(
+						'field_key'   => 'trial_course',
+						'field_label' => '体験コース',
+						'field_type'  => 'text',
+						'placeholder' => '例：算数（小4）',
+						'is_required' => 0,
+						'sort_order'  => 3,
+					),
+				),
+				'default'        => array(
+					// conditional-fields.md が例示する親子ペア（資料送付 → 送付先住所）。
+					// sort_order は既存の保護フィールド（10 / 20 / 30）より後ろに置く。
+					'material_send'    => array(
+						'field_key'     => 'material_send',
+						'field_label'   => '資料送付',
+						'field_type'    => 'radio',
+						'field_options' => array( '希望する', '希望しない' ),
+						'is_required'   => 0,
+						'sort_order'    => 40,
+					),
+					'shipping_address' => array(
+						'field_key'           => 'shipping_address',
+						'field_label'         => '送付先住所',
+						'field_type'          => 'textarea',
+						'placeholder'         => '郵便番号・住所をご記入ください。',
+						'is_required'         => 0,
+						'sort_order'          => 50,
+						'condition_field_key' => 'material_send',
+						'condition_value'     => '希望する',
+					),
+					// address-field.md が例示する住所（郵便番号）項目。自動入力は既定 ON。
+					'home_address'     => array(
+						'field_key'   => 'home_address',
+						'field_label' => 'ご住所',
+						'field_type'  => 'address',
+						'autofill'    => true,
+						'is_required' => 0,
+						'sort_order'  => 60,
 					),
 				),
 			);
@@ -495,6 +608,22 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		private static function table( $name ) {
 			global $wpdb;
 			return $wpdb->prefix . 'smart_booking_' . $name;
+		}
+
+		/**
+		 * 既定フォーム（forms.is_default = 1）の id を返す。無ければ 0。
+		 *
+		 * 既定フォームは activator が作る行でレジストリ管理下に無いため、
+		 * field_defs() のスラッグ 'default' を解決するときだけ DB から引く。
+		 * この関数は読むだけで、既定フォームの行は変更しない。
+		 *
+		 * @return int 既定フォームの id（見つからなければ 0）.
+		 */
+		private static function default_form_id() {
+			global $wpdb;
+			$table = self::table( 'forms' );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- テーブル名は自前の定数由来.
+			return (int) $wpdb->get_var( "SELECT id FROM {$table} WHERE is_default = 1 ORDER BY id ASC LIMIT 1" );
 		}
 
 		/* ------------------------------------------------------------------ */
@@ -827,13 +956,19 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			$i         = 0;
 			foreach ( self::form_defs() as $slug => $def ) {
 				++$i;
+				// mail_overrides は定義がある場合のみ JSON 化する。無い場合は空文字
+				// （format_row の isset ガードで全種別 disabled として読まれる）。
+				$overrides_json             = isset( $def['mail_overrides'] )
+					? wp_json_encode( $def['mail_overrides'] )
+					: '';
 				$data                       = array(
-					'name'       => $def['name'],
-					'is_default' => 0,
-					'sort_order' => $form_base + $i,
-					'updated_at' => $now,
+					'name'           => $def['name'],
+					'is_default'     => 0,
+					'sort_order'     => $form_base + $i,
+					'mail_overrides' => $overrides_json,
+					'updated_at'     => $now,
 				);
-				$formats                    = array( '%s', '%d', '%d', '%s' );
+				$formats                    = array( '%s', '%d', '%d', '%s', '%s' );
 				$registry['forms'][ $slug ] = self::upsert(
 					self::table( 'forms' ),
 					isset( $registry['forms'][ $slug ] ) ? (int) $registry['forms'][ $slug ] : 0,
@@ -847,9 +982,18 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 
 			// 6. カスタムフィールド（UPDATE で id を保つ。キーは "フォームスラッグ:フィールドスラッグ"）。
 			$known_field_slugs = array();
+			$default_form_id   = self::default_form_id();
 			foreach ( self::field_defs() as $form_slug => $fields ) {
-				$form_id = isset( $registry['forms'][ $form_slug ] ) ? (int) $registry['forms'][ $form_slug ] : 0;
+				// スラッグ 'default' は既定フォーム（is_default=1）を指す。行は作らず id だけ引く。
+				if ( 'default' === $form_slug ) {
+					$form_id = $default_form_id;
+				} else {
+					$form_id = isset( $registry['forms'][ $form_slug ] ) ? (int) $registry['forms'][ $form_slug ] : 0;
+				}
 				if ( $form_id <= 0 ) {
+					if ( 'default' === $form_slug ) {
+						$notes[] = '既定フォーム（is_default=1）が見つからないため、既定フォームへの撮影用項目の追加をスキップしました。';
+					}
 					continue;
 				}
 				foreach ( $fields as $field_slug => $def ) {

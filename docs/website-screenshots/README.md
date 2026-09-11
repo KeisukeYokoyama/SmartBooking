@@ -43,23 +43,38 @@ path の拡張子 `.png` により自動的に PNG になる）。
    ```bash
    npx wp-env start
    ```
-2. デモデータをシードする（シードスクリプトは別途整備中）。
+2. デモデータをシードする（冪等。何度実行しても同じ状態に収束する）。
    ```bash
    npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screenshots/seed/screenshot-seed.php
    ```
 3. 撮影する（デスクトップのみ、既定）。
    ```bash
-   npm run screenshots
+   npm run screenshots                      # 全カット
+   npm run screenshots -- --grep "email"    # 1テストだけ撮り直す
    ```
 4. 出力先を確認する。
    ```
    docs/website-screenshots/<slug>/NN-name.png
    ```
    （画像は `.gitignore` 済みでコミットされない。README のみ追跡対象。）
+5. **撮影が終わったら撤去する**（回帰スイートを回す前に必須）。
+   ```bash
+   npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screenshots/seed/screenshot-purge.php
+   ```
+
+## ファイル構成（2026-09-11 時点）
+
+| ファイル | 役割 |
+|---|---|
+| `tests/screenshots/helpers.js` | 共通ヘルパー（`shot` / `gotoAdminPage` / `scrollToTop` / `scrollInModal` / `openFormSettings` / `openFieldEditModal` / `closeModal` / `autoAcceptDialogs`）。**spec ではない**ので `testMatch: '*.spec.js'` には拾われない |
+| `tests/screenshots/help.spec.js` | `stores` のカット |
+| `tests/screenshots/help-new-pages.spec.js` | 新規ヘルプページ分（`forms` / `conditional-fields` / `form-mail` / `address-field` / `settings`） |
+| `tests/screenshots/help-updates.spec.js` | 既存ページの差し替え分（`design` / `custom-fields` / `reservations` / `email` / `staff`） |
+| `tests/screenshots/legacy/` | 先代 spec の退避先。**実行対象外** |
 
 ## カットを1つ追加する手順
 
-`tests/screenshots/help.spec.js` にある共通ヘルパーを使う。
+`tests/screenshots/helpers.js` の共通ヘルパーを使う。
 
 ```js
 // 撮影して docs/website-screenshots/<slug>/<name>.png へ保存する
@@ -72,29 +87,116 @@ await gotoAdminPage( page, 'smart-booking-stores', '.smb-page--stores' );
 - `slug`: 公式サイト側ヘルプページの slug（下記一覧を参照）。
 - `name`: `"NN-kebab-case.png"` 形式。`NN` は同一 slug 内の連番2桁。
 - 出力ディレクトリは `shot()` 内部で `fs.mkdirSync(..., { recursive: true })` により自動作成される。
-- 新しいテストケース（`test(...)`）を追加する場合、`tests/screenshots/help.spec.js` に追記するか、
+- 新しいテストケース（`test(...)`）を追加する場合、上表のいずれかの spec に追記するか、
   同じ `tests/screenshots/` 直下に別ファイル（`*.spec.js`）を作ってよい。
   **`tests/screenshots/legacy/` はデフォルトで対象外**（`playwright.screenshots.config.js` の
   `testMatch: '*.spec.js'` はサブディレクトリを拾わない）。
+
+### 撮影時のハマりどころ（実測で踏んだもの）
+
+- **「開閉するパネル」の初期状態を確認してからクリックする。** 予約一覧の絞り込み
+  （`ReservationFilters`）は `useState( true )` ＝**既定で開いている**。無条件にトグルを押すと
+  閉じてしまう。`aria-expanded` を読んでから押すこと（`setFiltersOpen()` 参照）。
+- **未保存のモーダルを Escape で閉じると `window.confirm` が出る**（`src/admin/components/Modal.jsx`）。
+  Playwright は既定でダイアログを **dismiss**（キャンセル）するため、ハンドラを付けないと
+  モーダルが閉じず次のカットに前の画面が写り込む。各 test の先頭で `autoAcceptDialogs( page )` を呼ぶ。
+- **`Switch` の実体は `<label class="smb-switch">` 配下の `<input role="switch">`** で、input は
+  `.smb-switch__track` に覆われている。input を直接 click すると
+  「intercepts pointer events」でタイムアウトするので、ラベル側（`.smb-switch`）を押す。
+- **フォーカスリングが写る。** 入力直後は `blurActive( page )` でフォーカスを外してから撮る。
+- **ページ末尾付近のカットは `scrollToTop()` の offset を大きめに取る。** 下までスクロールしきると
+  フッターが画面の大半を占める。
 
 ### 既存 slug 一覧（公式サイト側ヘルプページ）
 
 ```
 installation / stores / staff / schedule / schedule-copy / booking-form /
-reservations / custom-fields / design / email / google-calendar / chatwork
+reservations / custom-fields / design / email / google-calendar / chatwork /
+gtm / forms / conditional-fields / form-mail / address-field / settings
 ```
+
+（後半 6 つは v0.3.0〜v0.5.0 の機能追加に伴ってサイト側に増えたページ。
+`gtm` だけは撮影対象外＝下記「撮影対象から外したもの」を参照。）
 
 ### 確定済みデモデータ名（シード投入後に使える）
 
 - 店舗: `渋谷店` / `新宿店` / `横浜店`
 - 担当者: `山田 太郎`（渋谷店）/ `佐藤 花子`（渋谷店）/ `鈴木 一郎`（新宿店）/ `田中 次郎`（横浜店）
-- フォーム: デフォルト ＋ `初回相談フォーム` ＋ `オンライン相談フォーム`
+- フォーム: `標準フォーム`（既定・activator が作る）＋ `初回相談フォーム` ＋ `オンライン相談フォーム`
+  ＋ `無料体験のお申し込み`
+- `標準フォーム` に足す項目（ヘルプ原稿の例示と一致させてある）:
+  `資料送付`（ラジオ: 希望する / 希望しない）／`送付先住所`（複数行テキスト・表示条件の子）／
+  `ご住所`（住所（郵便番号）・自動入力 ON）
+- `無料体験のお申し込み` の項目: `体験コース`（1行テキスト）。**選択式を含まない**ので
+  「表示条件の親候補が0件」のカットに使える
+- `無料体験のお申し込み` は `予約受付メール（ユーザー宛）` だけ専用文面 ON（他2種別は OFF）
+
+> シードは**メール共通文面（6 option）も activator の既定値へそろえる**。wp-env は回帰スイートの
+> フィクスチャ（「共通受付件名」等のダミー文字列）で上書きされていることがあり、そのまま撮ると
+> 設定 → メール通知やフォーム設定のメールタブにテスト用の文字列が写り込むため。purge で元に戻る。
 
 ただし、特定の店舗名・担当者名の出現を**厳しく待つテストはシード未投入時に落ちる**。
 `tests/screenshots/help.spec.js` の `stores` テストでは、店舗名への依存を避け、一覧コンテナ
 （`.smb-page--stores`）の描画を待機の基準にしている。カットを追加する際も、可能な限り
 「シードが無くてもページ自体は開けて撮影できる」形を優先し、シード依存の文字列を待つ場合は
 その旨をコメントで明記すること。
+
+## 撮影済みカット一覧（2026-09-11）
+
+サイト側 `docs/help-backlog.md` §C2 / §C3 と、原稿中の `<!-- 撮影: … -->` コメントが指示の正本。
+**この一覧は「撮った結果」であって指示ではない。** 相違があれば原稿側が正。
+
+| slug | ファイル | 内容 | 由来 |
+|---|---|---|---|
+| `forms` | `01-form-selector.png` | フォームセレクタ（既定でないフォーム選択・削除・form_id 付きショートコード） | §C2 |
+| `forms` | `02-form-add-modal.png` | 「フォームを追加」モーダル（`入塾相談` 入力済み） | §C2 |
+| `forms` | `03-reservation-form-column.png` | 予約一覧の「フォーム」列＋絞り込みの「フォーム」欄 | §C2 |
+| `conditional-fields` | `01-condition-section.png` | 送付先住所の編集モーダル（親＝資料送付／値＝希望する） | §C2 |
+| `conditional-fields` | `02-no-parent-candidate.png` | 親候補0件のフォームの編集モーダル（案内文のみ） | §C2 |
+| `conditional-fields` | `03-front-hidden.png` | フロント: 希望しない → 送付先住所が出ない | §C2 |
+| `conditional-fields` | `04-front-shown.png` | フロント: 希望する → 送付先住所が出る（03 と同一スクロール位置） | §C2 |
+| `conditional-fields` | `05-parent-delete-blocked.png` | 親フィールド削除の依存エラー | §C2 |
+| `conditional-fields` | `06-parent-type-locked.png` | 親フィールドは種別変更不可（v0.5.4） | v0.5.4 の表示変更 |
+| `form-mail` | `01-form-mail-tab.png` | メールタブ冒頭（案内文＋ユーザー宛だけ ON） | §C2 |
+| `form-mail` | `02-variable-helper.png` | 本文＋使える変数（固定8＋カスタム項目＋注記）＋2種別目の OFF 表示 | §C2 |
+| `form-mail` | `03-override-note.png` | 設定→メール通知の「専用文面を使用中」注記 | §C2 |
+| `address-field` | `01-address-field-modal.png` | 住所カードから開いた追加モーダル（自動入力 ON） | §C2 |
+| `address-field` | `02-address-front.png` | フロント: 1500002 → 東京都渋谷区渋谷 が自動補完 | §C2 |
+| `address-field` | `03-address-type-autofill.png` | 既存項目を住所へ変更 → 自動入力が ON で開く（v0.5.5 H6） | v0.5.5 の表示変更 |
+| `settings` | `01-settings-tabs.png` | 設定を開いた直後（5タブ＋予約フロー冒頭） | §C2 |
+| `settings` | `02-basic-availability.png` | 空き状況の表示セクション（空欄＋プレースホルダー） | §C2 |
+| `settings` | `03-basic-front-display.png` | フロント表示（店舗 ON / 担当者 OFF で両方の文言） | §C2 |
+| `design` | `01-design-tab.png` | デザインタブ冒頭（差し替え。旧画像は v0.2.0・5項目時代） | §C3 |
+| `design` | `02-design-availability-colors.png` | 警告色・無効色＋デフォルトに戻す／テーマ設定を保存 | §C3 |
+| `custom-fields` | `01-field-types.png` | フィールドタイプ 8 種（差し替え。旧画像は 7 種） | §C3 |
+| `custom-fields` | `02-field-list.png` | 現在のフィールド一覧の表（差し替え。旧画像は 01 と同一物だった） | §C3 |
+| `reservations` | `01-reservation-list.png` | 予約一覧（v0.5.3 の列順・フォーム列あり。差し替え） | §C3 |
+| `reservations` | `02-status-change.png` | 予約詳細（既定以外のフォームの入力項目が出る＝v0.5.5 H3。差し替え） | v0.5.5 の表示変更 |
+| `email` | `02-admin-notify.png` | 管理者宛セクションの説明文＋トグル直下のヒント（v0.5.5 B） | v0.5.5 の表示変更 |
+| `email` | `03-admin-off-dialog.png` | 「管理者へのメールをオフにしますか？」の確認ダイアログ（v0.5.5 B） | v0.5.5 の表示変更 |
+| `staff` | `02-staff-add-modal.png` | 担当者追加モーダル（メール欄のヘルプ文が v0.5.5 B で変更） | v0.5.5 の表示変更 |
+
+`stores/01-store-list.png` / `stores/02-store-add-modal.png` も生成されるが、**差し替え依頼が
+出ていない**ため、サイト側へのコピー対象には含めない（`stores` ディレクトリごと除外する）。
+
+### 原稿の指示どおりに撮れなかった点
+
+- **`form-mail/01-form-mail-tab.png`**: 原稿は「画面先頭の案内文から2種別目の見出しまでを1枚に」
+  と指定しているが、1280×720 では**物理的に入らない**（ON 状態の件名＋本文8行＋変数ヘルパーで
+  1画面ぶん埋まる）。案内文＋1種別目を 01 に、2種別目の見出しと OFF 表示（「未設定のため共通文面が
+  使われます。」＋件名（共通））を **`02-variable-helper.png` の下半分**に写す形で分けた。
+- **`conditional-fields/06-parent-type-locked.png`**: disabled のセレクトに WordPress の矢印が
+  タイル状に敷き詰められて写る。これは**プラグイン側 CSS の不具合**（`docs/bugs/admin-disabled-select-arrow-tiling.md`）。
+  修正を入れてから撮り直すのが望ましい。
+
+### 撮影対象から外したもの
+
+- **`gtm` の4枚（§C1）は撮影しない。** 指示されている絵が
+  ①Google Tag Manager の管理画面（データレイヤー変数 / トリガー / GA4 タグ）②ブラウザの
+  デベロッパーツールで `dataLayer` を覗いた状態 ——の2種類で、**どちらも wp-env の中には存在しない**
+  （GTM は外部サービス、DevTools は撮影用ブラウザの外側の UI）。この撮影基盤では撮れないため、
+  別途の対応方針を人間が判断する。サイト側 `docs/help-backlog.md` §C1 は未完のまま残る
+  （`tests/e2e/help-pages.spec.ts` の `SLUGS_WITHOUT_IMAGES` から `'gtm'` を外すのも同様に保留）。
 
 ## 店舗一覧カットに写る `店舗1` の見切れは「許容」する（検討済み・変更しない）
 
