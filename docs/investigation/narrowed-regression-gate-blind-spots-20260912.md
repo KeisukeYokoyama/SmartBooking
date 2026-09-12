@@ -51,12 +51,106 @@ phase3-calendar               regression-gen-b-bugs
 ## 3. 実測（フルスイート 1 回）
 
 §2 は「記録に出ていない」だけなので、実際に赤があるかは別途の確認が要る。
-そこで **`npx playwright test`（全 54 spec・736 テスト・desktop/mobile 2 プロジェクト）を 1 回**
-流した。結果は本節に追記する。
+そこで **`npx playwright test`（全 54 spec・736 テスト・desktop/mobile 2 プロジェクト）を 1 回**流した。
 
-> 実行時間の実測: 約 25 分で 97/736。単一ワーカー直列（`workers: 1`）＋ wp-env CLI 経由の
-> DB 操作がテストごとに入るため、フルスイートは **数時間規模**。
+### 実行の顛末（正直な開示）
+
+**完走していない。** 約 2 時間 30 分・**509/736** の時点で、OS がメモリ不足を理由に
+プロセスを kill した。内訳は
+
+| プロジェクト | 到達 |
+|---|---|
+| **desktop** | **368/368 = 全 54 spec 完走** |
+| mobile | 141/368（16 spec まで） |
+
+＝ **desktop については「フルスイート 1 回」が成立している。** mobile は未了。
+JSON レポートは kill されたため出力されていない（以下は `line` レポータの出力から拾った）。
+
+> 実行コストの実測値: **約 25 分で 97 テスト**。単一ワーカー直列（`workers: 1`）＋
+> テストごとに wp-env CLI 経由の DB 操作が入るため、736 テストは **数時間規模**。
 > ＝ **開発ループで毎回回すのは非現実的**（案1 が「リリース前に 1 回」なのはこのため）。
+> 併せて **長時間走らせるとメモリを食い潰して落ちる**ことが分かったので、
+> 案1 を運用に乗せるならプロジェクト単位（desktop / mobile）に分割して流すのが現実的。
+
+### 結果: desktop で **10 件の赤**（うち 9 件は記録に無かった）
+
+| # | spec:line | エラーの要旨 | state.md の記録 |
+|---|---|---|---|
+| 1 | `bug-a-plain-regate.spec.js:38` | `restUrl は Plain（rest_route=）形式であること` — 実際は `/wp-json/...` | **無し**（§2 の 15 本） |
+| 2 | `bug-a-plain-regate.spec.js:87` | 同上（admin 側） | **無し**（§2 の 15 本） |
+| 3 | `phase3-fix1.spec.js:45` | element(s) not found | 無し |
+| 4 | `phase3-responsive.spec.js:967` | `locator.evaluate` 60s タイムアウト（print メディア） | 無し |
+| 5 | `phase3-validation.spec.js:178` | `locator.click` 60s タイムアウト | 無し |
+| 6 | `phase4-google-calendar.spec.js:517` | `wp-cli failed: wp option delete ...` | **無し**（§2 の 15 本）。ただし**既知のインフラフレーク型** |
+| 7 | `phase5-ux.spec.js:179` | element(s) not found | **無し**（§2 の 15 本） |
+| 8 | `phase6-visibility.spec.js:171` | `page.waitForFunction` 90s タイムアウト | 起票あり（`docs/bugs/phase6-visibility-flaky-page-id-7.md`） |
+| 9 | `phase7-system-entity.spec.js:231` | element(s) not found | 無し |
+| 10 | `regression-gen-a-visual.spec.js:39` | ロゴが表示されない | **既知の赤**（v0.5.6 の記録にある 4 件のうちの 1 つ） |
+
+- **既知として記録されていたのは 10 件中 1 件（#10）だけ**。#8 は起票はあるが「今も赤」とは記録されていない。
+- **§2 で挙げた「名前が一度も出ない 15 本」のうち 4 本が実際に赤だった**（#1 #2 #6 #7）。
+  ＝ **§2 の指標は機能している。**「記録に出ない spec」は実際に危ない。
+- 本セッションの変更（`tests/screenshots/` と `docs/` のみ）は
+  `playwright.config.js` の `testDir: './tests/e2e'` から読まれないため、**これらの赤の原因ではない**。
+  撮影シードは実行前に purge 済み（復元を実測確認）。
+
+### 分類（単独実行での再現確認）
+
+フルスイートは 1 本のワーカーで全 spec が同じ DB を順に使うため、
+**「他の spec が残した状態」で落ちている可能性**がある。これは絞り込みゲートでは
+構造的に観測できない種類の赤なので、切り分けのため上記 8 spec を**単独で**流し直した。
+
+**結果: 9 件すべて単独実行でも再現した**（33 passed / 9 failed / **29 did not run**・18.1 分）。
+＝ **順序依存ではなく、素で立っている赤。** 分類は次のとおり。
+
+> ついでに、この単独実行でも **29 テストが did-not-run**（serial describe の巻き添え）になった。
+> **案3・案4 が必要な理由の実例**がここでも再現している。
+
+#### A. Phase 9 リデザインの取り残し（陳腐化）— 5 件
+
+フロント予約フォームは Phase 9 で「store → staff → date → time → form」の別ステップ構成から
+**1 画面統合（`MainInputPage`）** へ変わった。共有ヘルパー `phase3-helpers.js:376` には
+「旧版のボタンも後方互換として一応探索する」フォールバックが入っており、**ヘルパー経由の spec は生き延びた**。
+落ちているのは**ヘルパーを使わず直接ロケータを書いている spec** だけ。
+
+| spec:line | 期待しているもの | 実装の現在値 |
+|---|---|---|
+| `phase3-fix1.spec.js:45` | 見出し `お客様情報の入力`（独立ステップ） | 統合により**存在しない** |
+| `phase3-responsive.spec.js:967` | `.smb-front-form__actions` | `FormInput.jsx:504` にあるが `hideSubmit` で描画されない。実体は `.smb-front-main-page__actions`（`MainInputPage.jsx:203`） |
+| `phase3-validation.spec.js:178` | ボタン `確認画面へ進む` | `予約内容の確認`（`MainInputPage.jsx:209`） |
+| `phase5-ux.spec.js:179` | 見出し `日付を選択` | 埋め込み時は `<h3>日付選択</h3>`（`DateSelect.jsx:176`）。`日付を選択` は独立ステップ時の `StepHeader`（`:185`）でしか出ない |
+| `phase7-system-entity.spec.js:231` | 同上 | 同上 |
+
+＝ **リデザイン時に「走っていた spec」だけが更新され、走っていない spec は取り残された。**
+今日クローズした `docs/bugs/phase9-form-width-mobile-285px.md` と**同じ型**。
+起票 = `docs/bugs/phase9-stale-front-specs.md`。
+
+#### B. 前提条件を自分で用意しないテスト — 2 件
+
+`bug-a-plain-regate.spec.js:38` / `:87` は **Plain パーマリンク**（`restUrl` が `rest_route=` 形式）を
+前提に assert するが、**自分では設定しない**。相方の `bug-a-plain-repro.spec.js` は
+`test.describe.skip(...)` で丸ごと無効化されているため、**前提が一度も成立しない**。
+実測: `permalink_structure = /%year%/%monthnum%/%day%/%postname%/`（＝ pretty）。
+起票 = `docs/bugs/bug-a-plain-regate-missing-precondition.md`。
+
+#### C. インフラフレーク — 2 件
+
+| spec | 根拠 |
+|---|---|
+| `phase4-google-calendar.spec.js` | `wp-cli failed: wp option delete ...` ＋ `RequestError` / `TLSSocket`。**フルラン `:517` / 単独 `:441` と落ちるテストが変わる**＝フレークの確証。state.md 既出の wp-env CLI ETIMEDOUT 型 |
+| `phase6-visibility.spec.js:171` | `page.waitForFunction` 90s タイムアウト。起票済み（`docs/bugs/phase6-visibility-flaky-page-id-7.md`） |
+
+#### D. 既知の赤 — 1 件
+
+`regression-gen-a-visual.spec.js:39`（ロゴ非表示）。v0.5.6 の記録にある 4 件のうちの 1 つ。
+
+### この実測が示したこと
+
+- **10 件中 9 件が「記録されていない赤」**だった。うち **7 件は実際に直すべき赤**（A と B）。
+- A・B はどちらも「**誰も走らせないから陳腐化に気づかない**」型で、
+  絞り込みゲートでは**構造的に検出できない**。§4 の案1（リリース前フルスイート 1 回）があれば
+  リデザイン直後に気づけた。
+- mobile は未実行なので、**この 10 件は下限**である。
 
 ## 4. 改善案（実装しない・採否は人間判断）
 

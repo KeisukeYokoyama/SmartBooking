@@ -265,6 +265,61 @@ SVN（`trunk` と `tags/0.5.6/`）とも反映済み。
   - 対応候補は ①12px を削除して一律を明示（**表示不変**）／②12px を活かすため順序を入れ替える（**スマホ表示が 3px 動く**）。
     出荷コードに触るため、`frontend.css:2767` のコメント是正とまとめて次リリースで扱うのが筋。
 
+## 🔎 絞り込み回帰ゲートの盲点を調査した（2026-09-12・**調査と提案のみ／実装なし**）
+
+正本は `docs/investigation/narrowed-regression-gate-blind-spots-20260912.md`。
+
+### 何が問題か
+
+絞り込みゲートが保証するのは「**今回の変更が新しい赤を増やしていないこと**」だけ。
+**対象外の spec は 1 度も実行されない**ので、環境ドリフトやテストの陳腐化で赤くなっても
+誰かがその領域を触るまで発見されない。`phase9-redesign-confirm-responsive` が
+v0.5.3〜v0.5.6 の 4 リリースで見逃されたのはこの構造による。
+
+### 実測: **desktop フルスイートで 10 件の赤。うち 9 件は記録に無かった**
+
+`npx playwright test` を流した（**完走していない**: 約 2 時間 30 分・509/736 で OS がメモリ不足で kill。
+**desktop は 368/368 = 全 54 spec 完走**、mobile は 141/368 で未了）。
+検出した 9 件は**単独実行でも全て再現**（33 passed / 9 failed / **29 did-not-run**・18.1 分）。
+
+| 分類 | 件数 | 内訳 |
+|---|---|---|
+| **A. Phase 9 リデザインの取り残し（陳腐化）** | **5** | `phase3-fix1:45`（見出し `お客様情報の入力`）／`phase3-responsive:967`（`.smb-front-form__actions`）／`phase3-validation:178`（ボタン `確認画面へ進む`）／`phase5-ux:179`・`phase7-system-entity:231`（見出し `日付を選択`） |
+| **B. 前提条件を用意しないテスト** | **2** | `bug-a-plain-regate:38,87` — Plain パーマリンクを要求するが設定しない。相方 `bug-a-plain-repro` は `describe.skip` |
+| C. インフラフレーク | 2 | `phase4-google-calendar`（wp-cli RequestError。フルラン `:517` / 単独 `:441` と落ちるテストが変わる）／`phase6-visibility:171`（起票済み） |
+| D. 既知の赤 | 1 | `regression-gen-a-visual:39` |
+
+- **A の原因**: Phase 9 でフロントが 1 画面統合（`MainInputPage`）になった際、
+  共有ヘルパー `phase3-helpers.js:376` には後方互換フォールバックが入ったので**ヘルパー経由の spec は生き延び**、
+  **ヘルパーを使わず直接ロケータを書いた spec だけが取り残された**。
+  実装の現在値は `予約内容の確認` / `<h3>日付選択</h3>` / `.smb-front-main-page__actions`。
+- **出荷コードの不具合はゼロ。全部テスト側の問題。** ただし B は
+  **BUG-A（Plain パーマリンクで REST 404）の再発ゲートが実質機能していない**ことを意味する。
+- 起票: `docs/bugs/phase9-stale-front-specs.md` / `docs/bugs/bug-a-plain-regate-missing-precondition.md`。
+- ⚠️ **mobile 未実行なのでこの 10 件は下限**。
+- ⚠️ **本セッションの変更が原因ではない**（差分は `tests/screenshots/` と `docs/` のみで
+  `playwright.config.js` の `testDir: './tests/e2e'` から読まれない。撮影シードは実行前に purge 済み）。
+
+### 実行コストの実測（改善案の前提）
+
+- **約 25 分で 97 テスト**。736 テストは**数時間規模**。単一ワーカー直列＋テストごとの wp-env CLI 呼び出しが効いている。
+- **長時間走らせるとメモリを食い潰して落ちる**（今回 509/736 で kill された）。
+  ＝ フルスイートを運用に乗せるなら **desktop / mobile のプロジェクト単位に分けて流す**のが現実的。
+
+### 改善案（実装しない・採否は人間判断）
+
+1. **リリース前にフルスイートを 1 回**流し、赤を全部列挙して記録する（本件は初回で捕まる）。
+2. 既知の赤を **`tests/e2e/known-reds.json` 等でファイル化**し、**起票リンクを必須**にする
+   （今は state.md の散文なので機械照合できず、記録漏れがそのまま監視漏れになる）。
+3. ゲートの判定条件に **did-not-run と総テスト数**を明示的に含める
+   （今回の単独実行でも 29 テストが serial 巻き添えで did-not-run になっていた）。
+4. 絞り込みの根拠に **serial describe の巻き添え**を必ず含める。
+5. 実行した spec 名を機械可読な形で残し、「N リリース連続で未実行の spec」を出せるようにする。
+
+> **`state.md` に spec 名が 1 度も出ない spec が 54 本中 15 本**あり、
+> **そのうち 4 本が実際に赤だった**（`bug-a-plain-regate` ×2 / `phase4-google-calendar` / `phase5-ux`）。
+> ＝ 「記録に出ない spec は危ない」という指標は機能している。
+
 ## 📷 撮影シードの不整合を是正し、全 29 枚を撮り直した（2026-09-12・**出荷コード無変更／リリース無し**）
 
 正本は `docs/bugs/screenshot-seed-customer-name-label.md`（**クローズ**）。
