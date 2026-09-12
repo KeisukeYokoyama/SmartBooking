@@ -9,12 +9,12 @@
  *   3) 「修正する」で main 画面に戻り、入力値・日時選択が保持されていること
  *   4) flow_order の切替 (A: 日付→フォーム / B: フォーム→日付) でセクション順が変わること
  *   5) 店舗1・担当者1 のスキップ（いきなり main 画面）
- *   6) フォーム幅 450px 以下であること（desktop ビューポート時）
+ *   6) フォーム幅が器（テーマのコンテンツ幅）いっぱい・最大 450px で、はみ出さないこと
  *
  * NOTE:
  *   - phase3-helpers.js の fixture / DB 操作を流用する。
- *   - desktop project のみで実行されることを想定（mobile プロジェクトでも壊れないように
- *     フォーム幅検証は viewport 幅を見て分岐する）。
+ *   - 幅の検証は viewport 相対の絶対値ではなく、実装（max-width:450px + width:100%）の
+ *     構造的な性質で行う。理由は 6) のテスト直前のコメントを参照。
  */
 const { test, expect } = require( '@playwright/test' );
 const {
@@ -268,32 +268,83 @@ test.describe( 'Phase 9 Eval-1: 画面構成（リデザイン）検証', () => 
 		await expect( page.getByRole( 'heading', { name: '担当者を選択' } ) ).toHaveCount( 0 );
 	} );
 
-	// ---- 6) フォーム幅 450px 以下 ----
+	// ---- 6) フォーム幅: 器いっぱい + 最大 450px + はみ出さない ----
 
-	test( 'main 画面のフォーム幅が 450px 以下に制限されている (desktop)', async ( {
+	/*
+	 * 実装（`src/frontend/styles/frontend.css` の
+	 * `.smb-front-main-page { max-width: 450px; width: 100% }`）は
+	 * **「器の幅いっぱい、ただし最大 450px」** という設計である。
+	 *
+	 * 器（`.smb-front-root` の content box）の幅は
+	 *   viewport − テーマのグローバルパディング×2 − `.smb-front-root` のパディング×2
+	 * で決まる。テーマのグローバルパディングはプラグインの制御外で、Twenty Twenty-Five では
+	 * `clamp(30px, 5vw, 50px)`（375px→30px / 1280px→50px）。テーマを変えれば別の値になる。
+	 * ＝ **viewport 相対の絶対値は、テーマ非依存な期待値として書けない。**
+	 *
+	 * このテストは以前、狭い viewport で `calc(100vw - 48px)` ≒ 327px を期待していたが、
+	 * その数式はアーカイブ文書
+	 * `docs/legacy-ui-handover/spec-amendment-frontend-redesign.md` のデザインモック値であり、
+	 * **CSS 宣言として一度も実装されていない**（`src/` の `100vw` 2 ヒットはどちらもコメント）。
+	 * 375px の実測 285px が実装どおりの正しい値で、テストが存在しない仕様を固定していた。
+	 * 経緯と実測は `docs/investigation/front-main-page-width-375px-20260912.md`、
+	 * 判断は `docs/bugs/phase9-form-width-mobile-285px.md` を参照。
+	 */
+	test( 'main 画面のフォーム幅が器いっぱい・最大 450px で、ビューポートからはみ出さない', async ( {
 		page,
 		viewport,
 	} ) => {
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
-		await expect( page.locator( '.smb-front-main-page' ) ).toBeVisible();
+		const main = page.locator( '.smb-front-main-page' );
+		await expect( main ).toBeVisible();
 
-		const width = await page
-			.locator( '.smb-front-main-page' )
-			.evaluate( ( el ) => el.getBoundingClientRect().width );
+		const m = await main.evaluate( ( el ) => {
+			const parent = el.parentElement;
+			const ps = window.getComputedStyle( parent );
+			const rect = el.getBoundingClientRect();
+			return {
+				width: rect.width,
+				left: rect.left,
+				right: rect.right,
+				parentClass: parent.className,
+				// 器の content box 幅（= width:100% が解決する基準）.
+				parentContentWidth:
+					parent.getBoundingClientRect().width -
+					parseFloat( ps.paddingLeft ) -
+					parseFloat( ps.paddingRight ) -
+					parseFloat( ps.borderLeftWidth ) -
+					parseFloat( ps.borderRightWidth ),
+				innerWidth: window.innerWidth,
+				docScrollWidth: document.documentElement.scrollWidth,
+			};
+		} );
 
-		const vw = ( viewport && viewport.width ) || 1280;
-		if ( vw >= 498 ) {
-			// 1280px のような十分広い viewport では max-width: 450px が効くべき (誤差±2px 許容).
-			expect( width ).toBeGreaterThanOrEqual( 448 );
-			expect( width ).toBeLessThanOrEqual( 452 );
+		const detail = `width=${ m.width } parentContentWidth=${ m.parentContentWidth } parent=${ m.parentClass }`;
+
+		// (a) 器いっぱい、ただし 450px 上限（= max-width:450px + width:100% そのもの）.
+		const expected = Math.min( 450, m.parentContentWidth );
+		expect( Math.abs( m.width - expected ), detail ).toBeLessThanOrEqual(
+			1
+		);
+
+		// (b) 450px を超えない（仕様「フォーム最大幅 450px」・誤差 ±2px 許容）.
+		expect( m.width, detail ).toBeLessThanOrEqual( 452 );
+
+		// (c) ビューポートからはみ出さない／横スクロールを作らない.
+		expect( m.left ).toBeGreaterThanOrEqual( -1 );
+		expect( m.right ).toBeLessThanOrEqual( m.innerWidth + 1 );
+		expect( m.docScrollWidth ).toBeLessThanOrEqual( m.innerWidth + 1 );
+
+		const vw = ( viewport && viewport.width ) || m.innerWidth;
+		if ( m.parentContentWidth >= 450 ) {
+			// 器が 450px より広い viewport（1280px など）では max-width が支配する.
+			expect( m.width, detail ).toBeGreaterThanOrEqual( 448 );
 		} else {
-			// 狭い viewport（例: 375px）では calc(100vw - 48px) ≒ 327px となるはず.
-			// 仕様書のレスポンシブ幅相当を許容範囲で検証.
-			const expected = vw - 48;
-			expect( width ).toBeGreaterThanOrEqual( expected - 4 );
-			expect( width ).toBeLessThanOrEqual( expected + 4 );
+			// 器が 450px 未満（375px など）では器いっぱいになる。テーマ余白はテーマ依存で
+			// 絶対値を固定できないため、「viewport の半分以上」という緩い下限で
+			// レイアウト崩壊だけを捕捉する（375px の実測は 285px = 76%）.
+			expect( m.width, detail ).toBeGreaterThanOrEqual( vw * 0.5 );
 		}
 	} );
 } );

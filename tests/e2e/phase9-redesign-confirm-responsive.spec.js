@@ -8,7 +8,7 @@
  *   1) 確認画面: 予約日時カードが中央寄せ + 薄背景（var(--smb-front-bg-light) 由来）で表示される
  *   2) 確認画面: 入力情報がラベル+値の flex 行（ラベル幅 120px）で表示される
  *   3) 完了画面: 大型アイコン（✓）と予約番号（#数字）が表示される
- *   4) レスポンシブ 375px: フォームが画面に収まり、横スクロールが発生しない
+ *   4) レスポンシブ 375px: フォームが器の幅いっぱい（最大 450px）で、横スクロールが発生しない
  *   5) レスポンシブ 375px: 全フローが操作可能
  *   6) レスポンシブ 768px: max-width 450px が効きレイアウトが崩れない
  *
@@ -215,36 +215,71 @@ test.describe( 'Phase 9 Eval-4: 確認/完了/レスポンシブ', () => {
 		).toBeVisible();
 	} );
 
-	// ---- 4) レスポンシブ 375px: 横スクロールなし + 幅 327px ----
+	// ---- 4) レスポンシブ 375px: 器いっぱい（最大 450px）+ 横スクロールなし ----
 
-	test( 'レスポンシブ 375px: フォーム幅 327px + 横スクロール無し', async ( {
+	/*
+	 * 旧期待値は `375 - 48 = 327px`（±2px）だったが、この数式はアーカイブ文書
+	 * `docs/legacy-ui-handover/spec-amendment-frontend-redesign.md` のデザインモック値で、
+	 * **CSS 宣言として一度も実装されていない**。実装は
+	 * `.smb-front-main-page { max-width: 450px; width: 100% }` ＝「器いっぱい、ただし最大 450px」で、
+	 * 器の幅はテーマのグローバルパディング（プラグインの制御外・Twenty Twenty-Five は
+	 * `clamp(30px, 5vw, 50px)`）に依存するため、**viewport 相対の絶対値はテーマ非依存に書けない**。
+	 * 375px の実測 285px（= 375 − 30×2 − 15×2）が実装どおりの正しい値。
+	 * 経緯と実測は `docs/investigation/front-main-page-width-375px-20260912.md`、
+	 * 判断は `docs/bugs/phase9-form-width-mobile-285px.md` を参照。
+	 */
+	test( 'レスポンシブ 375px: フォームが器の幅いっぱい（最大 450px）で横スクロール無し', async ( {
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 375, height: 667 } );
 		seedWeekSchedules( USER_STORE_ID, USER_STAFF_ID );
 		await gotoFrontForm( page );
 
-		await expect( page.locator( '.smb-front-main-page' ) ).toBeVisible();
+		const main = page.locator( '.smb-front-main-page' );
+		await expect( main ).toBeVisible();
 
-		// .smb-front-main-page の幅 = 375 - 48 = 327px (誤差±2px).
-		const width = await page
-			.locator( '.smb-front-main-page' )
-			.evaluate( ( el ) => el.getBoundingClientRect().width );
-		expect( width ).toBeGreaterThanOrEqual( 325 );
-		expect( width ).toBeLessThanOrEqual( 329 );
+		const m = await main.evaluate( ( el ) => {
+			const parent = el.parentElement;
+			const ps = window.getComputedStyle( parent );
+			const rect = el.getBoundingClientRect();
+			return {
+				width: rect.width,
+				left: rect.left,
+				right: rect.right,
+				parentClass: parent.className,
+				// 器の content box 幅（= width:100% が解決する基準）.
+				parentContentWidth:
+					parent.getBoundingClientRect().width -
+					parseFloat( ps.paddingLeft ) -
+					parseFloat( ps.paddingRight ) -
+					parseFloat( ps.borderLeftWidth ) -
+					parseFloat( ps.borderRightWidth ),
+				bodyScrollWidth: document.body.scrollWidth,
+				docScrollWidth: document.documentElement.scrollWidth,
+				innerWidth: window.innerWidth,
+			};
+		} );
 
-		// 横スクロール無し.
-		const overflow = await page.evaluate( () => ( {
-			scrollWidth: document.body.scrollWidth,
-			innerWidth: window.innerWidth,
-			docScrollWidth: document.documentElement.scrollWidth,
-		} ) );
-		expect( overflow.scrollWidth ).toBeLessThanOrEqual(
-			overflow.innerWidth + 1
+		const detail = `width=${ m.width } parentContentWidth=${ m.parentContentWidth } parent=${ m.parentClass }`;
+
+		// (a) 器いっぱい、ただし 450px 上限.
+		const expected = Math.min( 450, m.parentContentWidth );
+		expect( Math.abs( m.width - expected ), detail ).toBeLessThanOrEqual(
+			1
 		);
-		expect( overflow.docScrollWidth ).toBeLessThanOrEqual(
-			overflow.innerWidth + 1
-		);
+		expect( m.width, detail ).toBeLessThanOrEqual( 452 );
+
+		// (b) 375px では器が 450px 未満なので器いっぱいになる。テーマ余白はテーマ依存で
+		//     絶対値を固定できないため、「viewport の半分以上」という緩い下限で
+		//     レイアウト崩壊だけを捕捉する（実測は 285px = 76%）.
+		expect( m.parentContentWidth, detail ).toBeLessThan( 450 );
+		expect( m.width, detail ).toBeGreaterThanOrEqual( 375 * 0.5 );
+
+		// (c) はみ出さない／横スクロール無し.
+		expect( m.left ).toBeGreaterThanOrEqual( -1 );
+		expect( m.right ).toBeLessThanOrEqual( m.innerWidth + 1 );
+		expect( m.bodyScrollWidth ).toBeLessThanOrEqual( m.innerWidth + 1 );
+		expect( m.docScrollWidth ).toBeLessThanOrEqual( m.innerWidth + 1 );
 	} );
 
 	// ---- 5) レスポンシブ 375px: 全フロー操作可能 ----
