@@ -54,13 +54,43 @@ path の拡張子 `.png` により自動的に PNG になる）。
    ```
 4. 出力先を確認する。
    ```
-   docs/website-screenshots/<slug>/NN-name.png
+   docs/website-screenshots/<slug>/NN-name.png    ← 画像
+   screenshot-text/<slug>/NN-name.txt             ← 撮影時の DOM テキスト（grep 用）
    ```
-   （画像は `.gitignore` 済みでコミットされない。README のみ追跡対象。）
+   （どちらも `.gitignore` 済みでコミットされない。README のみ追跡対象。）
 5. **撮影が終わったら撤去する**（回帰スイートを回す前に必須）。
    ```bash
    npx wp-env run cli wp eval-file wp-content/plugins/smart-booking/tests/screenshots/seed/screenshot-purge.php
    ```
+
+## 「どのカットに何の文字が写っているか」を grep で調べる
+
+PNG は grep できない。`shot()` は撮影と同時に、そのページの
+**`document.body.innerText` ＋ フォームコントロールの placeholder / value / 選択中 option**
+を `screenshot-text/<slug>/<name>.txt` へ書き出す（PNG と同じファイル名）。
+
+```bash
+# 「お名前」が写っているカットを洗い出す
+grep -rl 'お名前' screenshot-text/
+
+# プレースホルダにしか出ない文字も拾える
+grep -rl 'placeholder="山田 太郎"' screenshot-text/
+```
+
+なぜ必要だったか: 2026-09-12 に「公開済み 27 枚のどれに `お名前` が写っているか」を
+特定する必要が生じ、全枚を目視で突き合わせるしかなかった
+（`docs/bugs/screenshot-seed-customer-name-label.md`）。
+
+**⚠ 注意点が 2 つある。**
+
+1. **出力先を `test-results/` 配下にしないこと。** Playwright は実行のたびに `outputDir`
+   （既定 `test-results/`）を丸ごと削除するため、`--grep` で 1 カットだけ撮り直すと
+   他のカットのダンプが消える（実際に踏んだ）。だから `screenshot-text/` に出している。
+2. **ダンプは「DOM に出ていた文字」であって「画像に写っている文字」ではない。**
+   `fullPage: false` なのでビューポート外は画像に入らない。
+   例（2026-09-12 実測）: `conditional-fields/03-front-hidden.png` の DOM には `氏名` があるが、
+   カットはページ下部にスクロールしているので**画像には写っていない**。
+   ダンプは「候補を機械的に絞る」道具で、最終確認は目視で行うこと。
 
 ## ファイル構成（2026-09-11 時点）
 

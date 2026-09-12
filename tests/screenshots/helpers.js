@@ -22,6 +22,26 @@ const OUTPUT_ROOT = path.resolve(
 );
 
 /**
+ * 各カットに「何の文字が写っているか」を機械判定するためのテキストダンプ出力先。
+ *
+ * なぜ必要か:
+ *   PNG は grep できない。2026-09-12 に「公開済み 27 枚のどれに `お名前` が写っているか」を
+ *   特定する必要が生じ、全枚を目視で突き合わせるしかなかった
+ *   （`docs/bugs/screenshot-seed-customer-name-label.md`）。撮影時点の DOM テキストを
+ *   PNG と同じ名前で残しておけば、以後は `grep -rl 'お名前' screenshot-text/` で
+ *   影響カットが一意に出る。
+ *
+ * ⚠ 出力先を `test-results/` 配下にしないこと。Playwright は実行のたびに `outputDir`
+ * （既定 `test-results/`）を**丸ごと削除**するため、`--grep` で 1 カットだけ撮り直すと
+ * 他のカットのダンプが消える（実際に踏んだ）。リポジトリ直下の専用ディレクトリへ出し、
+ * .gitignore で除外する。
+ *
+ * innerText だけでなく placeholder / value も出す（`山田 太郎` のように
+ * **プレースホルダにしか現れない文字**があるため）。
+ */
+const TEXT_DUMP_ROOT = path.resolve( __dirname, '..', '..', 'screenshot-text' );
+
+/**
  * WordPress 管理画面に写り込む "環境ノイズ" を CSS 注入で非表示にする。
  *
  * なぜ CSS 注入なのか（DB を書き換えない理由）:
@@ -74,6 +94,80 @@ async function shot( page, slug, name ) {
 	fs.mkdirSync( dir, { recursive: true } );
 	await prepareChrome( page );
 	await page.screenshot( { path: path.join( dir, name ), fullPage: false } );
+	await dumpText( page, slug, name );
+}
+
+/**
+ * 撮影と同時に「写っている文字」を test-results/shot-text/<slug>/<name>.txt へ書き出す。
+ *
+ * 撮影自体を絶対に止めないため、失敗しても例外を投げない（ダンプはあくまで補助）。
+ * 対象は `document.body` の innerText と、フォームコントロールの
+ * placeholder / value / 選択中 option のラベル。ビューポート外の要素も含む
+ * （カットの切り出し位置に依存せず「そのページに出ていた文字」を拾うため。
+ * 逆に「画像に写っているか」の最終確認は目視で行う）。
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {string}                          slug
+ * @param {string}                          name PNG と同じファイル名（拡張子は .txt に置換する）。
+ */
+async function dumpText( page, slug, name ) {
+	try {
+		const payload = await page.evaluate( () => {
+			const controls = [];
+			document
+				.querySelectorAll( 'input, textarea, select' )
+				.forEach( ( el ) => {
+					const tag = el.tagName.toLowerCase();
+					const parts = [ tag ];
+					if ( el.name ) {
+						parts.push( `name=${ el.name }` );
+					}
+					if ( el.id ) {
+						parts.push( `id=${ el.id }` );
+					}
+					if ( el.placeholder ) {
+						parts.push( `placeholder="${ el.placeholder }"` );
+					}
+					if ( 'select' === tag ) {
+						const opt = el.options[ el.selectedIndex ];
+						if ( opt ) {
+							parts.push( `selected="${ opt.label }"` );
+						}
+					} else if ( el.value && 'password' !== el.type ) {
+						parts.push( `value="${ el.value }"` );
+					}
+					if ( parts.length > 1 ) {
+						controls.push( `[${ parts.join( ' ' ) }]` );
+					}
+				} );
+			return {
+				url: window.location.href,
+				innerText: document.body ? document.body.innerText : '',
+				controls: controls.join( '\n' ),
+			};
+		} );
+		const dir = path.join( TEXT_DUMP_ROOT, slug );
+		fs.mkdirSync( dir, { recursive: true } );
+		const out = [
+			`# ${ slug }/${ name }`,
+			`## url`,
+			payload.url,
+			'',
+			'## innerText',
+			payload.innerText,
+			'',
+			'## form controls (placeholder / value / selected)',
+			payload.controls,
+			'',
+		].join( '\n' );
+		fs.writeFileSync(
+			path.join( dir, name.replace( /\.png$/, '' ) + '.txt' ),
+			out,
+			'utf8'
+		);
+	} catch ( _e ) {
+		// ダンプの失敗で撮影を止めない。
+	}
 }
 
 /**
@@ -208,8 +302,10 @@ async function closeModal( page ) {
 
 module.exports = {
 	OUTPUT_ROOT,
+	TEXT_DUMP_ROOT,
 	prepareChrome,
 	shot,
+	dumpText,
 	gotoAdminPage,
 	scrollToTop,
 	scrollInModal,

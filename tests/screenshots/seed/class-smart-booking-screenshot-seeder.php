@@ -58,8 +58,9 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		 * レジストリの構造バージョン（将来の構造変更時に読み替えるための互換キー）。
 		 *
 		 * 2: user_locales 区画（ユーザー個別ロケールの退避）を追加。
+		 * 3: protected_fields 区画（既定フォームの保護フィールドの退避）を追加。
 		 */
-		const REGISTRY_VERSION = 2;
+		const REGISTRY_VERSION = 3;
 
 		/**
 		 * スケジュールを生成する日数（今日から N 日間）。
@@ -167,6 +168,26 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		 * 退避先は同じ registry['options'] 区画なので purge の復元経路は共通。
 		 */
 		const LOCALE_OPTION = 'WPLANG';
+
+		/**
+		 * 出荷コードの初期フィールド値を読み出すための「プローブ用」 form_id。
+		 *
+		 * なぜプローブするのか:
+		 *   撮影シードの目的は「実際の新規インストールで見える画面」の再現なので、初期 3 項目
+		 *   （氏名 / メールアドレス / 電話番号）の値は**出荷コードが唯一の正本**でなければならない。
+		 *   シード側に値をコピーすると、出荷側が変わったときに黙って食い違う
+		 *   （実際に `お名前` のまま 27 枚が公開された。`docs/bugs/screenshot-seed-customer-name-label.md`）。
+		 *   そこで `Smart_Booking_Activator::seed_initial_fields_for_form()` を**実在しないフォーム id**
+		 *   に対して 1 度だけ走らせ、生成された行をそのまま読んで捨てる。
+		 *   ＝ 値の定義が出荷コードから 1 箇所も複製されない。
+		 *
+		 * 安全性:
+		 *   - custom_fields の UNIQUE は (form_id, field_key) なので、実在フォームの行と衝突しない。
+		 *   - forms テーブルには一切触らない（＝管理画面に出るショートコードの form id が動かない）。
+		 *   - 読み出しの前後で `form_id = PROBE_FORM_ID` の行を必ず削除する（前回の残骸も掃除する）。
+		 *   - 外部キー制約は無いため、一時行が他テーブルの整合性に影響しない。
+		 */
+		const PROBE_FORM_ID = 999999999;
 
 		/**
 		 * 店舗定義（スラッグ => 値）。スラッグはレジストリのキーであり id 安定性の軸。
@@ -658,6 +679,8 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 				'reservations'  => array(),
 				'options'       => array(),
 				'user_locales'  => array(),
+				// 既定フォームの保護フィールド（customer_name 等）の撮影前の値。
+				'protected_fields' => array(),
 				'seeded_at'     => '',
 			);
 			foreach ( $defaults as $key => $value ) {
@@ -980,7 +1003,17 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			}
 			$registry = self::prune_slugs( $registry, 'forms', array_keys( self::form_defs() ), self::table( 'forms' ), $notes );
 
-			// 6. カスタムフィールド（UPDATE で id を保つ。キーは "フォームスラッグ:フィールドスラッグ"）。
+			// 6. 既定フォームの保護フィールドを「新規インストールの初期値」へそろえる。
+			// （回帰フィクスチャが field_label='お名前' 等で上書きしているため。詳細は
+			// normalize_protected_fields() の docblock。変更前の値はレジストリへ退避し purge で戻す。）
+			$protected                     = self::normalize_protected_fields( $registry );
+			$registry                      = $protected['registry'];
+			$protected_result              = $protected['result'];
+			foreach ( $protected_result['warnings'] as $warning ) {
+				$notes[] = $warning;
+			}
+
+			// 7. カスタムフィールド（UPDATE で id を保つ。キーは "フォームスラッグ:フィールドスラッグ"）。
 			$known_field_slugs = array();
 			$default_form_id   = self::default_form_id();
 			foreach ( self::field_defs() as $form_slug => $fields ) {
@@ -1034,14 +1067,14 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			}
 			$registry = self::prune_slugs( $registry, 'custom_fields', $known_field_slugs, self::table( 'custom_fields' ), $notes );
 
-			// 7. スケジュール（今日からの相対日付なので毎回作り直す）。
+			// 8. スケジュール（今日からの相対日付なので毎回作り直す）。
 			$schedule_result       = self::create_schedules( $registry, $now );
 			$registry['schedules'] = array_values( array_unique( array_merge( self::registry_ids( $registry, 'schedules' ), $schedule_result['ids'] ) ) );
 			if ( $schedule_result['skipped'] > 0 ) {
 				$notes[] = '既存行（レジストリ外）と衝突したため作成をスキップした枠: ' . $schedule_result['skipped'] . ' 件';
 			}
 
-			// 8. 予約（実在するスケジュールにだけ紐づける）。
+			// 9. 予約（実在するスケジュールにだけ紐づける）。
 			$reservation_result       = self::create_reservations( $registry, $schedule_result['owned'], $now );
 			$registry['reservations'] = $reservation_result['ids'];
 			foreach ( $reservation_result['notes'] as $note ) {
@@ -1052,7 +1085,7 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			$registry['seeded_at'] = $now;
 			self::save_registry( $registry );
 
-			self::print_summary( $registry, $schedule_result, $reservation_result, $locale_result, $notes );
+			self::print_summary( $registry, $schedule_result, $reservation_result, $locale_result, $protected_result, $notes );
 		}
 
 		/**
@@ -1161,6 +1194,193 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 				'value'   => ( $sentinel === $before ) ? '' : $before,
 			);
 			return $registry;
+		}
+
+		/* ------------------------------------------------------------------ */
+		/* 既定フォームの保護フィールドを「新規インストールの初期値」へそろえる  */
+		/* ------------------------------------------------------------------ */
+
+		/**
+		 * 出荷コードが定義する初期 3 フィールドの値を、実コードを走らせて読み出す。
+		 *
+		 * `Smart_Booking_Activator::seed_initial_fields_for_form()` を PROBE_FORM_ID に対して
+		 * 実行し、挿入された行をそのまま読み、最後に必ず削除する。**値をシード側へ複製しない**ための
+		 * 仕組み（理由は PROBE_FORM_ID の docblock）。
+		 *
+		 * @return array<string,array<string,string>> field_key => 列値。取得できなければ空配列。
+		 */
+		private static function implementation_field_defaults() {
+			global $wpdb;
+
+			$table = self::table( 'custom_fields' );
+
+			// 前回の異常終了で残った可能性のあるプローブ行を先に掃除する。
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE form_id = %d", self::PROBE_FORM_ID ) );
+
+			if ( ! class_exists( 'Smart_Booking_Activator' )
+				|| ! method_exists( 'Smart_Booking_Activator', 'seed_initial_fields_for_form' ) ) {
+				return array();
+			}
+
+			Smart_Booking_Activator::seed_initial_fields_for_form( self::PROBE_FORM_ID );
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT field_key, field_label, field_type, field_options, placeholder, is_required, sort_order FROM {$table} WHERE form_id = %d", self::PROBE_FORM_ID ), ARRAY_A );
+
+			// 読んだら必ず捨てる（失敗してもここは通る）。
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE form_id = %d", self::PROBE_FORM_ID ) );
+
+			$out = array();
+			foreach ( (array) $rows as $row ) {
+				if ( empty( $row['field_key'] ) ) {
+					continue;
+				}
+				$out[ (string) $row['field_key'] ] = $row;
+			}
+			return $out;
+		}
+
+		/**
+		 * 既定フォーム（is_default=1）の保護フィールドを、出荷コードの初期値へそろえる。
+		 *
+		 * なぜ必要か:
+		 *   既定フォームの初期 3 項目は activator が作った行で、シードのレジストリには載らない
+		 *   （＝ purge で消さない行）。ところが wp-env は回帰スイートのフィクスチャで上書きされている
+		 *   （`tests/e2e/phase2-helpers.js` の `restoreSnapshot()` が `field_label='お名前'` を
+		 *   UPDATE する）。撮影シードがそろえ直さないと、**回帰フィクスチャの都合がそのまま
+		 *   マニュアル画像に写る**。実際に 27 枚が `お名前`（実装は `氏名`）で公開された。
+		 *
+		 * 方針:
+		 *   - 値の正本は出荷コードだけ（`implementation_field_defaults()` で実コードから読む）。
+		 *   - 変更前の値は初回だけレジストリへ退避し、purge で 1 列ずつ元へ戻す（option と同じ方針）。
+		 *   - 既定フォームに当該 field_key が無い場合は何もしない（非破壊）。
+		 *
+		 * @param array $registry レジストリ.
+		 * @return array{registry: array, result: array{applied: array, warnings: string[]}}
+		 */
+		private static function normalize_protected_fields( $registry ) {
+			global $wpdb;
+
+			$result = array(
+				'applied'  => array(),
+				'warnings' => array(),
+			);
+
+			$form_id = self::default_form_id();
+			if ( $form_id <= 0 ) {
+				$result['warnings'][] = '⚠ 既定フォーム（is_default=1）が見つからないため、保護フィールドの初期値そろえをスキップしました。';
+				return array(
+					'registry' => $registry,
+					'result'   => $result,
+				);
+			}
+
+			$defaults = self::implementation_field_defaults();
+			if ( empty( $defaults ) ) {
+				$result['warnings'][] = '⚠ 出荷コードの初期フィールド値を読み出せなかったため、保護フィールドの初期値そろえをスキップしました（Smart_Booking_Activator::seed_initial_fields_for_form() の変更を疑うこと）。';
+				return array(
+					'registry' => $registry,
+					'result'   => $result,
+				);
+			}
+
+			$result['warnings'] = array_merge( $result['warnings'], self::protected_field_drift( $defaults ) );
+
+			$table   = self::table( 'custom_fields' );
+			$columns = array( 'field_label', 'field_type', 'field_options', 'placeholder', 'is_required', 'sort_order' );
+
+			foreach ( $defaults as $field_key => $def ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$current = $wpdb->get_row( $wpdb->prepare( "SELECT id, field_label, field_type, field_options, placeholder, is_required, sort_order FROM {$table} WHERE form_id = %d AND field_key = %s", $form_id, $field_key ), ARRAY_A );
+				if ( empty( $current ) ) {
+					// 既定フォームに無いキーは触らない（非破壊）。
+					continue;
+				}
+
+				// 退避は初回だけ（2 回目以降に「自分が書いた値」を退避しない＝backup_option と同じ方針）。
+				if ( ! isset( $registry['protected_fields'][ $field_key ] ) ) {
+					$before = array();
+					foreach ( $columns as $col ) {
+						$before[ $col ] = $current[ $col ];
+					}
+					$registry['protected_fields'][ $field_key ] = array(
+						'id'  => (int) $current['id'],
+						'row' => $before,
+					);
+				}
+
+				$data = array();
+				$diff = array();
+				foreach ( $columns as $col ) {
+					$data[ $col ] = $def[ $col ];
+					if ( (string) $current[ $col ] !== (string) $def[ $col ] ) {
+						$diff[] = sprintf( '%s: "%s" → "%s"', $col, (string) $current[ $col ], (string) $def[ $col ] );
+					}
+				}
+				if ( empty( $diff ) ) {
+					continue;
+				}
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->update(
+					$table,
+					$data,
+					array( 'id' => (int) $current['id'] ),
+					array( '%s', '%s', '%s', '%s', '%d', '%d' ),
+					array( '%d' )
+				);
+				$result['applied'][ $field_key ] = $diff;
+			}
+
+			return array(
+				'registry' => $registry,
+				'result'   => $result,
+			);
+		}
+
+		/**
+		 * デモフォームの定義（field_defs）が持つ保護フィールドの値が、出荷コードの初期値と
+		 * 食い違っていないかを検査する（検出のみ・自動修正はしない）。
+		 *
+		 * デモフォームの項目はシード側の定義で作るため、出荷コードの初期値が変わると黙って
+		 * 乖離する。既定フォームと違って「実際の新規インストールの画面」ではないので自動で
+		 * 書き換えず、**シード実行時のサマリに警告として出す**ことで気づけるようにする。
+		 *
+		 * @param array<string,array<string,string>> $defaults 出荷コードの初期値.
+		 * @return string[] 警告行.
+		 */
+		private static function protected_field_drift( $defaults ) {
+			$warnings = array();
+			$columns  = array( 'field_label', 'field_type', 'placeholder' );
+
+			foreach ( self::field_defs() as $form_slug => $fields ) {
+				if ( 'default' === $form_slug ) {
+					continue;
+				}
+				foreach ( $fields as $def ) {
+					$key = isset( $def['field_key'] ) ? (string) $def['field_key'] : '';
+					if ( '' === $key || ! isset( $defaults[ $key ] ) ) {
+						continue;
+					}
+					foreach ( $columns as $col ) {
+						$mine   = isset( $def[ $col ] ) ? (string) $def[ $col ] : '';
+						$theirs = (string) $defaults[ $key ][ $col ];
+						if ( $mine !== $theirs ) {
+							$warnings[] = sprintf(
+								'⚠ field_defs()[%s][%s] の %s が出荷コードの初期値と不一致: "%s" ≠ "%s"（シード側の定義を直すこと）',
+								$form_slug,
+								$key,
+								$col,
+								$mine,
+								$theirs
+							);
+						}
+					}
+				}
+			}
+			return $warnings;
 		}
 
 		/* ------------------------------------------------------------------ */
@@ -1584,10 +1804,11 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 		 * @param array $schedule_result    create_schedules の戻り値.
 		 * @param array $reservation_result create_reservations の戻り値.
 		 * @param array $locale_result      apply_locale の戻り値.
+		 * @param array $protected_result   normalize_protected_fields の result（applied / warnings）.
 		 * @param array $notes              補足メモ.
 		 * @return void
 		 */
-		private static function print_summary( $registry, $schedule_result, $reservation_result, $locale_result, $notes ) {
+		private static function print_summary( $registry, $schedule_result, $reservation_result, $locale_result, $protected_result, $notes ) {
 			self::log( '=== Smart Booking 撮影用デモデータ シード完了 ===' );
 			self::log( 'registry option : ' . self::REGISTRY_OPTION . ' (version ' . self::REGISTRY_VERSION . ')' );
 
@@ -1640,6 +1861,15 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 			foreach ( self::MANAGED_OPTIONS as $key => $value ) {
 				$backup = isset( $registry['options'][ $key ] ) ? $registry['options'][ $key ] : array( 'existed' => false );
 				self::log( sprintf( '  %-32s = %s  (変更前: %s)', $key, $value, empty( $backup['existed'] ) ? '未設定' : (string) $backup['value'] ) );
+			}
+
+			self::log( '--- 既定フォームの保護フィールド（出荷コードの初期値へそろえた） ---' );
+			if ( empty( $protected_result['applied'] ) ) {
+				self::log( '  変更なし（すでに出荷コードの初期値と一致）' );
+			} else {
+				foreach ( $protected_result['applied'] as $field_key => $diff ) {
+					self::log( sprintf( '  %-16s %s', $field_key, implode( ' / ', $diff ) ) );
+				}
 			}
 
 			self::log( '--- 管理画面ロケール ---' );
@@ -1779,8 +2009,35 @@ if ( ! class_exists( 'Smart_Booking_Screenshot_Seeder' ) ) {
 				}
 			}
 
-			// 表示系オプションを変更前の状態へ戻す。
 			$restored = array();
+
+			// 既定フォームの保護フィールドを撮影前の値へ戻す（列ごとに 1 対 1 で復元）。
+			foreach ( (array) $registry['protected_fields'] as $field_key => $backup ) {
+				$id  = isset( $backup['id'] ) ? (int) $backup['id'] : 0;
+				$row = ( isset( $backup['row'] ) && is_array( $backup['row'] ) ) ? $backup['row'] : array();
+				if ( $id <= 0 || empty( $row ) ) {
+					continue;
+				}
+				if ( ! self::row_exists( self::table( 'custom_fields' ), $id ) ) {
+					$restored[] = sprintf( 'custom_field %s = 行が存在しないため復元をスキップ（id=%d）', $field_key, $id );
+					continue;
+				}
+				$formats = array();
+				foreach ( array_keys( $row ) as $col ) {
+					$formats[] = in_array( $col, array( 'is_required', 'sort_order' ), true ) ? '%d' : '%s';
+				}
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->update( self::table( 'custom_fields' ), $row, array( 'id' => $id ), $formats, array( '%d' ) );
+				$restored[] = sprintf(
+					'custom_field %s = 撮影前の値へ復元（field_label="%s" / placeholder="%s"）',
+					$field_key,
+					isset( $row['field_label'] ) ? (string) $row['field_label'] : '',
+					isset( $row['placeholder'] ) ? (string) $row['placeholder'] : ''
+				);
+			}
+			$registry['protected_fields'] = array();
+
+			// 表示系オプションを変更前の状態へ戻す。
 			foreach ( (array) $registry['options'] as $key => $backup ) {
 				if ( empty( $backup['existed'] ) ) {
 					delete_option( $key );

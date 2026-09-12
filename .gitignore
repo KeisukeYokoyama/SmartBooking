@@ -27,5 +27,8 @@ tests/e2e/screenshots/
 # 公式サイト ヘルプ用スクリーンショット（生成物・コミットしない。README は追跡する）
 docs/website-screenshots/**/*.png
 
+# 撮影時の DOM テキストダンプ（どのカットに何の文字が写っているかを grep するための生成物）
+screenshot-text/
+
 # API credentials (絶対にコミットしない)
 credentials/
