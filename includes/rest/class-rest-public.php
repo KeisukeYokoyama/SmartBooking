@@ -496,7 +496,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, form_id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, condition_field_key, condition_value
+				"SELECT id, form_id, field_key, field_label, field_type, field_options, placeholder, is_required, sort_order, condition_field_key, condition_value, validation_rules
 				FROM {$wpdb->prefix}smart_booking_custom_fields
 				WHERE form_id = %d
 				ORDER BY sort_order ASC, id ASC",
@@ -549,6 +549,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'sort_order'          => (int) $row['sort_order'],
 				'condition_field_key' => $condition_field_key,
 				'condition_value'     => $condition_value,
+				'validation_rules'    => $this->parse_validation_rules( isset( $row['validation_rules'] ) ? $row['validation_rules'] : null ),
 			);
 		}
 		return rest_ensure_response( $out );
@@ -870,6 +871,222 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * validation_rules（JSON 文字列）を評価用の連想配列へ復元する（v0.6.0）。
+	 *
+	 * 不正・空・未知キーはすべて無視し、既知キーのみを返す。何も無ければ null。
+	 * 実行時に DB 上の値が壊れていても予約を止めない（不正は「ルールなし」として扱う）。
+	 *
+	 * @param mixed $raw DB 上の値.
+	 * @return array|null charset/min_length/max_length/match_field_key を持つ配列、または null.
+	 */
+	private function parse_validation_rules( $raw ) {
+		if ( null === $raw || '' === $raw ) {
+			return null;
+		}
+		$d = json_decode( (string) $raw, true );
+		if ( ! is_array( $d ) || empty( $d ) ) {
+			return null;
+		}
+		$out = array();
+		if ( isset( $d['charset'] ) && is_string( $d['charset'] ) && '' !== $d['charset'] ) {
+			$out['charset'] = (string) $d['charset'];
+		}
+		if ( isset( $d['min_length'] ) && is_numeric( $d['min_length'] ) ) {
+			$out['min_length'] = (int) $d['min_length'];
+		}
+		if ( isset( $d['max_length'] ) && is_numeric( $d['max_length'] ) ) {
+			$out['max_length'] = (int) $d['max_length'];
+		}
+		if ( isset( $d['match_field_key'] ) && is_string( $d['match_field_key'] ) && '' !== $d['match_field_key'] ) {
+			$out['match_field_key'] = (string) $d['match_field_key'];
+		}
+		return empty( $out ) ? null : $out;
+	}
+
+	/**
+	 * 前後の空白（半角空白・タブ・改行・全角空白 U+3000）を除去する（§3）。
+	 * PHP の trim() は U+3000 を除去しないため正規表現で明示的に扱う。
+	 *
+	 * @param string $s 入力.
+	 * @return string 前後空白除去後の文字列.
+	 */
+	private function trim_full( $s ) {
+		$r = preg_replace( '/^[\s\x{3000}]+|[\s\x{3000}]+$/u', '', (string) $s );
+		return ( null === $r ) ? '' : $r;
+	}
+
+	/**
+	 * ルール適用フィールドの値を整形する（§3）。
+	 *
+	 * - 前後空白除去（U+3000 含む）を常に行う。
+	 * - 改行を \n に統一する。
+	 * - 文字種が半角系（numeric/alpha/alnum）のときのみ全角英数字を半角化する
+	 *   （mb_convert_kana 'rn' は U+FF10-19 / U+FF21-3A / U+FF41-5A のみ変換し、記号・空白は変換しない）。
+	 *
+	 * @param array  $rules parse_validation_rules 済みのルール.
+	 * @param string $value 生値.
+	 * @return string 整形後の値.
+	 */
+	private function format_rule_value( $rules, $value ) {
+		$s  = $this->trim_full( (string) $value );
+		$s  = str_replace( array( "\r\n", "\r" ), "\n", $s );
+		$cs = isset( $rules['charset'] ) ? (string) $rules['charset'] : '';
+		if ( in_array( $cs, array( 'numeric', 'alpha', 'alnum' ), true ) && function_exists( 'mb_convert_kana' ) ) {
+			// mb_convert_kana の r は全角英字を半角へ、n は全角数字を半角へ変換する（JS 側のコードポイント変換と同一範囲）。
+			$s = mb_convert_kana( $s, 'rn' );
+		}
+		return $s;
+	}
+
+	/**
+	 * 文字種の許可正規表現（§4-1）。未知は空文字。
+	 *
+	 * @param string $charset 文字種.
+	 * @return string preg_match 用パターン、または ''.
+	 */
+	private function charset_regex( $charset ) {
+		switch ( $charset ) {
+			case 'numeric':
+				return '/^[0-9]+$/';
+			case 'alpha':
+				return '/^[A-Za-z]+$/';
+			case 'alnum':
+				return '/^[A-Za-z0-9]+$/';
+			case 'katakana':
+				return '/^[\x{30A1}-\x{30F6}\x{30FC}\x{30FB}\x{30FD}\x{30FE}\x{3000} ]+$/u';
+			case 'hiragana':
+				return '/^[\x{3041}-\x{3096}\x{309D}\x{309E}\x{30FC}\x{30FB}\x{3000} ]+$/u';
+			case 'kana':
+				return '/^[\x{30A1}-\x{30F6}\x{3041}-\x{3096}\x{30FC}\x{30FB}\x{30FD}\x{30FE}\x{309D}\x{309E}\x{3000} ]+$/u';
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * 文字種の表示名（エラーメッセージ用・§7）。
+	 *
+	 * @param string $charset 文字種.
+	 * @return string 表示名.
+	 */
+	private function charset_label( $charset ) {
+		$map = array(
+			'numeric'  => '半角数字',
+			'alpha'    => '半角英字',
+			'alnum'    => '半角英数字',
+			'katakana' => 'カタカナ',
+			'hiragana' => 'ひらがな',
+			'kana'     => 'ひらがなまたはカタカナ',
+		);
+		return isset( $map[ $charset ] ) ? $map[ $charset ] : '';
+	}
+
+	/**
+	 * 文字数エラーの文言を組み立てる（§7）。
+	 *
+	 * @param string   $label フィールドラベル.
+	 * @param int|null $min   最小.
+	 * @param int|null $max   最大.
+	 * @return string
+	 */
+	private function length_message( $label, $min, $max ) {
+		if ( null !== $min && null !== $max ) {
+			return sprintf( '%1$sは%2$d〜%3$d文字で入力してください。', $label, $min, $max );
+		}
+		if ( null !== $min ) {
+			return sprintf( '%1$sは%2$d文字以上で入力してください。', $label, $min );
+		}
+		return sprintf( '%1$sは%2$d文字以内で入力してください。', $label, $max );
+	}
+
+	/**
+	 * 一致ルールの比較先フィールドの生値を得る（§4-3）。
+	 *
+	 * 比較先はシステム3項目（トップレベルの customer_* パラメータ）か、custom_fields 内の
+	 * text/email/tel 型フィールド（文字列値）。
+	 *
+	 * @param string          $target_key 比較先の field_key.
+	 * @param array           $inputs     custom_fields 入力.
+	 * @param WP_REST_Request $request    リクエスト（コア項目取得用）.
+	 * @return string 比較先の生値.
+	 */
+	private function resolve_match_target_raw( $target_key, $inputs, $request ) {
+		if ( in_array( $target_key, array( 'customer_name', 'customer_email', 'customer_phone' ), true ) ) {
+			return (string) $request->get_param( $target_key );
+		}
+		if ( isset( $inputs[ $target_key ] ) && ! is_array( $inputs[ $target_key ] ) ) {
+			return (string) $inputs[ $target_key ];
+		}
+		return '';
+	}
+
+	/**
+	 * 入力ルールを評価する（§2 §4）。最初に失敗したルール1つを WP_Error で返す。妥当なら null。
+	 *
+	 * 呼び出し側は「可視かつ整形後が非空」のフィールドについてのみ呼ぶこと。
+	 *
+	 * @param array  $def             フィールド定義（field_type / field_label）.
+	 * @param array  $rules           parse_validation_rules 済み.
+	 * @param string $formatted_value 整形後の自フィールド値（非空）.
+	 * @param array  $ctx             { defs_by_key, inputs, request }.
+	 * @return WP_Error|null
+	 */
+	private function evaluate_validation_rules( $def, $rules, $formatted_value, $ctx ) {
+		$type          = isset( $def['field_type'] ) ? (string) $def['field_type'] : '';
+		$label         = isset( $def['field_label'] ) ? (string) $def['field_label'] : '';
+		$charset_types = array( 'text', 'textarea' );
+		$match_types   = array( 'text', 'email', 'tel' );
+
+		// 文字種.
+		if ( isset( $rules['charset'] ) && in_array( $type, $charset_types, true ) ) {
+			$re = $this->charset_regex( $rules['charset'] );
+			if ( '' !== $re && ! preg_match( $re, $formatted_value ) ) {
+				return $this->error(
+					'smb_reservation_field_format',
+					sprintf( '%1$sは%2$sで入力してください。', $label, $this->charset_label( $rules['charset'] ) ),
+					400
+				);
+			}
+		}
+
+		// 文字数（コードポイント数）.
+		if ( in_array( $type, $charset_types, true ) ) {
+			$min = isset( $rules['min_length'] ) ? (int) $rules['min_length'] : null;
+			$max = isset( $rules['max_length'] ) ? (int) $rules['max_length'] : null;
+			if ( null !== $min || null !== $max ) {
+				$len = function_exists( 'mb_strlen' ) ? mb_strlen( $formatted_value, 'UTF-8' ) : strlen( $formatted_value );
+				if ( ( null !== $min && $len < $min ) || ( null !== $max && $len > $max ) ) {
+					return $this->error( 'smb_reservation_field_length', $this->length_message( $label, $min, $max ), 400 );
+				}
+			}
+		}
+
+		// 一致する項目.
+		if ( isset( $rules['match_field_key'] ) && in_array( $type, $match_types, true ) ) {
+			$target_key = (string) $rules['match_field_key'];
+			$target_def = isset( $ctx['defs_by_key'][ $target_key ] ) ? $ctx['defs_by_key'][ $target_key ] : null;
+			// 比較先が存在しない → 防御的にスキップ（§1）。
+			if ( null !== $target_def ) {
+				// 比較先が条件フィールドで非表示ならスキップ（§1）。コア項目は常に表示。
+				$target_visible = $this->condition_met( $target_def, $ctx['inputs'] );
+				if ( $target_visible ) {
+					$target_val = $this->trim_full( $this->resolve_match_target_raw( $target_key, $ctx['inputs'], $ctx['request'] ) );
+					$self_val   = $this->trim_full( $formatted_value );
+					if ( $self_val !== $target_val ) {
+						return $this->error(
+							'smb_reservation_field_mismatch',
+							sprintf( '%1$sが%2$sと一致しません。', $label, (string) $target_def['field_label'] ),
+							400
+						);
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * 予約作成 (フロント予約フォームから).
 	 *
 	 * spec 3.5 (初期フィールド: 氏名/メール/電話), 3.6 (確認画面からのPOST), 5.8 (アトミック競合防止), 5.10 (ハニーポット).
@@ -970,7 +1187,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$field_defs = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT field_key, field_label, field_type, is_required, condition_field_key, condition_value FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d ORDER BY sort_order ASC, id ASC",
+				"SELECT field_key, field_label, field_type, is_required, condition_field_key, condition_value, validation_rules FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d ORDER BY sort_order ASC, id ASC",
 				$form_id
 			),
 			ARRAY_A
@@ -1047,6 +1264,54 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 					sprintf( '「%s」は必須項目です。', (string) $def['field_label'] ),
 					400
 				);
+			}
+		}
+
+		// 入力ルール（v0.6.0 §2〜§4）の評価。**ルール未設定のフィールドには一切触れない**（既存挙動維持）。
+		// 上の必須ループの後段で、可視 → 整形 → 空欄なら評価しない（is_required は上で判定済み）→
+		// 文字種 → 文字数 → 一致、の順に評価する。整形後の値は保存にも使う（$rule_formatted）。
+		$rule_formatted = array();
+		$rule_types     = array( 'text', 'textarea', 'email', 'tel' );
+		$defs_by_key    = array();
+		foreach ( $field_defs as $d ) {
+			$defs_by_key[ (string) $d['field_key'] ] = $d;
+		}
+		foreach ( $field_defs as $def ) {
+			$key = (string) $def['field_key'];
+			if ( in_array( $key, $core_keys, true ) ) {
+				continue;
+			}
+			$field_type = isset( $def['field_type'] ) ? (string) $def['field_type'] : '';
+			if ( ! in_array( $field_type, $rule_types, true ) ) {
+				continue; // 文字種/文字数/一致の対象外の型（address/select/radio/checkbox）。
+			}
+			$rules = $this->parse_validation_rules( isset( $def['validation_rules'] ) ? $def['validation_rules'] : null );
+			if ( null === $rules ) {
+				continue; // ルールなし → 触らない（保存も従来どおり）。
+			}
+			// 非表示ならスキップ（表示中のみ検証）。
+			if ( ! $this->condition_met( $def, $custom_fields_input ) ) {
+				continue;
+			}
+			$raw       = ( isset( $custom_fields_input[ $key ] ) && ! is_array( $custom_fields_input[ $key ] ) ) ? (string) $custom_fields_input[ $key ] : '';
+			$formatted = $this->format_rule_value( $rules, $raw );
+			// 整形後の値を保存に使う（§3）。空欄でも上書きする（前後空白のみ→空）。
+			$rule_formatted[ $key ] = $formatted;
+			if ( '' === $formatted ) {
+				continue; // 空欄はルール評価しない（§2 step3）。
+			}
+			$err = $this->evaluate_validation_rules(
+				$def,
+				$rules,
+				$formatted,
+				array(
+					'defs_by_key' => $defs_by_key,
+					'inputs'      => $custom_fields_input,
+					'request'     => $request,
+				)
+			);
+			if ( is_wp_error( $err ) ) {
+				return $err;
 			}
 		}
 
@@ -1242,6 +1507,9 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 					array_map( 'sanitize_text_field', array_map( 'strval', $raw ) )
 				);
 				$value     = wp_json_encode( $clean_arr );
+			} elseif ( array_key_exists( $key, $rule_formatted ) ) {
+				// 入力ルール適用フィールドは整形後の値を保存する（§3）。
+				$value = sanitize_textarea_field( $rule_formatted[ $key ] );
 			} else {
 				$value = sanitize_textarea_field( (string) $raw );
 			}
