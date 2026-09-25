@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.5.6
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,11 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.6.0 – 2026-09-25 =
+
+* Added: you can now set input rules on each form field. Depending on the field type, you can choose the allowed character type (digits, letters, letters and digits, katakana, hiragana, or hiragana/katakana), a length range (minimum and maximum), and a match check against another field (such as an email confirmation field). Fields with no rule set behave exactly as before.
+* Added: for the half-width character types, full-width letters and digits entered by a visitor are converted to half-width automatically, and the converted value is used on the confirmation screen and in the saved answer.
+
 = 0.5.6 – 2026-09-11 =
 
 * Fixed: on the admin screen, the dropdown arrow of a select box that could not be changed was repeated across the whole control instead of being shown once on the right, and the arrow disappeared from a select box that was showing an input error. Both came from the same style rule and are now displayed correctly. This affected appearance only; no saved data or notification email was involved.
@@ -166,11 +171,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 * Fixed: changing the type of an existing field to "Address (postal code)" opened it with automatic address lookup turned off, the opposite of the default used when adding one from the address card. It now opens with automatic lookup turned on, matching the default.
 * Fixed: the example shown for the {schedule_time} mail variable did not match what is actually inserted. It now reads "14:00〜15:00".
 * Fixed: the link to the zipcloud terms of service in this readme used http. It now uses https.
-
-= 0.5.4 – 2026-09-11 =
-
-* Fixed: a radio or dropdown field used as the condition for another field could be changed to a checkbox field afterwards, which silently discarded the dependent field's answer. The dependent field was still shown on the booking form and on the confirmation screen and the booking completed normally, but the answer was never saved and never appeared in the reservation details, the CSV export, or the notification emails. A field that another field depends on can no longer be changed to a type other than radio or dropdown, and while such a setting is still in place the dependent field is no longer displayed at all.
-* Note: on sites that used this setting, the dependent field may be blank in past reservations. Those answers were never written to the database and cannot be recovered.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
