@@ -32,12 +32,32 @@ const EMPTY = {
 	condition_field_key: '',
 	condition_value: '',
 	address_autofill: true,
+	// 入力ルール (v0.6.0)。数値は入力欄の都合で文字列として保持し、保存時に整数化する。
+	rule_charset: '',
+	rule_min: '',
+	rule_max: '',
+	rule_match: '',
 };
 
 const TYPE_OPTIONS = FIELD_TYPES.map((t) => ({ value: t.type, label: t.label }));
 
 const NEEDS_OPTIONS = ['select', 'radio', 'checkbox'];
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
+
+// 入力ルール (v0.6.0)。対象型は仕様 §1 の通り。
+const RULE_CHARSET_TYPES = ['text', 'textarea']; // 文字種・文字数.
+const RULE_MATCH_TYPES = ['text', 'email', 'tel']; // 一致する項目.
+const CHARSET_OPTIONS = [
+	{ value: '', label: '指定なし' },
+	{ value: 'numeric', label: '半角数字' },
+	{ value: 'alpha', label: '半角英字' },
+	{ value: 'alnum', label: '半角英数字' },
+	{ value: 'katakana', label: 'カタカナ' },
+	{ value: 'hiragana', label: 'ひらがな' },
+	{ value: 'kana', label: 'ひらがな または カタカナ' },
+];
+const CHARSET_HALF = ['numeric', 'alpha', 'alnum'];
+const CHARSET_KANA = ['katakana', 'hiragana', 'kana'];
 
 // メール変数の固定8変数と衝突するキーは使用不可（サーバの RESERVED_TEMPLATE_KEYS と一致させる）。
 const RESERVED_KEYS = [
@@ -91,6 +111,7 @@ export default function CustomFieldModal({
 		if (!open) return;
 		setErrors({});
 		if (field) {
+			const vr = field.validation_rules && typeof field.validation_rules === 'object' ? field.validation_rules : {};
 			const init = {
 				field_label: field.field_label || '',
 				field_key: field.field_key || '',
@@ -101,6 +122,10 @@ export default function CustomFieldModal({
 				condition_field_key: field.condition_field_key || '',
 				condition_value: field.condition_value || '',
 				address_autofill: field.autofill !== false,
+				rule_charset: vr.charset || '',
+				rule_min: vr.min_length !== undefined && vr.min_length !== null ? String(vr.min_length) : '',
+				rule_max: vr.max_length !== undefined && vr.max_length !== null ? String(vr.max_length) : '',
+				rule_match: vr.match_field_key || '',
 			};
 			setValues(init);
 			const optsText = (Array.isArray(field.field_options) ? field.field_options : []).join('\n');
@@ -165,6 +190,36 @@ export default function CustomFieldModal({
 	};
 
 	const needsOptions = NEEDS_OPTIONS.includes(values.field_type);
+
+	// --- 入力ルール (v0.6.0 §9) ---
+	// システム項目（氏名/メール/電話）にはルールを設定できない（§1）。対象外の型では
+	// セクションを出さない（保存済みのルールは payload に含めず温存する）。
+	const showCharsetLength = !isProtected && RULE_CHARSET_TYPES.includes(values.field_type);
+	const showMatch = !isProtected && RULE_MATCH_TYPES.includes(values.field_type);
+	const showRuleSection = showCharsetLength || showMatch;
+
+	// 一致する項目の比較先候補: 同一フォーム内の text/email/tel（システム項目を含む）・自分以外。
+	const matchCandidates = useMemo(() => {
+		const list = Array.isArray(fields) ? fields : [];
+		return list.filter(
+			(f) => RULE_MATCH_TYPES.includes(f.field_type) && f.field_key !== values.field_key
+		);
+	}, [fields, values.field_key]);
+
+	const matchOptions = useMemo(
+		() => [
+			{ value: '', label: '指定なし' },
+			...matchCandidates.map((f) => ({ value: f.field_key, label: f.field_label })),
+		],
+		[matchCandidates]
+	);
+
+	// 文字種の説明文（§9）。
+	const charsetHelp = CHARSET_HALF.includes(values.rule_charset)
+		? '全角で入力された英数字は自動で半角に変換されます。空白は使えません。'
+		: CHARSET_KANA.includes(values.rule_charset)
+			? '長音（ー）・中黒（・）・空白を含めて入力できます。'
+			: '入力できる文字の種類を制限します。空欄の項目には適用されません。';
 
 	// --- 表示条件 (v0.3.0 機能③) ---
 	// 親候補: radio/select のみ・自分自身は除外・既に条件付き（子）のフィールドは除外（ネスト禁止）。
@@ -257,6 +312,20 @@ export default function CustomFieldModal({
 		if (!isProtected && values.condition_field_key && !values.condition_value) {
 			e.condition_value = '表示条件の値を選択してください。';
 		}
+		// 入力ルール（§9）: 最小 > 最大 をモーダル内で検出する。
+		if (showCharsetLength) {
+			const mn = values.rule_min.trim() === '' ? null : Number(values.rule_min);
+			const mx = values.rule_max.trim() === '' ? null : Number(values.rule_max);
+			if (
+				mn !== null &&
+				mx !== null &&
+				Number.isFinite(mn) &&
+				Number.isFinite(mx) &&
+				mn > mx
+			) {
+				e.rule_length = '最小文字数は最大文字数以下にしてください。';
+			}
+		}
 		return e;
 	};
 
@@ -279,6 +348,23 @@ export default function CustomFieldModal({
 		};
 		if (values.field_type === 'address') {
 			payload.address_autofill = !!values.address_autofill;
+		}
+		// 入力ルール（§9）: 対象型かつ非システム項目のときだけ payload に含める。
+		// 対象外の型・システム項目では validation_rules を送らない → サーバが既存値を温存する（§9）。
+		// 空オブジェクトを送った場合はサーバが NULL 化する（＝ルール解除）。
+		if (showRuleSection) {
+			const vr = {};
+			if (showCharsetLength) {
+				if (values.rule_charset) vr.charset = values.rule_charset;
+				const mn = values.rule_min.trim();
+				const mx = values.rule_max.trim();
+				if (mn !== '') vr.min_length = parseInt(mn, 10);
+				if (mx !== '') vr.max_length = parseInt(mx, 10);
+			}
+			if (showMatch && values.rule_match) {
+				vr.match_field_key = values.rule_match;
+			}
+			payload.validation_rules = vr;
 		}
 		onSubmit(payload);
 	};
@@ -399,6 +485,67 @@ export default function CustomFieldModal({
 						}
 					/>
 				</Field>
+
+				{/*
+				  入力ルール (v0.6.0 §9): 文字種・文字数（1行/複数行テキスト）と
+				  一致する項目（1行テキスト/メール/電話）。対象外の型・システム項目では非表示。
+				  型を対象外へ変更するとセクションが消えるが、保存済みのルールは温存される
+				  （payload に validation_rules を含めない＝サーバが既存値を保持する）。
+				*/}
+				{showRuleSection && (
+					<div className="smb-field-group">
+						<Field label="入力ルール">
+							<p className="smb-field__help">
+								回答の文字種・文字数・他項目との一致を検証します。空欄の項目には適用されません。
+							</p>
+						</Field>
+						<div className="smb-field-group smb-field-group--contact">
+							{showCharsetLength && (
+								<Select
+									label="文字種"
+									options={CHARSET_OPTIONS}
+									value={values.rule_charset}
+									onChange={(e) => update({ rule_charset: e.target.value })}
+									help={charsetHelp}
+								/>
+							)}
+							{showCharsetLength && (
+								<Input
+									label="最小文字数"
+									type="number"
+									min={1}
+									max={9999}
+									value={values.rule_min}
+									onChange={(e) => update({ rule_min: e.target.value })}
+									placeholder="指定なし"
+									help="空欄なら下限なし。1〜9999。"
+								/>
+							)}
+							{showCharsetLength && (
+								<Input
+									label="最大文字数"
+									type="number"
+									min={1}
+									max={9999}
+									value={values.rule_max}
+									onChange={(e) => update({ rule_max: e.target.value })}
+									error={errors.rule_length}
+									placeholder="指定なし"
+									help="空欄なら上限なし。1〜9999。"
+								/>
+							)}
+							{showMatch && (
+								<Select
+									label="一致する項目"
+									options={matchOptions}
+									value={values.rule_match}
+									onChange={(e) => update({ rule_match: e.target.value })}
+									help="選んだ項目と同じ値が入力されているかを確認します（メールアドレス確認欄など）。"
+								/>
+							)}
+						</div>
+					</div>
+				)}
 
 				{/*
 				  表示条件 (v0.3.0 機能③): radio/select の親フィールドの選択値に応じて
