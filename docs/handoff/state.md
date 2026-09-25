@@ -1,6 +1,59 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-09-12
+最終更新: 2026-09-25
+
+## 🚧 v0.6.0：カスタムフィールドの入力ルール（**実装完了・未リリース**・2026-09-25）
+
+**状態: main に push 済み・SVN 未公開（ZIP 生成と SVN commit は人間 GO 待ち）。**
+正本は `docs/spec-amendment-v060-validation-rules.md`（2026-09-25 合意・凍結）。
+
+### スコープ
+フォームの各入力項目に「入力ルール」（①文字種 ②文字数の範囲 ③一致する項目）を設定できるようにした。
+**最重要原則: ルール未設定（NULL）の項目は v0.5.6 と挙動不変**（アップデートで検証が増えない）。
+
+### コミット（`eaa47a6` の次から・すべて push 済み）
+- `fa80224` docs: 仕様書（正本）追加
+- `80eda4d` refactor(frontend): 検証を `src/frontend/utils/validation.js` へ一本化（S1-b・挙動不変）
+- `0b38e98` feat(custom-fields): `validation_rules` LONGTEXT 列＋0.6.0 マイグレーション＋管理 API（保存検証・GET 出力・削除ガード）（S2）
+- `7e12a78` feat(public): 公開予約のルール評価＋整形（S3）
+- `9a9221e` feat(frontend): 予約フォームのルール評価・整形（S4）
+- `65c873e` feat(admin): フィールド編集モーダルの「入力ルール」セクション（S5）
+- `9e1d48c` test(e2e): `tests/e2e/v060-validation-rules.spec.js`（S6）
+- `e3271b2` fix(custom-fields): `phpcs:ignore` を `$wpdb->insert` 直前へ戻す（Plugin Check 対応）
+- `f63600c` chore(release): v0.6.0（版4箇所＋readme/CHANGELOG）
+
+### 実装の要点
+- **データ**: `smart_booking_custom_fields.validation_rules`（LONGTEXT NULL・JSON `{charset,min_length,max_length,match_field_key}`）。
+  0.6.0 ゲートは 0.5.0 と同型（`create_tables()` 再適用＝dbDelta 冪等・欠損列のみ ADD）。既存行は NULL のまま。
+- **サーバ（`class-rest-public.php`）とフロント（`validation.js`）はビット等価**に実装。文字種正規表現（`\u` 表記）・
+  全角→半角（`mb_convert_kana 'rn'` ↔ コードポイント法・同一範囲）・文字数（コードポイント数）・一致（双方 trim・大小区別）。
+- **適用は公開予約とフロントのみ**。手動予約（`POST /reservations`）・既存予約編集はルール未評価（仕様どおり）。
+- **一致ルールの比較先の削除ガード** `smb_field_match_referenced`（v0.5.4 親ガードと同方式・400）。
+  UI は既存の削除エラーと同じ `showToast(err.message)` で表示（追加実装不要）。
+- **整形後の値を保存・確認画面表示**（§3）。ルールなし項目の値は 1 文字も変えない。
+
+### ゲート結果（desktop）
+- **付録A 全ベクトル**: サーバ（reflection）26/26・JS（esbuild バンドルを node 実行）26/26 一致。
+- **新規 E2E `v060-validation-rules` 6/6 PASS**（付録A REST＋フロント・削除ガード・管理 API 不正拒否・手動非評価・冪等）。
+- **回帰（新規失敗ゼロ）**: S1-b は baseline（git stash）と passed セット完全一致。S2〜S5 後も
+  v030-conditional-fields(3)＋v054(5) 8/8・phase2-form-settings 10/10・v030-address-field 全 PASS・
+  phase3-responsive は単体で :967 のみ失敗。**失敗は既存の陳腐化赤3件のみ**
+  （`phase3-fix1:45`／`phase3-responsive:967`／`phase3-validation:178`＝`docs/bugs/phase9-stale-front-specs.md`・v0.6.0 と無関係）。
+- **静的**: `npm run build` 成功／phpcs 変更 PHP 0/0・`validation.js` lint クリーン／
+  **Plugin Check 変更3出荷ファイル 0 error/0 warning**。
+
+### ⚠️ 起票／申し送り（修正せず記録）
+- **readme.txt Changelog は英語で記載**（CLAUDE.md「readme は英語ソース」運用）。タスク指示は「日本語」だったが
+  英語ソース運用・md5 同期と矛盾するため英語を採用。**人間が日本語を望むなら GO 前に指示のこと。**
+- **環境のメモリ不足（OOM）で mobile プロジェクトとフルスイートは完走不可**。desktop で検証した。
+  検証ロジックは viewport 非依存。リリース前にメモリに余裕のある環境で mobile／フルスイートを流すのが望ましい。
+- **`class-rest-public.php` に既存 phpcs 警告 23 件**（`public_settings_schema`／`get_settings` の整列・
+  今回の変更対象外・私の変更は増分ゼロ）。別トラックで是正候補。
+- **配布スコープの Plugin Check は ZIP 生成後に再確認が必要**（全体 81 error は tests/docs＝`.distignore` 除外分）。
+
+### リリース手順（人間 GO 後）
+`npx wp-scripts plugin-zip` → ZIP 31ファイル・版表記3箇所（0.6.0）・混入なしを実測 → 配布スコープ Plugin Check 0/0 →
+SVN `trunk` 反映＋`tags/0.6.0/` 作成 → `svn ci`（`~/dev/smart-booking-svn`）→ git タグ `v0.6.0`。
 
 ## ✅ v0.5.4：**WordPress.org 公開済み**（SVN **rev 3690665**・2026-09-11）
 
