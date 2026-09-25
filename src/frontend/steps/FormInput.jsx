@@ -17,74 +17,12 @@ import AddressField from '../components/AddressField';
 import StepHeader from '../components/StepHeader';
 import { pushBookingEvent } from '../utils/analytics';
 import { isFieldVisible } from '../fieldConditions';
-import { normalizeZip } from '../addressLookup';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// 数字・ハイフン・プラス・括弧・スペースのみ許容（国際形式まで緩めに）。
-const PHONE_RE = /^[0-9+()\-\s]+$/;
+import { normalizeValue, validateField } from '../utils/validation';
 
 function inputTypeForField(type) {
 	if (type === 'email') return 'email';
 	if (type === 'tel') return 'tel';
 	return 'text';
-}
-
-function normalizeValue(field, raw) {
-	if (field.field_type === 'checkbox') {
-		if (Array.isArray(raw)) return raw;
-		return [];
-	}
-	if (field.field_type === 'address') {
-		const obj = raw && typeof raw === 'object' ? raw : {};
-		return { zip: obj.zip || '', address: obj.address || '' };
-	}
-	return raw === undefined || raw === null ? '' : String(raw);
-}
-
-function validateField(field, value) {
-	const required = !!field.is_required;
-	if (field.field_type === 'checkbox') {
-		const arr = Array.isArray(value) ? value : [];
-		if (required && arr.length === 0) return 'この項目は必須です。';
-		return null;
-	}
-	if (field.field_type === 'address') {
-		const zip = typeof value?.zip === 'string' ? value.zip.trim() : '';
-		const address = typeof value?.address === 'string' ? value.address.trim() : '';
-		if (required) {
-			// 必須: 郵便番号・住所の両方が非空、かつ郵便番号は正規化後7桁であること。
-			if (zip === '' || address === '') return 'この項目は必須です。';
-			if (normalizeZip(zip).length !== 7) {
-				return '郵便番号は7桁の数字で入力してください。';
-			}
-			return null;
-		}
-		// 任意: 郵便番号が空なら住所欄の内容にかかわらずOK。
-		// 郵便番号を入力した場合のみ、7桁かどうかを検証する。
-		if (zip === '') return null;
-		if (normalizeZip(zip).length !== 7) {
-			return '郵便番号は7桁の数字で入力してください。';
-		}
-		return null;
-	}
-	const str = typeof value === 'string' ? value.trim() : '';
-	if (required && str === '') return 'この項目は必須です。';
-	if (str === '') return null; // 任意項目は空でもOK
-
-	if (field.field_key === 'customer_email' || field.field_type === 'email') {
-		if (!EMAIL_RE.test(str)) return 'メールアドレスの形式が正しくありません。';
-	}
-	if (field.field_key === 'customer_phone' || field.field_type === 'tel') {
-		if (!PHONE_RE.test(str)) {
-			return '電話番号は数字・ハイフン・括弧・+ のみで入力してください。';
-		}
-		// 数字部分だけ抽出して桁数を検証（日本固定 10 桁・携帯 11 桁、E.164 最大 15 桁）。
-		const digits = str.replace(/\D/g, '');
-		if (digits.length < 9 || digits.length > 15) {
-			return '電話番号の桁数が正しくありません。';
-		}
-	}
-	return null;
 }
 
 /**

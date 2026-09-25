@@ -17,56 +17,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SelectionBar from '../components/SelectionBar';
 import { isFieldVisible } from '../fieldConditions';
-import { normalizeZip } from '../addressLookup';
+import { normalizeValue, isFieldValid } from '../utils/validation';
 import DateSelect from './DateSelect';
 import FormInput from './FormInput';
 import TimeSelect from './TimeSelect';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[0-9+()\-\s]+$/;
-
-function normalizeValue(field, raw) {
-	if (field.field_type === 'checkbox') {
-		return Array.isArray(raw) ? raw : [];
-	}
-	if (field.field_type === 'address') {
-		const obj = raw && typeof raw === 'object' ? raw : {};
-		return { zip: obj.zip || '', address: obj.address || '' };
-	}
-	return raw === undefined || raw === null ? '' : String(raw);
-}
-
-function isFieldValid(field, value) {
-	const required = !!field.is_required;
-	if (field.field_type === 'checkbox') {
-		const arr = Array.isArray(value) ? value : [];
-		if (required && arr.length === 0) return false;
-		return true;
-	}
-	if (field.field_type === 'address') {
-		const zip = typeof value?.zip === 'string' ? value.zip.trim() : '';
-		const address = typeof value?.address === 'string' ? value.address.trim() : '';
-		if (required) {
-			if (zip === '' || address === '') return false;
-			return normalizeZip(zip).length === 7;
-		}
-		if (zip === '') return true;
-		return normalizeZip(zip).length === 7;
-	}
-	const str = typeof value === 'string' ? value.trim() : '';
-	if (required && str === '') return false;
-	if (str === '') return true;
-
-	if (field.field_key === 'customer_email' || field.field_type === 'email') {
-		if (!EMAIL_RE.test(str)) return false;
-	}
-	if (field.field_key === 'customer_phone' || field.field_type === 'tel') {
-		if (!PHONE_RE.test(str)) return false;
-		const digits = str.replace(/\D/g, '');
-		if (digits.length < 9 || digits.length > 15) return false;
-	}
-	return true;
-}
 
 /**
  * MainInputPage: 日付・時間・フォーム入力を 1 画面に統合する。
