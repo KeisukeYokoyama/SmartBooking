@@ -17,7 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SelectionBar from '../components/SelectionBar';
 import { isFieldVisible } from '../fieldConditions';
-import { normalizeValue, isFieldValid } from '../utils/validation';
+import { normalizeValue, validateFieldFull } from '../utils/validation';
 import DateSelect from './DateSelect';
 import FormInput from './FormInput';
 import TimeSelect from './TimeSelect';
@@ -42,12 +42,22 @@ export default function MainInputPage({ state, dispatch, onBack }) {
 		return list;
 	}, [customFields]);
 
-	// 必須項目および形式バリデーションの状態を監視し、ボタン活性を判定する。
-	// 条件フィールドで非表示のものは判定対象外（表示中のみ必須が有効）。
+	// 必須項目・形式・入力ルールの状態を監視し、ボタン活性/ヒント表示を判定する。
+	// 条件フィールドで非表示のものは判定対象外（表示中のみ検証が有効）。
 	const allFieldsValid = useMemo(() => {
+		const fieldsByKey = {};
+		orderedFields.forEach((f) => {
+			fieldsByKey[f.field_key] = f;
+		});
 		return orderedFields
 			.filter((f) => isFieldVisible(f, formValues))
-			.every((f) => isFieldValid(f, normalizeValue(f, formValues[f.field_key])));
+			.every(
+				(f) =>
+					validateFieldFull(f, normalizeValue(f, formValues[f.field_key]), {
+						fieldsByKey,
+						formValues,
+					}).error === null,
+			);
 	}, [orderedFields, formValues]);
 
 	const canConfirm = !!date && !!time && allFieldsValid;

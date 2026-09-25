@@ -17,7 +17,7 @@ import AddressField from '../components/AddressField';
 import StepHeader from '../components/StepHeader';
 import { pushBookingEvent } from '../utils/analytics';
 import { isFieldVisible } from '../fieldConditions';
-import { normalizeValue, validateField } from '../utils/validation';
+import { normalizeValue, validateFieldFull } from '../utils/validation';
 
 function inputTypeForField(type) {
 	if (type === 'email') return 'email';
@@ -86,12 +86,30 @@ function FormInput({ state, dispatch, onBack, hideHeader = false, hideSubmit = f
 	// validate() の両経路で共有する。focus=true のとき最初のエラーフィールドへフォーカスを移す。
 	const runValidation = ({ focus = true } = {}) => {
 		const nextErrors = {};
+		// 一致ルールの比較先を引くための field_key → 定義マップ。
+		const fieldsByKey = {};
+		orderedFields.forEach((f) => {
+			fieldsByKey[f.field_key] = f;
+		});
+		// 入力ルールで整形された値の書き戻し（確認画面・送信ペイロードで整形後の値を使う・§8）。
+		const formattedUpdates = {};
 		orderedFields.forEach((f) => {
 			// 非表示フィールド（条件不成立）はバリデーション対象外。
 			if (!isFieldVisible(f, formValues)) return;
 			const val = normalizeValue(f, formValues[f.field_key]);
-			const msg = validateField(f, val);
-			if (msg) nextErrors[f.field_key] = msg;
+			const { error, formatted } = validateFieldFull(f, val, {
+				fieldsByKey,
+				formValues,
+			});
+			if (error) nextErrors[f.field_key] = error;
+			// 整形で値が変わったフィールドは state へ反映する（ルールありフィールドのみ変わりうる）。
+			if (typeof formatted === 'string' && formatted !== val) {
+				formattedUpdates[f.field_key] = formatted;
+			}
+		});
+		// 整形後の値を state へ書き戻す。
+		Object.keys(formattedUpdates).forEach((key) => {
+			dispatch({ type: 'UPDATE_FORM_FIELD', payload: { key, value: formattedUpdates[key] } });
 		});
 		setErrors(nextErrors);
 		const hasError = Object.keys(nextErrors).length > 0;
