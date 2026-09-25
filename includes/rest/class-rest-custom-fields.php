@@ -565,9 +565,9 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		$data               = array_merge( array( 'form_id' => $form_id ), $data );
 		$data['created_at'] = $this->now_mysql();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// 列順: form_id, field_key, field_label, field_type, field_options, placeholder,
 		// is_required, sort_order, condition_field_key, condition_value, validation_rules, created_at.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert(
 			$this->table(),
 			$data,
