@@ -142,6 +142,13 @@ class Smart_Booking_Activator {
 			self::create_tables();
 		}
 
+		// 0.6.0: custom_fields に validation_rules（入力ルール JSON）列を追加する（dbDelta 冪等・欠損列のみ ADD）。
+		// 既存データの変換は不要（全行 NULL のまま＝ルールなし＝v0.5.6 と挙動不変）。列追加は冪等なので
+		// readiness cap は不要（0.5.0 と同型）。
+		if ( version_compare( $current, '0.6.0', '<' ) ) {
+			self::create_tables();
+		}
+
 		// db_version の確定。
 		// - UNIQUE 移行が成功（実在検証 OK）した場合のみ 0.2.3 以上へ前進させる。
 		// - 失敗時は 0.2.3 未満に留め、次回有効化で再試行できるようにする（エラーを握り潰さない）。
@@ -605,6 +612,9 @@ class Smart_Booking_Activator {
 		// v0.4.0: 複数フォーム対応で form_id を追加し、field_key の一意性を (form_id, field_key) の複合
 		// UNIQUE へ拡張する。既存テーブルの UNIQUE 張り替えは dbDelta の不確実性に依存させず、
 		// run_migrations() の 0.4.0 ゲート（migrate_multi_forms）が明示 ALTER で担う。
+		// v0.6.0: 入力ルール（文字種・文字数・一致する項目）を validation_rules（JSON）へ格納する。
+		// NULL = ルールなし（既存全行は NULL のまま＝v0.5.6 と挙動不変）。既存ユーザーへは
+		// run_migrations() の 0.6.0 ゲートで dbDelta を再適用して列を追加する（冪等・欠損列のみ ADD）。
 		$sql_custom_fields = "CREATE TABLE {$prefix}custom_fields (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			form_id bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -617,6 +627,7 @@ class Smart_Booking_Activator {
 			sort_order int(11) NOT NULL DEFAULT 0,
 			condition_field_key varchar(100) DEFAULT NULL,
 			condition_value varchar(255) DEFAULT NULL,
+			validation_rules longtext NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			UNIQUE KEY uniq_form_field_key (form_id, field_key),

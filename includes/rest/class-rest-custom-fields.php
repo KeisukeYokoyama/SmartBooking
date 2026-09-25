@@ -173,6 +173,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			'sort_order'          => (int) $row['sort_order'],
 			'condition_field_key' => $condition_field_key,
 			'condition_value'     => $condition_value,
+			'validation_rules'    => $this->decode_validation_rules( isset( $row['validation_rules'] ) ? $row['validation_rules'] : null ),
 			'is_protected'        => in_array( $row['field_key'], self::PROTECTED_KEYS, true ),
 			'created_at'          => $row['created_at'],
 		);
@@ -299,6 +300,161 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 	}
 
 	/**
+	 * DB の validation_rules（JSON 文字列）を出力用の連想配列へ復元する（管理・公開共通）。
+	 *
+	 * 不正・空・列欠如はすべて null（ルールなし）として扱う。既知キーのみ通す。
+	 *
+	 * @param mixed $raw DB 上の値.
+	 * @return array|null charset/min_length/max_length/match_field_key を持つ配列、または null.
+	 */
+	private function decode_validation_rules( $raw ) {
+		if ( null === $raw || '' === $raw ) {
+			return null;
+		}
+		$decoded = json_decode( (string) $raw, true );
+		if ( ! is_array( $decoded ) || empty( $decoded ) ) {
+			return null;
+		}
+		$out = array();
+		if ( isset( $decoded['charset'] ) && is_string( $decoded['charset'] ) && '' !== $decoded['charset'] ) {
+			$out['charset'] = (string) $decoded['charset'];
+		}
+		if ( isset( $decoded['min_length'] ) && is_numeric( $decoded['min_length'] ) ) {
+			$out['min_length'] = (int) $decoded['min_length'];
+		}
+		if ( isset( $decoded['max_length'] ) && is_numeric( $decoded['max_length'] ) ) {
+			$out['max_length'] = (int) $decoded['max_length'];
+		}
+		if ( isset( $decoded['match_field_key'] ) && is_string( $decoded['match_field_key'] ) && '' !== $decoded['match_field_key'] ) {
+			$out['match_field_key'] = (string) $decoded['match_field_key'];
+		}
+		return empty( $out ) ? null : $out;
+	}
+
+	/**
+	 * 文字数（min_length / max_length）の入力値を解釈する。
+	 *
+	 * 空欄・null・未指定は null（未設定）。1〜9999 の整数のみ許可し、それ以外は WP_Error。
+	 *
+	 * @param array  $raw リクエストの validation_rules 連想配列.
+	 * @param string $key 'min_length' または 'max_length'.
+	 * @return int|null|WP_Error 整数 / null / エラー.
+	 */
+	private function parse_length_value( $raw, $key ) {
+		if ( ! isset( $raw[ $key ] ) || null === $raw[ $key ] || '' === $raw[ $key ] ) {
+			return null;
+		}
+		if ( ! is_numeric( $raw[ $key ] ) ) {
+			return $this->error( 'smb_field_rule_length_invalid', '文字数には1〜9999の整数を指定してください。', 400 );
+		}
+		$f = (float) $raw[ $key ];
+		if ( floor( $f ) !== $f ) {
+			return $this->error( 'smb_field_rule_length_invalid', '文字数には1〜9999の整数を指定してください。', 400 );
+		}
+		$n = (int) $f;
+		if ( $n < 1 || $n > 9999 ) {
+			return $this->error( 'smb_field_rule_length_invalid', '文字数には1〜9999の整数を指定してください。', 400 );
+		}
+		return $n;
+	}
+
+	/**
+	 * 入力ルール（validation_rules）を検証・サニタイズする（保存用）。仕様 §6。
+	 *
+	 * 未知の charset・範囲外の数値・最小 > 最大・存在しない/型不適合な match_field_key・
+	 * 自己参照・対象外の型への設定・システム3項目への設定は 400 で拒否する。
+	 * すべて未設定なら null（＝ルールなし）。未知キーは破棄する。
+	 *
+	 * @param WP_REST_Request $request      リクエスト.
+	 * @param string          $field_type   対象フィールドの型.
+	 * @param bool            $is_protected システム3項目か（ルール設定不可）.
+	 * @param string          $self_key     自身の field_key（自己参照判定用）.
+	 * @param int             $form_id      対象フォーム id.
+	 * @return string|null|WP_Error JSON 文字列 / null / WP_Error.
+	 */
+	private function sanitize_validation_rules( $request, $field_type, $is_protected, $self_key, $form_id ) {
+		global $wpdb;
+
+		$raw = $request->get_param( 'validation_rules' );
+		if ( ! is_array( $raw ) ) {
+			// 未指定・null・非配列はルールなし。
+			return null;
+		}
+
+		$charset_types = array( 'text', 'textarea' );     // 文字種・文字数の対象型.
+		$match_types   = array( 'text', 'email', 'tel' );  // 一致ルールの対象型.
+		$allowed_cs    = array( 'numeric', 'alpha', 'alnum', 'katakana', 'hiragana', 'kana' );
+
+		$rules = array();
+
+		// 文字種.
+		if ( isset( $raw['charset'] ) && null !== $raw['charset'] && '' !== $raw['charset'] ) {
+			$cs = (string) $raw['charset'];
+			if ( ! in_array( $cs, $allowed_cs, true ) ) {
+				return $this->error( 'smb_field_rule_charset_invalid', '文字種の指定が不正です。', 400 );
+			}
+			$rules['charset'] = $cs;
+		}
+
+		// 文字数（最小・最大）.
+		$min = $this->parse_length_value( $raw, 'min_length' );
+		if ( is_wp_error( $min ) ) {
+			return $min;
+		}
+		$max = $this->parse_length_value( $raw, 'max_length' );
+		if ( is_wp_error( $max ) ) {
+			return $max;
+		}
+		if ( null !== $min && null !== $max && $min > $max ) {
+			return $this->error( 'smb_field_rule_length_range', '文字数の最小値が最大値を上回っています。', 400 );
+		}
+		if ( null !== $min ) {
+			$rules['min_length'] = $min;
+		}
+		if ( null !== $max ) {
+			$rules['max_length'] = $max;
+		}
+
+		// 一致する項目.
+		if ( isset( $raw['match_field_key'] ) && null !== $raw['match_field_key'] && '' !== $raw['match_field_key'] ) {
+			$match = sanitize_key( (string) $raw['match_field_key'] );
+			if ( '' !== $match ) {
+				if ( $match === $self_key ) {
+					return $this->error( 'smb_field_rule_match_self', '一致する項目に自分自身は指定できません。', 400 );
+				}
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$target = $wpdb->get_row( $wpdb->prepare( "SELECT field_type FROM {$wpdb->prefix}smart_booking_custom_fields WHERE field_key = %s AND form_id = %d", $match, (int) $form_id ), ARRAY_A );
+				if ( ! $target ) {
+					return $this->error( 'smb_field_rule_match_missing', '一致する項目の比較先フィールドが見つかりません。', 400 );
+				}
+				if ( ! in_array( (string) $target['field_type'], $match_types, true ) ) {
+					return $this->error( 'smb_field_rule_match_type', '一致する項目の比較先は1行テキスト・メール・電話のいずれかにしてください。', 400 );
+				}
+				$rules['match_field_key'] = $match;
+			}
+		}
+
+		// すべて未設定なら null（空オブジェクトは保存しない）。
+		if ( empty( $rules ) ) {
+			return null;
+		}
+
+		// 型・保護の制約。システム3項目はルール設定不可。
+		if ( $is_protected ) {
+			return $this->error( 'smb_field_rule_protected', 'この項目（氏名・メール・電話）には入力ルールを設定できません。', 400 );
+		}
+		$has_cs_or_len = isset( $rules['charset'] ) || isset( $rules['min_length'] ) || isset( $rules['max_length'] );
+		if ( $has_cs_or_len && ! in_array( $field_type, $charset_types, true ) ) {
+			return $this->error( 'smb_field_rule_type', '文字種・文字数の入力ルールは1行テキスト・複数行テキストにのみ設定できます。', 400 );
+		}
+		if ( isset( $rules['match_field_key'] ) && ! in_array( $field_type, $match_types, true ) ) {
+			return $this->error( 'smb_field_rule_type', '一致する項目の入力ルールは1行テキスト・メール・電話にのみ設定できます。', 400 );
+		}
+
+		return wp_json_encode( $rules );
+	}
+
+	/**
 	 * 入力をサニタイズ（作成用）。
 	 *
 	 * @param WP_REST_Request $request リクエスト.
@@ -368,6 +524,11 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			return $condition;
 		}
 
+		$validation_rules = $this->sanitize_validation_rules( $request, $type, $is_protected, $key, $form_id );
+		if ( is_wp_error( $validation_rules ) ) {
+			return $validation_rules;
+		}
+
 		// address 型は field_options に選択肢ではなく自動入力フラグ（JSON）を保存する。
 		$field_options_json = ( 'address' === $type )
 			? wp_json_encode( array( 'autofill' => $this->resolve_autofill( $request ) ) )
@@ -383,6 +544,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			'sort_order'          => (int) $request->get_param( 'sort_order' ),
 			'condition_field_key' => $condition['condition_field_key'],
 			'condition_value'     => $condition['condition_value'],
+			'validation_rules'    => $validation_rules,
 		);
 	}
 
@@ -404,10 +566,12 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 		$data['created_at'] = $this->now_mysql();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// 列順: form_id, field_key, field_label, field_type, field_options, placeholder,
+		// is_required, sort_order, condition_field_key, condition_value, validation_rules, created_at.
 		$wpdb->insert(
 			$this->table(),
 			$data,
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
 		);
 		$id      = (int) $wpdb->insert_id;
 		$get_req = new WP_REST_Request( 'GET' );
@@ -486,12 +650,25 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			return $condition;
 		}
 
+		// 入力ルール（§6 §9）: validation_rules が「配列で送られてきたときだけ」更新する。
+		// 送られない（未指定）ときは既存値を温存する。仕様 §9「型を対象外に変更したときは
+		// セクションを非表示にし、保存済みのルールは消去しない（評価側で無視される）」を満たすため。
+		$vr_param         = $request->get_param( 'validation_rules' );
+		$vr_provided      = is_array( $vr_param );
+		$validation_rules = null;
+		if ( $vr_provided ) {
+			$validation_rules = $this->sanitize_validation_rules( $request, $type, $is_protected, (string) $row['field_key'], (int) $row['form_id'] );
+			if ( is_wp_error( $validation_rules ) ) {
+				return $validation_rules;
+			}
+		}
+
 		// address 型は field_options に選択肢ではなく自動入力フラグ（JSON）を保存する。
 		$field_options_json = ( 'address' === $type )
 			? wp_json_encode( array( 'autofill' => $this->resolve_autofill( $request ) ) )
 			: wp_json_encode( $options );
 
-		$update = array(
+		$update  = array(
 			'field_label'         => $label,
 			'field_type'          => $type,
 			'field_options'       => $field_options_json,
@@ -501,10 +678,17 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			'condition_field_key' => $condition['condition_field_key'],
 			'condition_value'     => $condition['condition_value'],
 		);
+		$formats = array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s' );
 
 		// 保護フィールドの is_required は常に 1（必須）強制.
 		if ( $is_protected ) {
 			$update['is_required'] = 1;
+		}
+
+		// validation_rules は送られたときだけ UPDATE 対象に含める（null は SQL NULL＝ルール解除）。
+		if ( $vr_provided ) {
+			$update['validation_rules'] = $validation_rules;
+			$formats[]                  = '%s';
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -512,7 +696,7 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 			$wpdb->prefix . 'smart_booking_custom_fields',
 			$update,
 			array( 'id' => $id ),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%s' ),
+			$formats,
 			array( '%d' )
 		);
 		return $this->get_item( $request );
@@ -549,6 +733,31 @@ class Smart_Booking_REST_Custom_Fields extends Smart_Booking_REST_Base {
 				sprintf(
 					'このフィールドは他フィールドの表示条件の親になっています（依存: %s）。先に表示条件を解除してください。',
 					implode( ', ', array_map( 'strval', $dependents ) )
+				),
+				400
+			);
+		}
+
+		// 依存チェック（§5）: このフィールドを入力ルール「一致する項目」の比較先にしている
+		// フィールドが同一フォーム内にある場合は削除をブロックする（v0.5.4 の親ガードと同方式）。
+		// validation_rules は JSON 列のため SQL では絞れず、非 NULL 行を PHP 側で走査する。
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rule_rows        = $wpdb->get_results( $wpdb->prepare( "SELECT field_label, validation_rules FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d AND validation_rules IS NOT NULL", (int) $row['form_id'] ), ARRAY_A );
+		$match_dependents = array();
+		if ( is_array( $rule_rows ) ) {
+			foreach ( $rule_rows as $rr ) {
+				$parsed = json_decode( (string) $rr['validation_rules'], true );
+				if ( is_array( $parsed ) && isset( $parsed['match_field_key'] ) && (string) $parsed['match_field_key'] === (string) $row['field_key'] ) {
+					$match_dependents[] = (string) $rr['field_label'];
+				}
+			}
+		}
+		if ( count( $match_dependents ) > 0 ) {
+			return $this->error(
+				'smb_field_match_referenced',
+				sprintf(
+					'このフィールドは他フィールドの入力ルール「一致する項目」の比較先になっています（依存: %s）。先に一致ルールを解除してください。',
+					implode( ', ', $match_dependents )
 				),
 				400
 			);
