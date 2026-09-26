@@ -1,11 +1,19 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-09-25
+最終更新: 2026-09-26
 
-## 🚧 v0.6.0：カスタムフィールドの入力ルール（**実装完了・未リリース**・2026-09-25）
+## ✅ v0.6.0：カスタムフィールドの入力ルール（**WordPress.org 公開済み**・SVN **rev 3713851**・2026-09-26）
 
-**状態: main に push 済み・SVN 未公開（ZIP 生成と SVN commit は人間 GO 待ち）。**
+**状態: 公開済み。** `svn ci` 完了（人間 GO のうえ実行・rev 3713851・2026-09-26 14:12 JST・
+`trunk` と `tags/0.6.0/` 両方）。git はリリースコミット `f63600c` にタグ `v0.6.0` を付与し push 済み
+（慣例どおりリリースコミットへ付与。v0.5.3=5facdc8 と同じ扱い）。
 正本は `docs/spec-amendment-v060-validation-rules.md`（2026-09-25 合意・凍結）。
+
+- **配布物**: `smart-booking.zip` = **31ファイル**（tests/docs/src/.DS_Store 混入なし・実測）。ZIP 内版表記3箇所 0.6.0。
+- **配布スコープ Plugin Check 0/0**（展開 ZIP を別スラッグ投入で実行。textdomain 系14件は検査用スラッグ由来で実スラッグ非発火・実測確認）。
+- **readme.txt md5**: git = trunk = tags/0.6.0 = `69629cf52174042cbedfbfed2e07b04e`。readme Changelog は英語（英語ソース運用）。
+- **svn ci 直前の実測**: `diff -rq trunk ⇔ ZIP 展開物` 差分ゼロ／`svn status` は trunk 10 M ＋ tags/0.6.0（A+・10 M+）のみ（`?`・`!`・.DS_Store なし・svn rm 不要）。
+- **公開ページ反映**: WordPress.org は反映に数分〜数十分。API/ページが 0.5.6 のままでも commit 失敗ではない（正は `svn log --limit 1 <repoURL>`＝r3713851 確認済み）。
 
 ### スコープ
 フォームの各入力項目に「入力ルール」（①文字種 ②文字数の範囲 ③一致する項目）を設定できるようにした。
