@@ -198,6 +198,8 @@ WordPress.org 審査で却下されないための必須ルール。1つでも�
 
 `npm run build` → **バージョン4箇所を完全一致更新**（`smart-booking.php` の `Version:` ／ `SMART_BOOKING_VERSION` ／ `readme.txt` の `Stable tag:` ／ `package.json` の `version`）→ `readme.txt` Changelog 追記（日本語）→ `npx wp-scripts plugin-zip` → **SVN commit / WordPress.org 公開**。これらは planner が1ブロックずつ手順提示し、**人間の明示的 GO を待つ**。認証情報（SVN/SSH）は Claude が扱わない。
 
+readme だけの更新は、trunk/readme.txt と Stable tag が指すタグ側の readme.txt の両方を差し替える。trunk だけでは公開ページに反映されない
+
 ## 実装フェーズ（歴史記録）
 
 新規開発時のフェーズ0〜5の詳細手順は `docs/build-phases.md` に退避済み（保守フェーズでは基本参照しない）。ただし次の原則は恒常:
