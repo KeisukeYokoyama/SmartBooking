@@ -19,7 +19,7 @@ Smart Booking is a completely free WordPress booking plugin built specifically f
 * **Completely free, no limits** — There is no Pro version, no paid add-ons, and no license activation. Every feature is free.
 * **Ready in 5 minutes** — Activating the plugin auto-creates a default store, staff member, and the three core fields (name, email, phone). Just paste the `[smart_booking]` shortcode into a post or page to display the booking form.
 * **Optimized for the Japanese booking flow** — A 3-step flow ("input → confirmation → done") that lets the customer review their entries on a dedicated confirmation screen before finalizing the booking.
-* **Multi-store / multi-staff management** — Manage schedules per store and per staff member. Whether the store-select and staff-select steps are shown to customers is automatically decided by how many active records exist (skipped when there is only one).
+* **Multi-store / multi-staff management** — Manage schedules per store and per staff member. Whether customers see the store-select and staff-select steps is set with two switches on the "Settings > Basic Settings" tab (both off by default). When a step is hidden, the first store in the list is selected automatically, and an available staff member is assigned automatically in list order.
 * **Flexible schedule configuration** — Time slots in 30 / 60 / 90 / 120-minute units, capacity per slot, weekday-pattern bulk copy, and an option to overwrite existing schedules.
 * **Calendar display modes** — Choose between day view (horizontal scroll), month view (calendar grid), or a toggle between both, configurable from the admin screen.
 * **Custom fields** — In addition to the three built-in fields (name, email, phone), administrators can add text, email, phone, textarea, select, radio, and checkbox fields.
@@ -33,7 +33,7 @@ Smart Booking is a completely free WordPress booking plugin built specifically f
 
 [Store Select] → [Staff Select] → [Date Select] → [Time Select] → [Form Input] → [Confirmation] → [Done]
 
-The store-select and staff-select steps are shown only when more than one active store / staff record exists. With a single store and a single staff member, the customer starts directly from date selection.
+The store-select and staff-select steps are shown only when they are turned on with the switches on the "Settings > Basic Settings" tab. Both are off by default, so the customer starts directly from date selection. When turned on, a step is shown even if there is only one store or one staff member. A form that specifies a store with the shortcode's `store_id` attribute never shows the store-select step.
 
 = Optional integrations (off by default) =
 
@@ -106,7 +106,7 @@ If none of these integrations are enabled and configured, Smart Booking does not
 4. Configure stores, staff, schedules, and form fields from the **Smart Booking** menu in the admin sidebar.
 5. Paste the `[smart_booking]` shortcode into a post or page and publish it to display the booking form.
 
-To display a form limited to a specific store, add the `store_id` attribute (for example, `[smart_booking store_id="1"]`).
+To display a form limited to a specific store, add the `store_id` attribute with the ID of a store you created (for example, `[smart_booking store_id="2"]`). Each store card on the "Stores & Staff" screen shows this shortcode with the store's ID, ready to copy.
 
 == Frequently Asked Questions ==
 
