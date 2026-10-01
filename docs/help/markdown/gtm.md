@@ -36,7 +36,7 @@ slug: "gtm"
 | 確認画面 | `smart_booking_step` | `confirm` | 確認画面表示時 |
 | 完了画面 | `smart_booking_complete` | `complete` | 予約完了画面表示時（コンバージョン地点） |
 
-> 設定で店舗選択ステップを OFF にしている場合は `store_select` イベントは送信されません。担当者選択ステップを OFF にしている場合も同様に `staff_select` は送信されず、その次のステップ（日付選択）から計測が始まります。
+> 設定で店舗選択ステップを OFF にしている場合は `store_select` イベントは送信されません。担当者選択ステップを OFF にしている場合も同様に `staff_select` は送信されず、その次のステップ（日付選択）から計測が始まります。ショートコードで店舗を指定している場合や、店舗・担当者を登録していない場合など、ステップが自動でスキップされたときも同様に、そのステップのイベントは送信されません。
 > 現実装ではフォーム上で「日付・時間選択」と「フォーム入力」が 1 画面に統合されているため、画面表示と同時に `date_select` と `form_input` の 2 イベントが積まれ（表示順序の設定が「フォーム → 日付・時間」の場合は `form_input` → `date_select` の順）、`time_select` はその後お客さまが日付を選んだ時点で積まれます。GTM 側で「ステップごとに 1 回だけ」発火させたい場合はイベント名と `booking_step` の組み合わせをトリガー条件に明記してください。
 > 確認画面から「入力内容を修正する」で戻ると、`date_select` / `time_select` / `form_input` が再度送信され、確認画面に進み直すと `confirm` も再度送信されます（表示されたステップを都度送る仕様です）。
 > `complete` は 1 件の予約につき 1 回だけ送信されます。完了画面でページを再読み込みしても再送信されません（フォームは最初のステップから表示し直されます）。
@@ -52,8 +52,8 @@ slug: "gtm"
   { event: 'smart_booking_step',     booking_step: 'store_select' },
   { event: 'smart_booking_step',     booking_step: 'staff_select' },
   { event: 'smart_booking_step',     booking_step: 'date_select' },
-  { event: 'smart_booking_step',     booking_step: 'time_select' },
   { event: 'smart_booking_step',     booking_step: 'form_input' },
+  { event: 'smart_booking_step',     booking_step: 'time_select' },
   { event: 'smart_booking_step',     booking_step: 'confirm' },
   { event: 'smart_booking_complete', booking_step: 'complete' }
 ]
