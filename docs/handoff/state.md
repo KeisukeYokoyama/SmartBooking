@@ -1,6 +1,29 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-10-01
+最終更新: 2026-10-02
+
+## 📝 readme のみ更新：店舗・担当者ステップの表示条件の記述を実装に合わせて訂正（2026-10-02・版 0.6.0 据え置き・**SVN は commit 前の GO 待ち**）
+
+**状態: git は push 済み。SVN は `trunk/readme.txt` と `tags/0.6.0/readme.txt` を差し替え済み・`svn commit` は人間 GO 待ち。**
+2026-10-02 の読み取り専用調査で、店舗選択・担当者選択ステップの表示は**件数ではなく「設定 > 基本設定」の2つのスイッチ**
+（`smart_booking_show_store_front` / `smart_booking_show_staff_front`・初期値0）で決まると確定（`src/frontend/state.js:150-192`・実機確認）。
+フラグは 2026-04-26（`21e22d2`/`780bd8a`）導入で、readme の件数ベースの文言（`d489247`・2026-05-21）は書かれた時点から古かった。
+
+- **readme.txt**: 22行目（Key Features の Multi-store / multi-staff）・36行目（Supported booking flow）・109行目（Installation の `store_id` 例を `"1"`→`"2"`、
+  店舗カードにショートコードが表示される旨を追記）を訂正。20行目・105行目（既定の店舗・担当者）は今回扱わない。
+- **`docs/i18n/glotpress-ja-readme.csv`**: D6・D17 を新原文と訳に更新。D13（GTM）は 2026-10-01 変更分の原文と、translate.wordpress.org 登録済みの訳に同期。
+- **`docs/readme-ja.md` は変更していない**: 冒頭に「1文字も改変しないこと」とある v0.5.3 時点の日本語原文の保存ファイルのため（109行目相当の19行目が古いまま残る）。
+- **日本語訳の再承認**: 変更3箇所（D6・D17・Installation の段落）は translate.wordpress.org で再登録が必要（Keisuke が実施）。
+
+### 未対応の起票案（2026-10-02 調査・修正せず記録）
+- 🔎 **次に実機で確かめる不具合候補**:
+  - **起票案1（中）**: フラグ ON・有効なユーザー店舗0件（全店舗を無効化）・有効な担当者ありのとき、担当者選択ステップに選択肢が0件で出て予約できない（実機で再現済み）。
+    原因候補: `storeId=0` のとき `resolveInitialStep` は担当者を全件で数える（`state.js:170-173`）が、`StaffSelect` は `s.store_id === storeId` で絞り込む。
+  - **起票案7（要確認）**: 店舗フラグ OFF・ユーザー店舗0件で `store_id=0` の空き枠取得が店舗で絞り込まれず、無効化した店舗のスケジュールが予約できる可能性（コード上の推測のみ・未検証）。
+- **起票案2（低・死にコード）**: `wp_localize_script` が `hasUserStores`/`hasUserStaff` を文字列化するため、`App.jsx:98-105` の `typeof === 'boolean'` は常に偽で、PHP 側の件数（`class-shortcode.php:110-125`）は使われていない。
+- **起票案3（低・UI 文言）**: `src/admin/pages/StoresPage.jsx:294`「担当者が1人だけの場合、予約者には担当者選択ステップが表示されません。」は誤り（フラグ ON なら1人でも表示）。
+- **起票案5（低・文書）**: readme.txt:20 / :105 の「既定の店舗・担当者を作成」は、実際は管理画面に出ない非表示のシステム店舗・担当者。
+- **起票案6（低・文書）**: `docs/smart-booking-spec.md` §3.1 スキップルールが件数ベースのまま。CHANGELOG にもフラグ導入の記載なし。
 
 ## 📝 readme のみ更新：GTM dataLayer 連携の説明を実装に合わせて訂正（**SVN r3722681**・2026-10-01・版 0.6.0 据え置き）
 
