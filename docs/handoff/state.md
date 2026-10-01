@@ -1,6 +1,38 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-09-26
+最終更新: 2026-10-01
+
+## 📝 readme のみ更新：GTM dataLayer 連携の説明を実装に合わせて訂正（**SVN r3722681**・2026-10-01・版 0.6.0 据え置き）
+
+**状態: 完了。** 2026-10-01 の読み取り専用調査で、GTM 連携の文書（readme.txt / `docs/help/markdown/gtm.md`）が
+実装（`src/frontend/utils/analytics.js` と各ステップのマウント時 push）と食い違っていたため、**文書だけ**を実装に合わせた。
+コード（src/includes/tests/build）は1バイトも変更していない。
+
+- **SVN r3722681**（2026-10-01 17:34 JST・人間 GO のうえ実行）: **readme のみの更新**。`trunk/readme.txt` と
+  `tags/0.6.0/readme.txt` の**両方**を差し替え（差し替え前の tags 側は git `v0.6.0:readme.txt` と md5 一致を確認）。
+  **バージョンは 0.6.0 据え置き・新規タグなし**。Changelog 追記なし。
+- **git（すべて push 済み）**:
+  - `872f891` docs(readme): GTM 連携の説明を実装に合わせて修正
+  - `5488854` docs(gtm): dataLayer イベントの発火タイミングの記述を実装に合わせて訂正
+  - `a04f9e8` docs(CLAUDE.md): ステータス表を v0.6.0 公開済み（SVN r3713851）に更新
+  - `44ff13a` docs(gtm): dataLayer の例の並び順と自動スキップ時の記述を実装に合わせて訂正
+- **公開ページへの反映は確認済み（英語版）**。日本語訳の再承認は Keisuke が translate.wordpress.org で実施。
+
+### ⚠️ SVN 運用の知見（readme だけの更新）
+**readme だけの更新は、trunk/readme.txt と Stable tag が指すタグ側の readme.txt の両方を差し替える。trunk だけでは公開ページに反映されない。**
+
+### 確定した GTM 連携の実装事実（文書はこれに合わせた）
+- push は `analytics.js` の1箇所のみ・設定/トグル無しで常時 push。ペイロードは `event` と `booking_step` の2キーのみ（個人情報・予約番号・店舗 ID 等は入らない）。
+- 発火は各ステップの**表示（マウント）時**。`time_select` は最初に日付を選んで時間枠が表示された時に1回。スキップされたステップは送られない。
+- 確認画面から「修正する」で戻ると `date_select`/`time_select`/`form_input` が、進み直すと `confirm` が再送される（仕様として扱う）。
+- `complete`（`smart_booking_complete`）は1予約1回・リロードで再送しない。URL は全ステップ不変（URL 条件でのコンバージョン計測は不可）。
+- プラグインは GTM コンテナ / gtag.js を出力しない。タグ ID 入力欄も無い。
+
+### 残作業
+- 🟡 **未着手**: readme.txt「Supported booking flow」節の記述が実装と不一致（店舗・担当者ステップの表示条件を「2件以上あるとき」と書いているが、実装は設定の表示フラグ `show_store_front` / `show_staff_front` で決まる。並び順も date → time → form と書いている）。
+- 🟡 **次にフロントのコードを触るリリースに同梱**:
+  - `src/frontend/utils/analytics.js:8-17` の docblock の対応表の並び順が古い（実際のパターン A の発火順は date_select → form_input → time_select）。出荷ファイルのため単独では直さない。
+  - E2E `tests/e2e/gtm-datalayer.spec.ts` の検証不足: 存在確認（`toContain`）のみで、発火の順序・回数、「修正する」後の再送、完了画面リロード後に `complete` が再送されないことを検証していない。
 
 ## ✅ v0.6.0：カスタムフィールドの入力ルール（**WordPress.org 公開済み**・SVN **rev 3713851**・2026-09-26）
 
