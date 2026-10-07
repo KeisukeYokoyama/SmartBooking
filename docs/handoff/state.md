@@ -1,6 +1,31 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-10-02
+最終更新: 2026-10-07
+
+## 🟡 v0.6.1：手動予約作成の修正（条件フィールド・ステータス連動メール）— **svn commit の人間 GO 待ち**
+
+**状態: git commit・タグ `v0.6.1`・push 済み。SVN は trunk 反映＋`tags/0.6.1/` 作成＋`svn add` まで（未 commit）。**
+正本は `docs/spec-amendment-v061-manual-reservation.md`。外部ユーザー（学習塾）の修正依頼2件。
+
+- **修正A**: 手動作成モーダルが表示条件を無視し、非表示であるべき必須の子（住所）で作成できなかった。モーダルは公開フォームと同じ `isFieldVisible` で表示・検証・送信を絞り、
+  非表示化した子の値は state から除外。サーバーは `condition_met()` を `Smart_Booking_REST_Public`（private）から `Smart_Booking_REST_Base`（protected）へ**本体無改変で移設**して共有し、
+  非表示フィールドの meta（address は `_zip`/`_address`）を破棄。REST 形・DB 不変。手動作成のサーバー側必須/入力ルール評価は従来どおり無し。
+- **修正B**: 手動作成は全ステータスで受付フックを発火し、受付メール（ユーザー＋管理者）が飛んでいた。`Integrations::on_received()` で予約ステータスにより出し分け:
+  承認待ち＝従来どおり／承認済み＝ユーザー宛 `send_approval()`＋管理者宛 `send_receipt_admin()`（`send_receipt()` 後半を切り出し）／キャンセル＝メールなし。ChatWork・GCal は不変。
+- **検証**: 新規 E2E `v061-manual-reservation` 11件 desktop/mobile 全パス・修正前コードで再現 Red を確認。フルスイート（748件・約3時間）でベースライン差分の新規失敗ゼロ
+  （候補6系統は単独再実行で全パス＝長時間実行のフレーク）。phpcs 変更ファイル 0/0・`npm run build` 成功。
+- **ベースライン**: `/tmp/v061-baseline.txt`（pass 642 / fail 30 / skip・未実行 76）。
+
+### 起票候補（修正せず記録・2026-10-07）
+- **（中）キャンセルで手動作成すると枠を消費する**: `create_item` はステータスに関係なく booked_count を +1。実機で定員1の枠をキャンセル作成→次の作成が 409（満席）を確認。
+  `delete_item` はキャンセル予約では戻さないため、枠が戻らない。
+- **（低）キャンセルで手動作成しても ChatWork 受付通知と Google カレンダーのイベント作成が走る**（R3 により未変更）。
+- **（低）手動作成のサーバー側は必須チェックをしない**（モーダル側のみ）。REST 直叩きでは必須の表示中フィールドが空でも作成できる（従来から）。
+- **（低・文書）依頼文の「仕様 §4.3.3（手動作成時はメール送信なし）」は仕様書に存在しない**。手動作成時のメールは spec-amendment-v061 を正とする。
+- **GlotPress**: readme の 0.6.1 Changelog は新規原文。日本語訳の登録が必要なら translate.wordpress.org で実施。
+
+### 人間が実行するもの
+- `svn ci`（`~/dev/smart-booking-svn`）。コマンドは最終レポート参照。
 
 ## 📝 readme のみ更新：店舗・担当者ステップの表示条件の記述を実装に合わせて訂正（**SVN r3723984**・2026-10-02・版 0.6.0 据え置き）
 
