@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,13 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.6.1 – 2026-10-07 =
+
+* Fixed: when creating a reservation manually on the admin screen, the display conditions of form fields were ignored. Required fields that should have been hidden were shown, and the reservation could not be created without filling them in. Fields are now shown or hidden according to the selected parent field, just like on the booking form, and hidden fields are not required. Anything entered in a field that is hidden again is not saved.
+* Changed: when creating a reservation manually with the status "Approved", the customer now receives the booking confirmation email instead of the "reservation received" email. The administrator still receives the usual "new reservation" email. If the form has its own confirmation email text, that text is used.
+* Changed: when creating a reservation manually with the status "Cancelled", no email is sent.
+* Emails for reservations created manually with the status "Pending", and for reservations made through the booking form, are unchanged.
+
 = 0.6.0 – 2026-09-25 =
 
 * Added: you can now set input rules on each form field. Depending on the field type, you can choose the allowed character type (digits, letters, letters and digits, katakana, hiragana, or hiragana/katakana), a length range (minimum and maximum), and a match check against another field (such as an email confirmation field). Fields with no rule set behave exactly as before.
@@ -162,15 +169,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 = 0.5.6 – 2026-09-11 =
 
 * Fixed: on the admin screen, the dropdown arrow of a select box that could not be changed was repeated across the whole control instead of being shown once on the right, and the arrow disappeared from a select box that was showing an input error. Both came from the same style rule and are now displayed correctly. This affected appearance only; no saved data or notification email was involved.
-
-= 0.5.5 – 2026-09-11 =
-
-* Fixed: answers to input fields added to a form other than the default one were not shown in the reservation detail dialog on the admin screen. The answers were saved correctly and appeared in the CSV export, but could not be read from the admin screen. The reservation detail now reads the input fields of the form the reservation was actually made through.
-* Fixed: with "Email to administrator" turned off and no store email address registered, notifications to the person in charge were skipped without any notice. A warning is now shown on the email settings screen when a person in charge has an email address registered but cannot receive notifications.
-* Fixed: the explanations on the email settings screen and on the staff edit screen stated that notifications to the store and the person in charge are always delivered. They now state the actual condition, which is that a store email address must be registered.
-* Fixed: changing the type of an existing field to "Address (postal code)" opened it with automatic address lookup turned off, the opposite of the default used when adding one from the address card. It now opens with automatic lookup turned on, matching the default.
-* Fixed: the example shown for the {schedule_time} mail variable did not match what is actually inserted. It now reads "14:00〜15:00".
-* Fixed: the link to the zipcloud terms of service in this readme used http. It now uses https.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
