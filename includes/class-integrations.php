@@ -7,6 +7,11 @@
  *
  * 各連携クラスは内部で「機能 OFF」を判定するため、ここでは無条件で wire する。
  *
+ * 受付時メールの出し分け（v0.6.1）:
+ *   - 承認待ち（公開予約は常にこれ）: ユーザー宛受付 + 管理者宛受付。
+ *   - 承認済み（管理画面の手動作成のみ）: ユーザー宛は承認メール + 管理者宛受付。
+ *   - キャンセル（管理画面の手動作成のみ）: メールなし。
+ *
  * Google Calendar 連携の発火タイミング:
  *   - 予約受付時 (received): カレンダーにイベント作成（承認待ちでも即時に枠を可視化し、
  *     管理者のダブルブッキングを防ぐため）。
@@ -57,7 +62,15 @@ class Smart_Booking_Integrations {
 		if ( null === $ctx ) {
 			return;
 		}
-		( new Smart_Booking_Email() )->send_receipt( $ctx );
+		$status = isset( $ctx['reservation']['status'] ) ? (string) $ctx['reservation']['status'] : 'pending';
+		$email  = new Smart_Booking_Email();
+		if ( 'approved' === $status ) {
+			// 承認済みで作成: ユーザー宛は承認メール（一覧での承認と同じ送信関数）、管理者宛は受付時と同じ。
+			$email->send_approval( $ctx );
+			$email->send_receipt_admin( $ctx );
+		} elseif ( 'cancelled' !== $status ) {
+			$email->send_receipt( $ctx );
+		}
 		( new Smart_Booking_Chatwork() )->notify_received( $ctx );
 		( new Smart_Booking_Google_Calendar() )->create_event( $ctx );
 	}

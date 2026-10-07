@@ -93,6 +93,25 @@ class Smart_Booking_Email {
 			'user'
 		);
 
+		$this->send_receipt_admin( $context );
+	}
+
+	/**
+	 * 予約受付メールの管理者宛だけを送る。
+	 *
+	 * send_receipt() の後半（管理者宛）と同一。管理画面で「承認済み」として手動作成した予約で、
+	 * ユーザー宛を承認メールに差し替えつつ管理者宛は受付時と同じ通知を送るために使う（v0.6.1）。
+	 *
+	 * @param array $context Smart_Booking_Reservation_Context::build() 戻り値。
+	 * @return void
+	 */
+	public function send_receipt_admin( $context ) {
+		if ( ! $this->is_valid_context( $context ) ) {
+			return;
+		}
+
+		$formatted = $context['formatted'];
+
 		// 管理者系通知の宛先を「管理者へのメール」トグルの状態で組み立てる。
 		//
 		// ON  : admin_email を常に To に含める（店舗有無に関わらず）。店舗があれば追加 To。
