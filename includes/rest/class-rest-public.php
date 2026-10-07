@@ -807,33 +807,6 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 	}
 
 	/**
-	 * 表示条件が成立するか（＝そのフィールドが表示中か）を判定する。
-	 *
-	 * - condition_field_key が空/NULL のフィールドは常に表示（true）。
-	 * - それ以外は、送信された親フィールドの値が condition_value と一致するときのみ true。
-	 *   親は radio/select（文字列値）であることを前提とし、フロントの判定結果は一切信用せず
-	 *   送信ペイロードから再評価する。
-	 *
-	 * @param array $def                 フィールド定義（condition_field_key / condition_value を含む）.
-	 * @param array $custom_fields_input 送信されたカスタムフィールド入力.
-	 * @return bool 表示中なら true。
-	 */
-	private function condition_met( array $def, array $custom_fields_input ) {
-		$parent = isset( $def['condition_field_key'] ) ? (string) $def['condition_field_key'] : '';
-		if ( '' === $parent ) {
-			return true;
-		}
-		$parent_value = isset( $custom_fields_input[ $parent ] ) ? $custom_fields_input[ $parent ] : '';
-		if ( is_array( $parent_value ) ) {
-			// 親は radio/select ＝単一文字列値のみを想定。配列は不成立扱い。
-			return false;
-		}
-		$expected = (string) ( isset( $def['condition_value'] ) ? $def['condition_value'] : '' );
-		$actual   = (string) $parent_value;
-		return $expected === $actual;
-	}
-
-	/**
 	 * 郵便番号を正規化する（PHP / JS 同一ルール）。
 	 *
 	 * - 全角数字（U+FF10–FF19）→ 半角。

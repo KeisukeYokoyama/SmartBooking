@@ -379,10 +379,15 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 		// カスタムフィールド入力値を保存.
 		$meta = $request->get_param( 'meta' );
 		if ( is_array( $meta ) ) {
+			$hidden_keys = $this->hidden_meta_keys( (int) $form_id, $meta );
 			foreach ( $meta as $key => $value ) {
 				$key_clean   = sanitize_key( (string) $key );
 				$value_clean = is_array( $value ) ? wp_json_encode( $value ) : sanitize_textarea_field( (string) $value );
 				if ( '' === $key_clean ) {
+					continue;
+				}
+				// 表示条件が不成立（非表示）のフィールドの値は破棄する（meta 行を作らない）。
+				if ( isset( $hidden_keys[ $key_clean ] ) ) {
 					continue;
 				}
 				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
@@ -406,6 +411,45 @@ class Smart_Booking_REST_Reservations extends Smart_Booking_REST_Base {
 
 		$request->set_param( 'id', $id );
 		return $this->get_item( $request );
+	}
+
+	/**
+	 * 手動作成で、表示条件が不成立（非表示）のフィールドに当たる meta キーを返す。
+	 *
+	 * 判定は公開予約と同じ condition_met() で、送信された親フィールドの値から再評価する
+	 * （管理画面側の判定結果は信用しない）。address 型は {key}_zip / {key}_address の2キーで届く。
+	 *
+	 * @param int   $form_id フォーム ID.
+	 * @param array $meta    送信された meta（{ field_key: value }）.
+	 * @return array<string, bool> 破棄する meta キーの集合.
+	 */
+	private function hidden_meta_keys( $form_id, array $meta ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$defs = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT field_key, field_type, condition_field_key, condition_value FROM {$wpdb->prefix}smart_booking_custom_fields WHERE form_id = %d",
+				$form_id
+			),
+			ARRAY_A
+		);
+
+		$hidden = array();
+		if ( ! is_array( $defs ) ) {
+			return $hidden;
+		}
+		foreach ( $defs as $def ) {
+			if ( $this->condition_met( $def, $meta ) ) {
+				continue;
+			}
+			$key            = (string) $def['field_key'];
+			$hidden[ $key ] = true;
+			if ( 'address' === (string) $def['field_type'] ) {
+				$hidden[ $key . '_zip' ]     = true;
+				$hidden[ $key . '_address' ] = true;
+			}
+		}
+		return $hidden;
 	}
 
 	/**

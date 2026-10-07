@@ -21,6 +21,7 @@ import Select from '../../components/Select';
 import Spinner from '../../components/Spinner';
 import Textarea from '../../components/Textarea';
 import { normalizeZip } from '../../../frontend/addressLookup';
+import { isFieldVisible } from '../../../frontend/fieldConditions';
 import { fromYmd, toYmd } from '../schedule/dateUtils';
 import CustomFieldRenderer from './CustomFieldRenderer';
 import { STATUS_OPTIONS } from './StatusBadge';
@@ -180,6 +181,13 @@ export default function ManualReservationModal({
 		[customFields]
 	);
 
+	// 表示条件（親の選択値）が成立しているフィールドだけを描画・検証する。
+	// 判定は公開予約フォームと同じ helper を使う（サーバーも送信値から再判定する）。
+	const visibleDisplayFields = useMemo(
+		() => displayFields.filter((f) => isFieldVisible(f, meta)),
+		[displayFields, meta]
+	);
+
 	const coreFieldMeta = useMemo(() => {
 		// 初期の 3 フィールドを custom_fields から取り出し、必須フラグとプレースホルダを参照する.
 		const byKey = Object.fromEntries(customFields.map((f) => [f.field_key, f]));
@@ -204,7 +212,17 @@ export default function ManualReservationModal({
 	// --- ステップ2 操作 ---
 
 	const setField = (patch) => setForm((prev) => ({ ...prev, ...patch }));
-	const setMetaValue = (key, value) => setMeta((prev) => ({ ...prev, [key]: value }));
+	const setMetaValue = (key, value) =>
+		setMeta((prev) => {
+			const next = { ...prev, [key]: value };
+			// 親の選択が変わって非表示になった子の値は state から除外する（古い入力値を残さない）。
+			displayFields.forEach((f) => {
+				if (f.field_key in next && !isFieldVisible(f, next)) {
+					delete next[f.field_key];
+				}
+			});
+			return next;
+		});
 
 	const validate = () => {
 		const errs = {};
@@ -217,8 +235,8 @@ export default function ManualReservationModal({
 		if (coreFieldMeta.phone.is_required && !form.customer_phone.trim()) {
 			errs.customer_phone = '電話番号は必須です。';
 		}
-		// カスタムフィールドの必須チェック.
-		displayFields.forEach((f) => {
+		// カスタムフィールドの必須チェック（非表示のフィールドは対象外）.
+		visibleDisplayFields.forEach((f) => {
 			if (f.field_type === 'address') {
 				// 住所フィールド: 必須のときのみ、郵便番号・住所の両方が非空 かつ 郵便番号が7桁であることを検証する。
 				if (!f.is_required) return;
@@ -262,8 +280,15 @@ export default function ManualReservationModal({
 					const addressKeys = new Set(
 						displayFields.filter((f) => f.field_type === 'address').map((f) => f.field_key)
 					);
+					const hiddenKeys = new Set(
+						displayFields
+							.filter((f) => !isFieldVisible(f, meta))
+							.map((f) => f.field_key)
+					);
 					const clean = {};
 					Object.entries(meta).forEach(([k, v]) => {
+						// 条件不成立で非表示のフィールドは送らない.
+						if (hiddenKeys.has(k)) return;
 						if (addressKeys.has(k)) {
 							// 住所フィールドはオブジェクトのまま送らず、{key}_zip / {key}_address の2キーに展開する。
 							const obj = v && typeof v === 'object' ? v : {};
@@ -516,7 +541,7 @@ export default function ManualReservationModal({
 						/>
 					</div>
 
-					{displayFields.map((f) => (
+					{visibleDisplayFields.map((f) => (
 						<CustomFieldRenderer
 							key={f.field_key}
 							field={f}
