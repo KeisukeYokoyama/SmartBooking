@@ -2,9 +2,9 @@
 
 最終更新: 2026-10-20
 
-## 🟡 v0.6.2：予約可能数0の許可・手動作成（承認済み）の管理者宛メール停止 — **svn commit 待ち（人間 GO）**
+## ✅ v0.6.2：予約可能数0の許可・手動作成（承認済み）の管理者宛メール停止 — **WordPress.org 公開済み・SVN r3756477**
 
-**状態: git タグ `v0.6.2` push 済み・SVN 作業コピーに trunk 反映＋`tags/0.6.2/` 作成済み（未コミット）。** 正本は `docs/spec-amendment-v062-capacity-zero-and-manual-mail.md`。
+**状態: 公開済み。** `svn ci` 完了（人間 GO のうえ実行・**r3756477**・2026-10-20 19:48 JST・`trunk` と `tags/0.6.2/` 両方）。git はタグ `v0.6.2`（`6392e44`）push 済み。公開ページへの反映は未確認。 正本は `docs/spec-amendment-v062-capacity-zero-and-manual-mail.md`。
 
 - **修正1**: 予約可能数の下限を 1→0（`TimeSlotEditor.jsx`・追加/編集モーダルの検証・`class-rest-schedules.php` の作成/更新）。
   空き状況 API が `capacity > 0` のときしか `full` を返さず、capacity=0 は「予約可能」と表示されていた（確定時に 409）ため、
