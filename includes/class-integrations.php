@@ -65,9 +65,9 @@ class Smart_Booking_Integrations {
 		$status = isset( $ctx['reservation']['status'] ) ? (string) $ctx['reservation']['status'] : 'pending';
 		$email  = new Smart_Booking_Email();
 		if ( 'approved' === $status ) {
-			// 承認済みで作成: ユーザー宛は承認メール（一覧での承認と同じ送信関数）、管理者宛は受付時と同じ。
+			// 承認済みで作成（管理者の手動作成のみ。公開フォームは常に pending）:
+			// ユーザー宛は承認メール（一覧での承認と同じ送信関数）。管理者自身の操作なので管理者宛は送らない（v0.6.2）。
 			$email->send_approval( $ctx );
-			$email->send_receipt_admin( $ctx );
 		} elseif ( 'cancelled' !== $status ) {
 			$email->send_receipt( $ctx );
 		}

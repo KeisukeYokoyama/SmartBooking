@@ -124,12 +124,12 @@ export default function TimeSlotEditor({
 											<span className="smb-slot-editor__cell-label">予約可能数</span>
 											<input
 												type="number"
-												min="1"
+												min="0"
 												className="smb-input"
 												value={slot.capacity}
 												onChange={(e) =>
 													handleChange(i, {
-														capacity: Math.max(1, Number(e.target.value) || 1),
+														capacity: Math.max(0, Number(e.target.value) || 0),
 													})
 												}
 												disabled={alreadyRegistered}

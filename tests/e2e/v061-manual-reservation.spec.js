@@ -9,7 +9,7 @@
  *
  * 修正B: 作成時ステータスにメールを連動させる。
  *   - 承認待ち: 修正前と同一（ユーザー宛受付＋管理者宛受付）。
- *   - 承認済み: ユーザー宛は承認メール1通のみ／管理者宛は承認待ち時と同じ受付メール。
+ *   - 承認済み: ユーザー宛は承認メール1通のみ。管理者宛は送らない（v0.6.2 で変更）。
  *   - フォーム専用の承認文面が ON なら専用文面。
  *   - キャンセル: 0通。
  *   - 承認済みで作成した予約を編集・保存しても再送しない。
@@ -407,7 +407,7 @@ test.describe( 'v0.6.1 修正B: 作成時ステータスとメール', () => {
 		expect( [].concat( log[ 0 ].to ) ).toEqual( [ CUSTOMER_EMAIL ] );
 	} );
 
-	test( 'B2: 承認済みで作成 → ユーザー宛は承認メール1通のみ／管理者宛は受付メール', async ( {
+	test( 'B2: 承認済みで作成 → ユーザー宛の承認メール1通のみ（管理者宛は送らない・v0.6.2）', async ( {
 		page,
 	} ) => {
 		const sid = newSchedule();
@@ -416,23 +416,16 @@ test.describe( 'v0.6.1 修正B: 作成時ステータスとメール', () => {
 		const id = await createManual( page, sid, 'approved' );
 
 		const log = fetchMailLog();
-		expect( log ).toHaveLength( 2 );
+		expect( log ).toHaveLength( 1 );
 		const user = mailsTo( log, CUSTOMER_EMAIL );
 		expect( user ).toHaveLength( 1 );
+		expect( [].concat( user[ 0 ].to ) ).toEqual( [ CUSTOMER_EMAIL ] );
 		expect( user[ 0 ].subject ).toBe( '共通承認件名' );
 		expect( user[ 0 ].message ).toBe(
 			`共通承認\n手動 太郎 様\n予約番号: ${ id }`
 		);
-		const admin = mailsTo( log, ADMIN_EMAIL );
-		expect( admin ).toHaveLength( 1 );
-		expect( [].concat( admin[ 0 ].to ) ).toEqual( [
-			ADMIN_EMAIL,
-			STORE_EMAIL,
-		] );
-		expect( admin[ 0 ].subject ).toBe( '共通管理者件名' );
-		expect( admin[ 0 ].message ).toBe(
-			`共通管理者受付\n手動 太郎\n予約番号: ${ id }`
-		);
+		expect( mailsTo( log, ADMIN_EMAIL ) ).toHaveLength( 0 );
+		expect( mailsTo( log, STORE_EMAIL ) ).toHaveLength( 0 );
 	} );
 
 	test( 'B3: フォーム専用の承認文面が ON なら、承認済み作成で専用文面が使われる', async ( {

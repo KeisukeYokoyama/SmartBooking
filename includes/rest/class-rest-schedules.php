@@ -249,8 +249,9 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 		if ( strcmp( $start, $end ) >= 0 ) {
 			return $this->error( 'smb_schedule_time_range', '終了時刻は開始時刻より後にしてください。', 400 );
 		}
-		if ( $capacity < 1 ) {
-			$capacity = 1;
+		// 予約可能数0は「受け付けない枠」として許可する（v0.6.2）。負数のみ0に丸める。
+		if ( $capacity < 0 ) {
+			$capacity = 0;
 		}
 
 		return array(
@@ -395,7 +396,7 @@ class Smart_Booking_REST_Schedules extends Smart_Booking_REST_Base {
 			$format[]           = '%s';
 		}
 		if ( null !== $request->get_param( 'capacity' ) ) {
-			$cap                = max( 1, (int) $request->get_param( 'capacity' ) );
+			$cap                = max( 0, (int) $request->get_param( 'capacity' ) );
 			$update['capacity'] = $cap;
 			$format[]           = '%d';
 		}

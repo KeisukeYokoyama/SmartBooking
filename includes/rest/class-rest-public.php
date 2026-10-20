@@ -673,7 +673,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 
 			if ( $is_closed ) {
 				$availability = 'closed';
-			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
+			} elseif ( $booked_count >= $capacity ) {
 				$availability = 'full';
 			} elseif ( $capacity > 0 ) {
 				$available = $capacity - $booked_count;
@@ -777,7 +777,7 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 			$availability = 'available';
 			if ( ! empty( $bucket['_all_closed'] ) ) {
 				$availability = 'closed';
-			} elseif ( $capacity > 0 && $booked_count >= $capacity ) {
+			} elseif ( $booked_count >= $capacity ) {
 				$availability = 'full';
 			} elseif ( $capacity > 0 ) {
 				$available = $capacity - $booked_count;

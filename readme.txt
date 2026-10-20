@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.6.1
+Stable tag: 0.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,12 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.6.2 – 2026-10-20 =
+
+* Changed: you can now set the number of available bookings for a time slot to 0. A slot set to 0 is shown as "Full" on the booking form and cannot be booked. This is useful when you want to keep a time slot on the schedule but stop accepting bookings for it. Copying a schedule keeps the 0 as it is.
+* Changed: when creating a reservation manually with the status "Approved", the administrator no longer receives the "new reservation" email, because the reservation was made by the administrator. The customer still receives the booking confirmation email.
+* Emails for reservations created manually with the status "Pending" or "Cancelled", and for reservations made through the booking form, are unchanged.
+
 = 0.6.1 – 2026-10-07 =
 
 * Fixed: when creating a reservation manually on the admin screen, the display conditions of form fields were ignored. Required fields that should have been hidden were shown, and the reservation could not be created without filling them in. Fields are now shown or hidden according to the selected parent field, just like on the booking form, and hidden fields are not required. Anything entered in a field that is hidden again is not saved.
@@ -165,10 +171,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 * Added: you can now set input rules on each form field. Depending on the field type, you can choose the allowed character type (digits, letters, letters and digits, katakana, hiragana, or hiragana/katakana), a length range (minimum and maximum), and a match check against another field (such as an email confirmation field). Fields with no rule set behave exactly as before.
 * Added: for the half-width character types, full-width letters and digits entered by a visitor are converted to half-width automatically, and the converted value is used on the confirmation screen and in the saved answer.
-
-= 0.5.6 – 2026-09-11 =
-
-* Fixed: on the admin screen, the dropdown arrow of a select box that could not be changed was repeated across the whole control instead of being shown once on the right, and the arrow disappeared from a select box that was showing an input error. Both came from the same style rule and are now displayed correctly. This affected appearance only; no saved data or notification email was involved.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md

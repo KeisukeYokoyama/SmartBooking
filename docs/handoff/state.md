@@ -1,6 +1,24 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-10-08
+最終更新: 2026-10-20
+
+## 🟡 v0.6.2：予約可能数0の許可・手動作成（承認済み）の管理者宛メール停止 — **svn commit 待ち（人間 GO）**
+
+**状態: git タグ `v0.6.2` push 済み・SVN 作業コピーに trunk 反映＋`tags/0.6.2/` 作成済み（未コミット）。** 正本は `docs/spec-amendment-v062-capacity-zero-and-manual-mail.md`。
+
+- **修正1**: 予約可能数の下限を 1→0（`TimeSlotEditor.jsx`・追加/編集モーダルの検証・`class-rest-schedules.php` の作成/更新）。
+  空き状況 API が `capacity > 0` のときしか `full` を返さず、capacity=0 は「予約可能」と表示されていた（確定時に 409）ため、
+  `class-rest-public.php` の2箇所を `booked_count >= capacity` に変更（capacity≥1 の判定は不変）。コピーは無改変で 0 が複製される。
+- **修正2**: `Integrations::on_received()` の approved 分岐から `send_receipt_admin()` を削除（ユーザー宛承認メールのみ）。approved で受付フックが発火するのは手動作成のみ。
+- **検証**: 新規 E2E `v062-capacity-zero`（C1〜C4）パス。関連 spec（v061・phase2-schedule・bug124-scope-isolation・phase4-email）desktop で全パス
+  （ログイン waitForURL・wp-env CLI の遅延によるタイムアウトはリトライ／単独再実行で通過。フルスイートは未実行・依頼どおり）。
+  phpcs 変更ファイル 0 errors（warning 24 は変更前と同数・既存行）。`npm run build` 成功。
+
+### 起票候補（修正せず記録・2026-10-20）
+- **（低・テスト基盤）** wp-env の CLI 1回が約8〜11秒かかり、`phase4-email.spec.js` の beforeEach（CLI 十数回）が `test.setTimeout(60_000)` を超えて落ちる。また `helpers.js::loginAsAdmin` でユーザー名欄が空のまま送信される（autofill レース）フレークが頻発。
+- **（低・テスト）** `phase3-helpers.js::insertSchedulesBulk` は `r.capacity || 3` のため capacity=0 を 3 で挿入する。
+- **（低・lint）** `src/admin/**/*.jsx` は ESLint 設定の対象外（「File ignored because no matching configuration」）。`tests/e2e/phase2-schedule.spec.js:562` に既存の prettier エラー1件。
+- **（低・管理 UI）** 管理画面の残数表示（`ScheduleList.jsx` / `ScheduleDetailPane.jsx`）は capacity=0 を「満席」表示する（実害なし・「受付停止」等の区別なし）。
 
 ## ✅ v0.6.1：手動予約作成の修正（条件フィールド・ステータス連動メール）— **WordPress.org 公開済み・SVN r3733293**
 

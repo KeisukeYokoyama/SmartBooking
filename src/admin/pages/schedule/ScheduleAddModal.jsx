@@ -253,8 +253,8 @@ export default function ScheduleAddModal({
 			normalized.forEach((s, i) => {
 				if (s.startMin === null) {
 					next.slots[i] = '開始時間の形式が正しくありません。';
-				} else if (Number(s.capacity) < 1) {
-					next.slots[i] = '予約可能数は1以上で入力してください。';
+				} else if (Number(s.capacity) < 0) {
+					next.slots[i] = '予約可能数は0以上で入力してください。';
 				} else if (s.id && Number(s.capacity) < Number(s.booked_count)) {
 					next.slots[i] = `既存予約（${s.booked_count}件）より少ない定員には変更できません。`;
 				}

@@ -685,7 +685,7 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		).toBeVisible();
 	} );
 
-	test( '予約可能数 0 を入力すると最低値 1 にクランプされる（クライアントガード）', async ( {
+	test( '予約可能数 0 を入力して保存できる・負数は 0 にクランプされる（v0.6.2）', async ( {
 		page,
 	} ) => {
 		await page
@@ -693,18 +693,18 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 			.click();
 		const target = ymd( 10 );
 		await page.locator( '#smb-schedule-date' ).fill( target );
-		// capacity を 0 に書き換え → onChange で Math.max(1, ...) で 1 にクランプ.
+		// v0.6.2 で下限を 1 → 0 に変更（予約可能数0＝受け付けない枠）。
 		const capInput = page.locator(
 			'input[aria-label="1つ目の時間枠・予約可能数"]'
 		);
 		await capInput.fill( '0' );
 		await capInput.blur();
-		await expect( capInput ).toHaveValue( '1' );
-		// 念のため負数も.
+		await expect( capInput ).toHaveValue( '0' );
+		// 負数は 0 にクランプ.
 		await capInput.fill( '-3' );
 		await capInput.blur();
-		await expect( capInput ).toHaveValue( '1' );
-		// このまま保存 → 成功する（capacity=1 で送信される）.
+		await expect( capInput ).toHaveValue( '0' );
+		// このまま保存 → 成功し、capacity=0 で保存される.
 		await page
 			.locator( '.smb-modal__footer' )
 			.getByRole( 'button', { name: '保存' } )
@@ -712,6 +712,15 @@ test.describe( 'Phase 2: スケジュール管理', () => {
 		await expect(
 			page.locator( '.smb-toast--success' ).last()
 		).toContainText( '追加', { timeout: 6000 } );
+		const check = await restCall( page, 'GET', 'schedules', null, {
+			date_from: target,
+			date_to: target,
+		} );
+		expect( check.ok ).toBe( true );
+		expect( check.data.length ).toBeGreaterThan( 0 );
+		expect( check.data.every( ( s ) => Number( s.capacity ) === 0 ) ).toBe(
+			true
+		);
 	} );
 
 	test( 'スケジュール削除（CRUD::Delete）— 予約なしなら ConfirmDialog 経由で削除できる', async ( {
