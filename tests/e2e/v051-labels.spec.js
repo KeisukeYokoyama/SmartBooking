@@ -66,6 +66,12 @@ async function readSlots( page ) {
 				aria: e.getAttribute( 'aria-label' ) || '',
 				cls: e.className,
 				badge: badge ? badge.textContent.trim() : '',
+				// v0.6.3: CSS で非表示（display:none）だと textContent だけでは検知できないため可視性も見る。
+				badgeVisible: badge
+					? window.getComputedStyle( badge ).display !== 'none' &&
+					  badge.getClientRects().length > 0
+					: false,
+				prefix: !! e.querySelector( '.smb-front-time-btn__prefix' ),
 			};
 		} )
 	);
@@ -97,6 +103,10 @@ test.describe( 'v0.5.1 文言カスタマイズ + フォールバック', () => 
 		expect( few.aria ).toContain( 'あと少し' );
 		expect( full.badge ).toBe( '満員御礼' );
 		expect( full.aria ).toContain( '満員御礼' );
+		// v0.6.3: 画面上に見えていること（「×」と併記）。
+		expect( few.badgeVisible ).toBe( true );
+		expect( full.badgeVisible ).toBe( true );
+		expect( full.prefix ).toBe( true );
 	} );
 
 	test( '空文字設定でデフォルト表示に戻る', async ( { page }, testInfo ) => {
@@ -111,5 +121,7 @@ test.describe( 'v0.5.1 文言カスタマイズ + フォールバック', () => 
 		expect( few.aria ).toContain( '残りわずか' );
 		expect( full.badge ).toBe( '満席' );
 		expect( full.aria ).toContain( '満席' );
+		expect( full.badgeVisible ).toBe( true );
+		expect( full.prefix ).toBe( true );
 	} );
 } );

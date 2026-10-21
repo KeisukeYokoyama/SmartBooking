@@ -1,6 +1,17 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-10-20
+最終更新: 2026-10-21
+
+## 🟡 v0.6.3：満席・締切の文言が予約フォームに表示されない不具合の修正 — **svn commit 待ち（人間 GO）**
+
+**状態: git タグ `v0.6.3` push 済み・SVN 作業コピーに trunk 反映＋`tags/0.6.3/` 作成済み（未コミット）。** 発端: みすず学苑「基本設定の『満席の表示』に入れた文言が反映されない」。
+
+- **原因**: v0.5.1 の文言設定（`label_few_left`/`label_full`/`label_closed`）は `TimeSelect.jsx` でバッジとして描画されていたが、
+  `frontend.css` の `.smb-front-time-btn__badge { display: none }`（Gen-C デザイン由来）で few_left 以外が非表示のまま。満席・締切は「×」だけが見え、文言は aria-label のみ。
+  仕様 v051 §反映箇所は「時間枠表示（バッジ/ラベル）」で、仕様違反。日表示カード・月セルは few_left を含め文言を出さない設計（aria-label のみ）のため対象外。
+- **修正**: CSS のみ。`.smb-front-time-btn__badge.is-full` / `.is-closed` を few_left と同じく表示。「×」は併記のまま。
+- **検証**: `v051-labels.spec.js` にバッジの可視性（computed display）と「×」併記の検証を追加（従来は textContent のみで、非表示でもパスしていた）。desktop/mobile 4件パス。
+  `phase3-calendar` の時間枠状態テスト desktop/mobile パス。スクリーンショットで「× 10:00〜11:00［満席］」を確認。
 
 ## ✅ v0.6.2：予約可能数0の許可・手動作成（承認済み）の管理者宛メール停止 — **WordPress.org 公開済み・SVN r3756477**
 

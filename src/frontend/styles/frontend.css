@@ -2392,8 +2392,13 @@
 	display: none;
 }
 
-/* 「残りわずか」バッジのみ可視化し、警告色での区別をさらに補強する（full/closed のバッジは非表示のまま）。 */
-.smb-front-time-btn__badge.is-few_left {
+/*
+ * 空き状況バッジ（残りわずか / 満席 / 締切）を可視化する。文言は設定 > 基本設定で変更可能（v0.5.1）。
+ * v0.6.3: 満席・締切のバッジも表示する（従来は非表示で、設定した文言が画面に出ていなかった）。「×」は併記のまま。
+ */
+.smb-front-time-btn__badge.is-few_left,
+.smb-front-time-btn__badge.is-full,
+.smb-front-time-btn__badge.is-closed {
 	display: inline-flex;
 	align-items: center;
 }

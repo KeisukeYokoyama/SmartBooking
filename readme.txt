@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.6.2
+Stable tag: 0.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,10 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.6.3 – 2026-10-21 =
+
+* Fixed: the text set in Settings > Basic for "Full" and "Closed" was not shown on the booking form. Full and closed time slots showed only the "×" mark, and the text appeared only for screen readers. The text is now shown next to the time, in the same style as "Few left" (for example "× 10:00–11:00 Full"). The "×" mark is kept. If the setting is empty, the default text is shown.
+
 = 0.6.2 – 2026-10-20 =
 
 * Changed: you can now set the number of available bookings for a time slot to 0. A slot set to 0 is shown as "Full" on the booking form and cannot be booked. This is useful when you want to keep a time slot on the schedule but stop accepting bookings for it. Copying a schedule keeps the 0 as it is.
@@ -166,11 +170,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 * Changed: when creating a reservation manually with the status "Approved", the customer now receives the booking confirmation email instead of the "reservation received" email. The administrator still receives the usual "new reservation" email. If the form has its own confirmation email text, that text is used.
 * Changed: when creating a reservation manually with the status "Cancelled", no email is sent.
 * Emails for reservations created manually with the status "Pending", and for reservations made through the booking form, are unchanged.
-
-= 0.6.0 – 2026-09-25 =
-
-* Added: you can now set input rules on each form field. Depending on the field type, you can choose the allowed character type (digits, letters, letters and digits, katakana, hiragana, or hiragana/katakana), a length range (minimum and maximum), and a match check against another field (such as an email confirmation field). Fields with no rule set behave exactly as before.
-* Added: for the half-width character types, full-width letters and digits entered by a visitor are converted to half-width automatically, and the converted value is used on the confirmation screen and in the saved answer.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
