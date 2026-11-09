@@ -36,6 +36,8 @@ slug: "gtm"
 | 確認画面 | `smart_booking_step` | `confirm` | 確認画面表示時 |
 | 完了画面 | `smart_booking_complete` | `complete` | 予約完了画面表示時（コンバージョン地点） |
 
+> 完了画面のイベント（`smart_booking_complete`）にだけ、`event` と `booking_step` に加えて **予約番号 `reservation_id`** が入ります（v0.6.4 以降）。値は文字列で（例: `"123"`）、画面に表示される「#123」の「#」は付きません。管理者宛メールなどで使うメール変数 `{reservation_id}` と同じ値です。途中のステップ（`smart_booking_step`）のイベントには入りません。お客さまの氏名・メールアドレス・電話番号などの個人情報は、どのイベントにも含まれません。
+
 > 設定で店舗選択ステップを OFF にしている場合は `store_select` イベントは送信されません。担当者選択ステップを OFF にしている場合も同様に `staff_select` は送信されず、その次のステップ（日付選択）から計測が始まります。ショートコードで店舗を指定している場合や、店舗・担当者を登録していない場合など、ステップが自動でスキップされたときも同様に、そのステップのイベントは送信されません。
 > 現実装ではフォーム上で「日付・時間選択」と「フォーム入力」が 1 画面に統合されているため、画面表示と同時に `date_select` と `form_input` の 2 イベントが積まれ（表示順序の設定が「フォーム → 日付・時間」の場合は `form_input` → `date_select` の順）、`time_select` はその後お客さまが日付を選んだ時点で積まれます。GTM 側で「ステップごとに 1 回だけ」発火させたい場合はイベント名と `booking_step` の組み合わせをトリガー条件に明記してください。
 > 確認画面から「入力内容を修正する」で戻ると、`date_select` / `time_select` / `form_input` が再度送信され、確認画面に進み直すと `confirm` も再度送信されます（表示されたステップを都度送る仕様です）。
@@ -55,7 +57,7 @@ slug: "gtm"
   { event: 'smart_booking_step',     booking_step: 'form_input' },
   { event: 'smart_booking_step',     booking_step: 'time_select' },
   { event: 'smart_booking_step',     booking_step: 'confirm' },
-  { event: 'smart_booking_complete', booking_step: 'complete' }
+  { event: 'smart_booking_complete', booking_step: 'complete', reservation_id: '123' }
 ]
 ```
 
@@ -69,6 +71,13 @@ GTM 管理画面 →「変数」→「ユーザー定義変数」→「新規」
 - データレイヤーの変数名: `booking_step`
 
 これで GA4 タグやトリガー条件で予約ステップ名を参照できるようになります。
+
+予約番号を成果タグの注文 ID などに使う場合は、同じ手順でもう 1 つ作成します。
+
+- 変数名: `DLV - reservation_id`
+- データレイヤーの変数名: `reservation_id`
+
+`reservation_id` は完了画面のイベント（`smart_booking_complete`）にだけ入るため、この変数は `Smart Booking - 予約完了` トリガーで発火するタグの中で使ってください。
 
 ### 2. カスタムイベントトリガーを作成
 
@@ -105,6 +114,17 @@ GTM 管理画面 →「タグ」→「新規」→ **GA4 イベント** を選�
 ### 4. Google広告コンバージョンタグを設定する場合
 
 「タグ」→「新規」→ **Google広告のコンバージョントラッキング** を選び、コンバージョン ID とコンバージョンラベルを入力してください。トリガーは同じく `Smart Booking - 予約完了` を指定します。
+
+「取引 ID」の欄に `{{DLV - reservation_id}}` を指定すると、同じ予約のコンバージョンが重複して計上されるのを防げます。
+
+### 5. アフィリエイト（ASP）成果タグの注文IDに使う
+
+アフィリエイトサービス（ASP）の成果タグを GTM の「カスタム HTML」タグなどで設置する場合は、成果タグの注文 ID（注文番号）の部分に `{{DLV - reservation_id}}` を指定し、トリガーに `Smart Booking - 予約完了` を指定します。
+
+これで ASP の管理画面に記録される注文 ID が、Smart Booking の予約一覧や管理者宛メールに表示される予約番号と同じになり、成果と予約を照合できます。
+
+- 注文 ID のパラメータ名や書き方は ASP ごとに異なります。各 ASP の成果タグの説明に従ってください。
+- 予約番号は数字だけの文字列で、「#」は付きません。
 
 ## 動作確認
 
