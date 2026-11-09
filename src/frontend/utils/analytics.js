@@ -16,11 +16,21 @@
  *   確認画面         | smart_booking_step       | confirm
  *   完了画面         | smart_booking_complete   | complete
  *
+ * 追加プロパティ（完了画面のみ）:
+ *   reservation_id   | 予約番号（予約テーブルの id を文字列化したもの。「#」なし）。
+ *                    | メール変数 {reservation_id} と同じ値。完了画面に予約データが
+ *                    | 無いフォールバック表示ではキー自体を付けない。
+ *   個人情報（氏名・メール・電話など）は push しない。
+ *
  * GTM が存在しない環境でも window.dataLayer への push は安全に動作する
  * （配列が無ければここで生成し、プッシュした内容は単に未消費のまま残るだけ）。
  */
 
-export function pushBookingEvent( step ) {
+/**
+ * @param {string} step  ステップ識別子（上表の booking_step）。
+ * @param {Object} extra 任意の追加プロパティ（現状は完了時の reservation_id のみ）。
+ */
+export function pushBookingEvent( step, extra ) {
 	if ( typeof window === 'undefined' ) {
 		return;
 	}
@@ -30,5 +40,6 @@ export function pushBookingEvent( step ) {
 	window.dataLayer.push( {
 		event: step === 'complete' ? 'smart_booking_complete' : 'smart_booking_step',
 		booking_step: step,
+		...( extra && typeof extra === 'object' ? extra : {} ),
 	} );
 }

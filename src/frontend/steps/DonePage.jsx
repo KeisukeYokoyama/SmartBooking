@@ -28,8 +28,13 @@ export default function DonePage({ state }) {
 	}, []);
 
 	// GTM 連携: 完了画面マウント時に complete を送信（イベント名は smart_booking_complete）。
+	// 予約データがあるときだけ reservation_id（「#」なしの文字列・メール変数 {reservation_id} と同値）を付ける。
 	useEffect(() => {
-		pushBookingEvent('complete');
+		if (completedReservation && completedReservation.id !== undefined && completedReservation.id !== null) {
+			pushBookingEvent('complete', { reservation_id: String(completedReservation.id) });
+		} else {
+			pushBookingEvent('complete');
+		}
 	}, []);
 
 	if (!completedReservation) {
