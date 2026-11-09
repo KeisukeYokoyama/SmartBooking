@@ -1,6 +1,26 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-10-21
+最終更新: 2026-11-09
+
+## ✅ v0.6.4：予約完了時の dataLayer に reservation_id を追加 — **WordPress.org 公開済み・SVN r3791771**
+
+**状態: 公開済み。** `svn ci` 完了（人間 GO のうえ実行・**r3791771**・2026-11-09 12:13 JST・`trunk` と `tags/0.6.4/` 両方）。git はタグ `v0.6.4`（`3763568`）push 済み。公開ページへの反映は未確認。
+発端: アフィリエイト成果タグの注文ID（u）に予約番号を使い、予約データ・管理者メール・ASP 成果を同じ番号で照合したい。
+
+- **変更**（`1e583cf`）: `pushBookingEvent(step, extra)` に任意の第2引数を追加。`DonePage.jsx` は `completedReservation.id` があるときだけ
+  `{ reservation_id: String(id) }` を渡す（「#」なし・メール変数 `{reservation_id}`（`class-reservation-context.php:162`）と同値）。
+  フォールバック表示ではキー自体を付けない。途中ステップ（`smart_booking_step`）は `event`/`booking_step` の2項目のまま不変。個人情報は push しない。
+- **検証**: wp-env で UI 完走し dataLayer 末尾 `{event:'smart_booking_complete',booking_step:'complete',reservation_id:'1697'}`・画面「#1697」・DB 最大 id 1697 が一致。
+  管理者宛メール本文（mail-catcher 経由・実送信と同じ展開経路）で共通テンプレート「予約番号: 1697」、フォーム別上書き「フォーム別 予約番号: 1698」。
+  既存 `gtm-datalayer.spec.ts` 3件パス。`npm run build` 成功。一時検証 spec は削除済み（コミットなし）。フルスイートは未実行（依頼どおり）。
+- **リリース**（`3763568`）: バージョン4箇所 0.6.4・CHANGELOG.md / readme.txt Changelog 追記（readme は直近3版＝0.6.4/0.6.3/0.6.2 に整理し 0.6.1 を削除）・
+  `docs/help/markdown/gtm.md` に reservation_id の注記・例・`DLV - reservation_id`・Google広告の取引 ID・「5. アフィリエイト（ASP）成果タグの注文IDに使う」を追記。
+
+### 起票候補・残作業（2026-11-09）
+- **（要対応・文書）公式サイト側 `~/dev/smart-booking-website/content/help/markdown/gtm.md:20` が「`event` と `booking_step` の 2 項目だけ…予約番号…は含まれません」のままで、v0.6.4 で誤りになった。** 76行目の例・88行目〜の変数・129行目〜の Google広告/ASP 節も未反映。プラグイン docs 側との既存差分も未同期。
+- **（低・文書）** `readme.txt:29`（Key Features の GTM 説明）は reservation_id に触れていない（誤りではない）。GlotPress: 0.6.4 Changelog は新規原文。
+- **（低・lint）** `analytics.js` の `event: step === 'complete' ? ...` 行に既存の prettier エラー1件。`src/frontend/steps/*.jsx` も ESLint 対象外（`src/admin/**/*.jsx` と同じ）。
+- **（低・運用）** git タグ `v0.6.4` は注釈付きタグで作成（`v0.6.3` 以前は軽量タグ）。実害なし。
 
 ## ✅ v0.6.3：満席・締切の文言が予約フォームに表示されない不具合の修正 — **WordPress.org 公開済み・SVN r3757884**
 
