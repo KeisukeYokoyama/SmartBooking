@@ -1,6 +1,27 @@
 # Smart Booking 引き継ぎ state
 
-最終更新: 2026-11-09
+最終更新: 2026-11-13
+
+## 🚧 v0.6.5：確認画面・完了画面の URL パラメータ付与 — **git commit 済み・ZIP 作成済み・SVN 未着手（人間 GO 待ち）**
+
+**状態: 停止①（SVN 作業の GO 待ち）。** 正本は `docs/spec-amendment-v065-step-url-param.md`。
+発端: GTM を使っていないサイトでも、GA4 拡張計測（履歴イベント）や広告媒体の URL 条件コンバージョンで確認画面到達・予約完了を計測したい。
+
+- **設定**: 外部連携タブに「確認画面・完了画面でURLパラメータを付ける」（`smart_booking_step_url_param_enabled`・bool・初期値 OFF）。
+  REST `/settings` schema・`/public/settings`（キー `step_url_param_enabled`・追加のみ）・activator 初期値・uninstall 削除対象に追加。
+  フロントの settings は `wp_localize_script` ではなく `/public/settings` 経由（`show_store_front` と同じ経路）。
+- **フロント**: `App.jsx` の `useEffect`（`state.step` の変化を1か所で監視）→ `utils/stepUrlParam.js`。main→confirm で `smt_booking=confirm`、
+  confirm→done で `complete` に置換、confirm→main（修正する／409 の「日付を選び直す」）で除去。すべて `pushState`・同一 URL なら no-op・既存クエリ/ハッシュ保持・例外は握りつぶす。
+  dataLayer は無改変（子の effect が先に走るので push → URL の順）。
+- **検証**: `gtm-datalayer.spec.ts` に4ケース追加し既存3件と合わせ desktop 7件パス。`npm run build` 成功。
+  phpcs 変更4ファイル 0 errors（warning は既存と同種の `=>` 位置揃え +2）。ESLint: 新規 `stepUrlParam.js` 0件、テスト2ファイルは変更前と同数（既存の prettier エラーのみ）。
+  JSX（App.jsx・IntegrationSettingsTab.jsx）は従来どおり ESLint 対象外。フルスイートは未実行（依頼どおり）。
+- **リリース準備**: バージョン4箇所 0.6.5・CHANGELOG.md / readme.txt Changelog 追記（readme は直近3版＝0.6.5/0.6.4/0.6.3 に整理し 0.6.2 を削除）。
+
+### 起票候補・残作業（2026-11-13）
+- **（要対応・文書・別セッション）** 公式サイト（smart-booking-website）のヘルプに本設定の説明が無い。プラグイン側 `docs/help/markdown/` も未更新。
+- **（低・ツール）** `npx wp-scripts lint-js --fix <ファイル>` はパス指定を無視してリポジトリ全体（tests/e2e 等 33 ファイル）を整形する。今回は差分をパッチ保存のうえ逆適用で元に戻した。`--fix` は使わないこと。
+- **（低・テスト）** E2E の `FRONT_PAGE_PATH`（`/?page_id=5`）は wp-env 上でパーマリンク URL へリダイレクトされる。URL を比較するテストでは `page_id` の残存を前提にしないこと。
 
 ## ✅ v0.6.4：予約完了時の dataLayer に reservation_id を追加 — **WordPress.org 公開済み・SVN r3791771**
 

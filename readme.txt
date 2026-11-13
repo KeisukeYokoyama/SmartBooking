@@ -4,7 +4,7 @@ Tags: booking, reservation, appointment, calendar, schedule
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.6.4
+Stable tag: 0.6.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -154,6 +154,10 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 
 == Changelog ==
 
+= 0.6.5 – 2026-11-13 =
+
+* Added: a new option in Settings > Integrations, "Add URL parameters on the confirmation and completion screens". When enabled, "?smt_booking=confirm" is added to the page URL when the confirmation screen is shown, and "?smt_booking=complete" when the booking completion screen is shown. The page is not reloaded. This lets sites without Google Tag Manager measure confirmation views and completed bookings with Google Analytics 4 (GA4) enhanced measurement or with URL-based conversions in ad platforms. The parameter is removed when the customer goes back from the confirmation screen to edit the booking or to choose another date. Existing URL parameters (such as utm_source) are kept. The option is off by default, and nothing changes while it is off. The dataLayer events are unchanged.
+
 = 0.6.4 – 2026-11-09 =
 
 * Added: the GTM (Google Tag Manager) dataLayer event sent when a booking is completed (`smart_booking_complete`) now includes the reservation number (`reservation_id`). It is the same number shown on the completion screen and in the administrator email (digits only, without "#"), so you can use it as the order ID in affiliate (ASP) conversion tags or as the transaction ID for Google Ads conversions. No personal information such as name, email address or phone number is sent. The events for the other steps (`smart_booking_step`) are unchanged.
@@ -161,12 +165,6 @@ Running the WordPress "Delete" action removes the seven custom tables created by
 = 0.6.3 – 2026-10-21 =
 
 * Fixed: the text set in Settings > Basic for "Full" and "Closed" was not shown on the booking form. Full and closed time slots showed only the "×" mark, and the text appeared only for screen readers. The text is now shown next to the time, in the same style as "Few left" (for example "× 10:00–11:00 Full"). The "×" mark is kept. If the setting is empty, the default text is shown.
-
-= 0.6.2 – 2026-10-20 =
-
-* Changed: you can now set the number of available bookings for a time slot to 0. A slot set to 0 is shown as "Full" on the booking form and cannot be booked. This is useful when you want to keep a time slot on the schedule but stop accepting bookings for it. Copying a schedule keeps the 0 as it is.
-* Changed: when creating a reservation manually with the status "Approved", the administrator no longer receives the "new reservation" email, because the reservation was made by the administrator. The customer still receives the booking confirmation email.
-* Emails for reservations created manually with the status "Pending" or "Cancelled", and for reservations made through the booking form, are unchanged.
 
 For earlier releases, see the full changelog:
 https://github.com/KeisukeYokoyama/SmartBooking/blob/main/CHANGELOG.md
