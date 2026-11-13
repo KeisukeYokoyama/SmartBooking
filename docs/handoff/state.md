@@ -2,9 +2,10 @@
 
 最終更新: 2026-11-13
 
-## 🚧 v0.6.5：確認画面・完了画面の URL パラメータ付与 — **git commit 済み・ZIP 作成済み・SVN 未着手（人間 GO 待ち）**
+## ✅ v0.6.5：確認画面・完了画面の URL パラメータ付与 — **WordPress.org 公開済み・SVN r3800224**
 
-**状態: 停止①（SVN 作業の GO 待ち）。** 正本は `docs/spec-amendment-v065-step-url-param.md`。
+**状態: 公開済み。** `svn ci` 完了（人間 GO のうえ実行・**r3800224**・2026-11-13 19:50 JST・`trunk` と `tags/0.6.5/` 両方）。git はタグ `v0.6.5`（`24ccdda`・注釈付き）push 済み。公開ページへの反映は未確認。
+配布物ゲート: ZIP 31 ファイル・混入なし・Plugin Check の指摘 22 ファイルはすべて ZIP 外（配布物への指摘 0）。 正本は `docs/spec-amendment-v065-step-url-param.md`。
 発端: GTM を使っていないサイトでも、GA4 拡張計測（履歴イベント）や広告媒体の URL 条件コンバージョンで確認画面到達・予約完了を計測したい。
 
 - **設定**: 外部連携タブに「確認画面・完了画面でURLパラメータを付ける」（`smart_booking_step_url_param_enabled`・bool・初期値 OFF）。
