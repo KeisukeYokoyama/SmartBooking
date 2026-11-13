@@ -65,6 +65,12 @@ class Smart_Booking_REST_Public extends Smart_Booking_REST_Base {
 				'default' => 0,
 				'type'    => 'bool',
 			),
+			// v0.6.5: 確認画面・完了画面で URL パラメータを付けるか（初期値 OFF・追加のみ・非破壊）。
+			'smart_booking_step_url_param_enabled' => array(
+				'key'     => 'step_url_param_enabled',
+				'default' => 0,
+				'type'    => 'bool',
+			),
 			'smart_booking_store_label'            => array(
 				'key'     => 'store_label',
 				'default' => '',

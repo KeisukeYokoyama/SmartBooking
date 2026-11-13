@@ -14,7 +14,7 @@
  *
  * 表示順序（flow_order）は MainInputPage 内のセクション順序で吸収する。
  */
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { publicAPI } from './api';
 import ErrorMessage from './components/ErrorMessage';
 import Spinner from './components/Spinner';
@@ -24,6 +24,7 @@ import DonePage from './steps/DonePage';
 import MainInputPage from './steps/MainInputPage';
 import StaffSelect from './steps/StaffSelect';
 import StoreSelect from './steps/StoreSelect';
+import { syncStepUrlParam } from './utils/stepUrlParam';
 
 /**
  * "#rrggbb" 形式の HEX を { r, g, b } に変換する。不正な形式は null。
@@ -72,6 +73,19 @@ function sbSameColor(a, b) {
 
 export default function App({ fixedStoreId = 0, fixedFormId = 0 }) {
 	const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+
+	// v0.6.5: 確認画面・完了画面の URL パラメータ（?smt_booking=confirm|complete）。
+	// ステップの変化はここ 1 か所で扱う（ConfirmPage / DonePage には書かない）。
+	// 子（ConfirmPage / DonePage）の useEffect が先に走るため、順序は dataLayer push → URL 変更になる。
+	// 設定 OFF（初期値）のときは URL に一切触れない。
+	const prevStepRef = useRef(state.step);
+	useEffect(() => {
+		const prevStep = prevStepRef.current;
+		prevStepRef.current = state.step;
+		if (prevStep === state.step) return;
+		if (!state.settings || state.settings.step_url_param_enabled !== true) return;
+		syncStepUrlParam(prevStep, state.step);
+	}, [state.step, state.settings]);
 
 	// 初期データ取得。
 	useEffect(() => {

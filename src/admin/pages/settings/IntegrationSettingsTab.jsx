@@ -24,6 +24,7 @@ const KEYS = [
 	'smart_booking_chatwork_enabled',
 	'smart_booking_chatwork_api_token',
 	'smart_booking_chatwork_room_id',
+	'smart_booking_step_url_param_enabled',
 ];
 
 function hydrate(settings) {
@@ -33,6 +34,7 @@ function hydrate(settings) {
 		smart_booking_chatwork_enabled: !!Number(settings.smart_booking_chatwork_enabled || 0),
 		smart_booking_chatwork_api_token: settings.smart_booking_chatwork_api_token || '',
 		smart_booking_chatwork_room_id: settings.smart_booking_chatwork_room_id || '',
+		smart_booking_step_url_param_enabled: !!Number(settings.smart_booking_step_url_param_enabled || 0),
 	};
 }
 
@@ -135,6 +137,7 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 			smart_booking_chatwork_enabled: values.smart_booking_chatwork_enabled ? 1 : 0,
 			smart_booking_chatwork_api_token: values.smart_booking_chatwork_api_token,
 			smart_booking_chatwork_room_id: values.smart_booking_chatwork_room_id,
+			smart_booking_step_url_param_enabled: values.smart_booking_step_url_param_enabled ? 1 : 0,
 		};
 		if (credentialsAction === 'upload') {
 			patch.smart_booking_google_calendar_credentials_json = credentialsJson;
@@ -299,6 +302,30 @@ export default function IntegrationSettingsTab({ settings, onSave, saving, onDir
 						通知が届かない場合は、通知専用の ChatWork アカウントを作成し、そのAPIトークンを
 						設定してください。自分のルームに対して自分のトークンで投稿すると届かないことがあります。
 					</p>
+				</div>
+			</div>
+
+			<div className="smb-settings-section">
+				<div className="smb-settings-section__header">
+					<h3 className="smb-settings-section__title">確認画面・完了画面でURLパラメータを付ける</h3>
+					<p className="smb-settings-section__lead">
+						有効にすると、確認画面の表示時にページのURLへ「?smt_booking=confirm」を、予約完了画面の表示時に「?smt_booking=complete」を追加します。Googleアナリティクス4（GA4）や広告媒体で、URLを条件にしたコンバージョン計測ができるようになります。ページの再読み込みは発生しません。
+					</p>
+				</div>
+
+				<div className="smb-settings-row">
+					<div className="smb-settings-row__label">有効/無効</div>
+					<div className="smb-settings-row__control">
+						<Switch
+							checked={values.smart_booking_step_url_param_enabled}
+							onChange={(v) => update({ smart_booking_step_url_param_enabled: v })}
+							label={
+								values.smart_booking_step_url_param_enabled
+									? '有効（URLパラメータを付ける）'
+									: '無効（URLを変更しない）'
+							}
+						/>
+					</div>
 				</div>
 			</div>
 

@@ -17,6 +17,7 @@ import { test, expect } from '@playwright/test';
 const helpers = require('./phase3-helpers');
 
 const {
+	FRONT_PAGE_PATH,
 	gotoFrontForm,
 	restoreBaseline,
 	setOption,
@@ -250,3 +251,189 @@ test.describe('GTM dataLayer 連携', () => {
 		expect(errors, errors.join('\n')).toEqual([]);
 	});
 });
+
+/**
+ * v0.6.5: 確認画面・完了画面の URL パラメータ（?smt_booking=confirm|complete）。
+ * 設定 smart_booking_step_url_param_enabled（初期値 OFF）が ON のときだけ pushState で URL を変える。
+ */
+test.describe( '確認画面・完了画面の URL パラメータ（v0.6.5）', () => {
+	test.setTimeout( 60_000 );
+
+	test.beforeEach( async () => {
+		// restoreBaseline は smart_booking_step_url_param_enabled も削除する（＝初期値 OFF）。
+		restoreBaseline();
+		const rows: Array< {
+			storeId: number;
+			staffId: number;
+			date: string;
+			start: string;
+			end: string;
+			capacity: number;
+		} > = [];
+		for ( let i = 1; i <= 3; i++ ) {
+			rows.push( {
+				storeId: USER_STORE_ID,
+				staffId: USER_STAFF_ID,
+				date: ymd( i ),
+				start: '10:00:00',
+				end: '11:00:00',
+				capacity: 3,
+			} );
+		}
+		insertSchedulesBulk( rows );
+	} );
+
+	test.afterAll( async () => {
+		restoreBaseline();
+	} );
+
+	/**
+	 * 入力画面を開き、時間枠を選んで確認画面まで進む。
+	 * @param page
+	 * @param extraQuery
+	 */
+	async function goToConfirm(
+		page: import('@playwright/test').Page,
+		extraQuery = ''
+	) {
+		if ( extraQuery ) {
+			await page.goto( `${ FRONT_PAGE_PATH }&${ extraQuery }`, {
+				waitUntil: 'domcontentloaded',
+			} );
+			await page
+				.waitForSelector( '.smb-front-root .smb-front-loading', {
+					state: 'detached',
+					timeout: 15_000,
+				} )
+				.catch( () => {} );
+		} else {
+			await gotoFrontForm( page );
+		}
+		await expect(
+			page.getByRole( 'heading', { name: '日付選択' } )
+		).toBeVisible();
+		await page.waitForSelector( '.smb-front-day-tile:not(.is-disabled)', {
+			timeout: 10_000,
+		} );
+		await page
+			.locator( '.smb-front-day-tile:not(.is-disabled)' )
+			.first()
+			.click();
+		await page.getByRole( 'button', { name: /10:00から11:00/ } ).click();
+		await fillCoreFormAndGoConfirm( page, {
+			name: 'ユーアール エル',
+			email: 'url@example.com',
+			phone: '090-1234-5678',
+		} );
+		await expect(
+			page.getByRole( 'heading', { name: '予約内容の確認' } )
+		).toBeVisible();
+	}
+
+	async function submitAndWaitDone( page: import('@playwright/test').Page ) {
+		await page.getByRole( 'button', { name: '予約を確定する' } ).click();
+		await expect(
+			page.getByRole( 'heading', {
+				name: 'ご予約ありがとうございました',
+			} )
+		).toBeVisible( { timeout: 10_000 } );
+	}
+
+	async function bookingEvents( page: import('@playwright/test').Page ) {
+		return page.evaluate( () => {
+			const dl =
+				( window as unknown as { dataLayer?: DataLayerEntry[] } )
+					.dataLayer || [];
+			return dl
+				.filter(
+					( e ) =>
+						e.event === 'smart_booking_step' ||
+						e.event === 'smart_booking_complete'
+				)
+				.map( ( e ) => `${ e.event }:${ e.booking_step }` );
+		} );
+	}
+
+	test( 'OFF（初期値）: 確認画面・完了画面とも URL が変わらず、dataLayer は従来どおり', async ( {
+		page,
+	} ) => {
+		await goToConfirm( page );
+		const urlAtConfirm = new URL( page.url() );
+		expect( urlAtConfirm.searchParams.has( 'smt_booking' ) ).toBe( false );
+		const historyAtConfirm = await page.evaluate(
+			() => window.history.length
+		);
+		await submitAndWaitDone( page );
+		expect( page.url() ).toBe( urlAtConfirm.toString() );
+		expect( page.url() ).not.toContain( 'smt_booking' );
+		expect( await page.evaluate( () => window.history.length ) ).toBe(
+			historyAtConfirm
+		);
+
+		const events = await bookingEvents( page );
+		expect( events ).toContain( 'smart_booking_step:confirm' );
+		expect( events ).toContain( 'smart_booking_complete:complete' );
+	} );
+
+	test( 'ON: 確認画面で confirm → 完了画面で complete に置き換わる', async ( {
+		page,
+	} ) => {
+		setOption( 'smart_booking_step_url_param_enabled', 1 );
+		await goToConfirm( page );
+		await expect
+			.poll( () =>
+				new URL( page.url() ).searchParams.getAll( 'smt_booking' )
+			)
+			.toEqual( [ 'confirm' ] );
+
+		await submitAndWaitDone( page );
+		await expect
+			.poll( () =>
+				new URL( page.url() ).searchParams.getAll( 'smt_booking' )
+			)
+			.toEqual( [ 'complete' ] );
+		expect( page.url() ).not.toContain( 'confirm' );
+
+		const events = await bookingEvents( page );
+		expect( events ).toContain( 'smart_booking_step:confirm' );
+		expect( events ).toContain( 'smart_booking_complete:complete' );
+	} );
+
+	test( 'ON: 確認画面で「修正する」を押すと smt_booking が消える', async ( {
+		page,
+	} ) => {
+		setOption( 'smart_booking_step_url_param_enabled', 1 );
+		await goToConfirm( page );
+		await expect
+			.poll( () =>
+				new URL( page.url() ).searchParams.get( 'smt_booking' )
+			)
+			.toBe( 'confirm' );
+
+		await page.getByRole( 'button', { name: '修正する' } ).click();
+		await expect(
+			page.getByRole( 'heading', { name: '日付選択' } )
+		).toBeVisible();
+		await expect
+			.poll( () =>
+				new URL( page.url() ).searchParams.has( 'smt_booking' )
+			)
+			.toBe( false );
+	} );
+
+	test( 'ON ＋ 既存クエリ: 完了後に utm_source と smt_booking=complete の両方が残る', async ( {
+		page,
+	} ) => {
+		setOption( 'smart_booking_step_url_param_enabled', 1 );
+		await goToConfirm( page, 'utm_source=test' );
+		await submitAndWaitDone( page );
+		await expect
+			.poll( () =>
+				new URL( page.url() ).searchParams.get( 'smt_booking' )
+			)
+			.toBe( 'complete' );
+		const params = new URL( page.url() ).searchParams;
+		expect( params.get( 'utm_source' ) ).toBe( 'test' );
+		expect( params.getAll( 'smt_booking' ) ).toEqual( [ 'complete' ] );
+	} );
+} );

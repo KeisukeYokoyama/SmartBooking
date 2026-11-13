@@ -447,6 +447,8 @@ class Smart_Booking_Activator {
 			'smart_booking_chatwork_enabled'             => 0,
 			'smart_booking_chatwork_api_token'           => '',
 			'smart_booking_chatwork_room_id'             => '',
+			// v0.6.5: 確認画面・完了画面の URL パラメータ付与（初期値 OFF）.
+			'smart_booking_step_url_param_enabled'       => 0,
 
 			// デザイン（フロント予約フォームのブランドカラー）.
 			'smart_booking_color_button'                 => '#f43f5e',

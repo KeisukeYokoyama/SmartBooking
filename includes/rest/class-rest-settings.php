@@ -66,6 +66,8 @@ class Smart_Booking_REST_Settings extends Smart_Booking_REST_Base {
 			'smart_booking_chatwork_enabled'                 => 'bool',
 			'smart_booking_chatwork_api_token'               => 'text',
 			'smart_booking_chatwork_room_id'                 => 'text',
+			// v0.6.5: 確認画面・完了画面で URL パラメータ（?smt_booking=confirm|complete）を付ける。外部通信は発生しない.
+			'smart_booking_step_url_param_enabled'           => 'bool',
 
 			// デザイン.
 			'smart_booking_color_button'                     => 'color',

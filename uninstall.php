@@ -73,6 +73,8 @@ function smart_booking_run_uninstall() {
 		'smart_booking_chatwork_enabled',
 		'smart_booking_chatwork_api_token',
 		'smart_booking_chatwork_room_id',
+		// v0.6.5: 確認画面・完了画面の URL パラメータ付与.
+		'smart_booking_step_url_param_enabled',
 		// デザイン.
 		'smart_booking_color_button',
 		'smart_booking_color_date_selected',

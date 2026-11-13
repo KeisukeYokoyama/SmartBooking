@@ -90,6 +90,8 @@ function restoreBaseline() {
 		'smart_booking_color_focus',
 		'smart_booking_show_store_front',
 		'smart_booking_show_staff_front',
+		// v0.6.5: URL パラメータ付与（ON が後続テストへ漏れないよう削除して初期値 OFF に戻す）.
+		'smart_booking_step_url_param_enabled',
 	];
 	optionsToDelete.forEach( ( k ) => {
 		try {
